@@ -203,7 +203,20 @@ export const DICT = {
   ...both('search-filters', ['quick search', 'search', 'filter', 'filters', 'hidden', 'respect', 'history search']),
   ...both('set-stack', ['stack', 'stacked', 'filter sets', 'sets', 'and', 'or', 'combine', 'all', 'any', 'filter']),
   ...both('next-mode', ['next', 'increment', 'plus one', 'number', 'fuzzy', 'chip', 'ctrl shift s', 'following']),
-  ...both('compact', ['compact', 'compact view', 'minimal', 'hide history', 'small', 'simple', 'alt shift c']),
+  ...both('compact', [
+    'compact',
+    'compact view',
+    'minimal',
+    'hide history',
+    'small',
+    'simple',
+    'alt shift c',
+    'centre',
+    'center',
+    'hide buttons',
+    'clean',
+    'focus',
+  ]),
 
   // ---- My defaults (per-row buttons shown while signed in)
   ...Object.fromEntries(

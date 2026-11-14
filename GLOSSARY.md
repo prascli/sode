@@ -283,7 +283,7 @@ The chip in a patch box that fills it with the value after Last, either the numb
 The state where keys act on History entries instead of the patch boxes. Esc from empty patch boxes starts it and any click ends it. Compact view has none.
 
 **Compact view**:
-The desktop main page with History hidden, leaving the patch boxes, results, Presets and the footer. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
+The desktop main page with History hidden and the title, patch boxes and a smaller Presets row centred in the window. The Settings and Sode Panels buttons, the Lock bar and the Server and Router status fade out until pointed at or focused; the status shows again whenever either link is not up. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
 
 **Server link**:
 The connection between a browser and the Sode server.

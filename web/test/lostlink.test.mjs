@@ -27,3 +27,16 @@ test('no banner while both links are up', () => {
   Object.assign(S, { wsLost: false, wsState: 'up', router: 'up' });
   assert.equal(connState().down, null);
 });
+
+test('ok only while both links are up', () => {
+  Object.assign(S, { wsLost: false, wsState: 'up', router: 'up' });
+  assert.equal(connState().ok, true);
+  for (const router of ['connecting', 'down', '', undefined]) {
+    Object.assign(S, { router, routerLastErr: '' });
+    assert.equal(connState().ok, false, `router ${router}`);
+  }
+  Object.assign(S, { wsState: 'connecting', router: 'up' });
+  assert.equal(connState().ok, false);
+  Object.assign(S, { wsLost: true, wsState: 'down', router: 'up' });
+  assert.equal(connState().ok, false);
+});

@@ -42,7 +42,7 @@ History lists every take, shared by all browsers and kept in a log. Undo restore
 
 ### Compact view
 
-Alt+Shift+c (⌥⇧c on a Mac) hides History on the desktop main page, and pressing it again shows it. The patch boxes, results, Presets and the footer stay. The key works from inside the patch boxes too, so on a Mac Option+Shift+c toggles Compact view there instead of typing Ç. It sets This browser; Settings can also set it for your profile or for Everyone. With History hidden there is no keyboard mode, and Esc only clears the boxes. While the preset editor's **Add from History…** is picking takes, History shows again so you can pick them. The phone layout ignores Compact view.
+Alt+Shift+c (⌥⇧c on a Mac) turns Compact view on or off on the desktop main page. It hides History and centres the title, the patch boxes and a smaller Presets row in the window; results show under Presets without moving the boxes. The Settings and Sode Panels buttons (bottom left), the Lock bar (top left) and the Server and Router status (top right) fade out and come back while pointed at or focused, and keep their place. The status fades only while both links are up: any other state, and the Lost link banner, always show. The key works from inside the patch boxes too, so on a Mac Option+Shift+c toggles Compact view there instead of typing Ç. It sets This browser; Settings can also set it for your profile or for Everyone. With History hidden there is no keyboard mode, and Esc only clears the boxes. While the preset editor's **Add from History…** is picking takes, History shows again so you can pick them. The phone layout ignores Compact view.
 
 ### Search and filters
 

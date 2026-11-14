@@ -289,7 +289,58 @@
   z-index: var(--pb-z-sticky);
 }
 
-/* Compact view: History hidden on desktop, back while a preset picks takes from it (historypick.js sets data-sode-pick=""). Keep in step with historyShown() in desktophistory.js. */
+/* Compact view (pref compact, html[data-compact]): desktop only, and the usual page again while a preset picks takes from
+   History (historypick.js sets data-sode-pick=""). Keep in step with historyShown() in desktophistory.js. */
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view > .sode__history {
   display: none;
+}
+/* The block sits in the middle of the viewport. The match lists are already out of flow; #result hangs below Presets
+   out of flow too, so a failed take doesn't move the boxes. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) .sode {
+  display: grid;
+  grid-template-columns: minmax(0, 75rem);
+  min-height: 100dvh;
+  padding: calc(var(--pb-space-8) + var(--sode-down-h, 0px)) var(--pb-space-8) var(--pb-space-8);
+  place-content: center;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view {
+  gap: var(--pb-space-6);
+  position: relative;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view > .sode__result {
+  left: 0;
+  margin-top: var(--pb-space-4);
+  position: absolute;
+  top: 100%;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets {
+  margin: 0;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view .sode__presets > .sode__label {
+  flex: none;
+  font-size: var(--pb-text-xs);
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets > .sode__sets {
+  gap: var(--pb-space-1);
+  justify-content: flex-start;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets .sode__set {
+  font-size: var(--pb-text-xs);
+  min-height: var(--pb-control-h-sm);
+}
+/* Chrome fades out but keeps its place, its tab stop and its name; hover or focus brings it back. The server and router
+   status hides only while both links are up (sode__conn--ok, desktop.js), so a fault always shows with its words. The
+   Lock bar fades on .sode-lock__who-bar: .sode-lock__who's own transition belongs to the lock screen, which leaves it shown (is-hand). */
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand) .sode-lock__who-bar {
+  opacity: 0;
+  transition: opacity var(--pb-motion-fast) var(--pb-ease);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer:is(:hover, :focus-within),
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok:hover,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock])
+  .sode-lock__who:not(.is-hand):is(:hover, :focus-within)
+  .sode-lock__who-bar {
+  opacity: 1;
 }
