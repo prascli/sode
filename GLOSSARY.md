@@ -156,6 +156,38 @@ _Avoid_: This device
 **Guest**:
 Someone who is not signed in. A guest sees This browser and Everyone values and has no Me scope. Guests have one rights entry, and the same entry covers an API call that sends no key.
 
+### Access in v2
+
+These terms come with the v2 auth model (ADR 0010). When v2 ships they replace the Advanced Settings PIN, the trusted flag and Sign-in mode, and the rows above change with them.
+
+**Role**:
+The one level of control each user holds: Standard, Trusted or Administrator. Rights still limit what any role may route. API clients hold no role.
+
+**Standard user**:
+A user whose role is Standard: patching within their Rights, their own Profile and their own panels. Always say Standard user, never bare Standard.
+
+**Administrator**:
+A user whose role lets them change advanced settings. There is always at least one, and every Administrator has a PIN.
+
+**User without a PIN**:
+A user who signs in by picking their name. Such a user is never Trusted or Administrator, opens no page lock, and acts with Rights no wider than Guest Rights. They exist to keep people's preferences apart.
+_Avoid_: PIN-less user
+
+**Critical action**:
+An advanced setting change that can't be undone or that changes who may do what, such as the router connection, a role or a destructive import. Each one asks a signed-in Administrator for their PIN again.
+
+**PIN recheck**:
+An Administrator typing their own PIN again before a critical action. It holds for one minute on that connection.
+
+**Approval**:
+A qualified user's name and PIN, typed in someone else's browser, that lets one browser do one action that needs a higher role than its own sign-in has. The browser then goes back to its own sign-in. History names both people.
+
+**Request approval**:
+Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
+
+**Public panels allowed**:
+The install-wide switch that lets panel owners make a panel Public. On by default.
+
 ### Panels
 
 **Panel**:
@@ -238,6 +270,9 @@ The panel setting that decides when a panel's plan is confirmed. In Take mode th
 **Clear** (cell kind):
 Cancels the plan the panel has pending. It never changes the router.
 
+**Undo** (cell kind):
+Stages the routes that undo the newest take this instance of the panel made that nothing has undone yet, as a Preset press stages its routes; once taken, the next press steps one take further back. Takes from other instances and from the Sode page are left alone. It is greyed when there is nothing left to undo or the route to restore is outside the panel's Rights.
+
 **Fixed destination**:
 A panel setting that holds a list of destinations the panel always patches to, at most 16. A panel with it set has no viewed destination to choose: a Source press stages a route to each one. An empty list turns it off.
 
@@ -271,13 +306,16 @@ One saved layout per panel in a group, so a single Push gives each panel in the 
 The Source box, the Destination box and the Level box, where a plan is typed. What they hold is a plan until Confirm.
 
 **Last**:
-The chip in a patch box that fills it with that box's value from this browser's most recent take. It is per browser, and the chip is hidden until this browser has made a take.
+The chip in a patch box that fills it with that box's value from this browser's most recent take. It is per browser and kept across reloads, and the chip is hidden until this browser has made a take.
 
 **Next**:
 The chip in a patch box that fills it with the value after Last, either the number plus one or the next router name match, as the browser's Next match behavior says. Pressing it again keeps stepping. It is per browser.
 
 **Keyboard mode**:
-The state where keys act on History entries instead of the patch boxes. Esc from empty patch boxes starts it and any click ends it.
+The state where keys act on History entries instead of the patch boxes. Esc from empty patch boxes starts it and any click ends it. Compact view has none.
+
+**Compact view**:
+The desktop main page with History hidden and the title, patch boxes and a smaller Presets row centred in the window. The Settings and Sode Panels buttons, the Lock bar and the Server and Router status fade out until pointed at or focused; the status shows again whenever either link is not up. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
 
 **Server link**:
 The connection between a browser and the Sode server.
