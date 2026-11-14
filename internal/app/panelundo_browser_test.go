@@ -10,7 +10,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// A panel Undo steps back this instance's takes newest first, skipping another instance's, and greys once none are left.
+// A panel Undo press stages the reverse of this instance's newest take and Take sends it; the next press goes one take
+// further back, skips another instance's takes, and the cell greys once none are left.
 func TestChromePanelUndoStepsBackThisInstance(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -60,15 +61,22 @@ func TestChromePanelUndoStepsBackThisInstance(t *testing.T) {
 	}
 	waitRouted(t, a, ana, elsewhere, simSrc)
 
-	b.waitFor("Undo ready", `!`+undo+`.disabled`)
-	b.eval(undo + `.click()`)
-	waitRouted(t, a, ana, second, second)
-	b.waitFor("the status names the undo", status+`.textContent.startsWith('Undone: ') && `+status+`.classList.contains('sode-panel__status--ok')`)
-	b.shot("first undo")
-
-	b.waitFor("Undo ready again", `!`+undo+`.disabled`)
-	b.eval(undo + `.click()`)
-	waitRouted(t, a, ana, simDst, simDst)
+	// Each press stages the reverse and arms Take; nothing moves until Take.
+	for i, d := range []int{second, simDst} {
+		b.waitFor("Undo ready", `!`+undo+`.disabled`)
+		b.eval(undo + `.click()`)
+		b.waitFor("the undo staged", fmt.Sprintf(`%s[%d].dataset.s === 'staged' && %s.dataset.s === 'pending' && !%s.disabled`, dsts, 1-i, undo, take))
+		if i == 0 {
+			b.shot("undo staged")
+		}
+		if !strings.Contains(apiDo(a, "GET", "/api/v1/tally", ana, nil).Body.String(), fmt.Sprintf(`"dst":%d,"level":1,"src":%d`, d, simSrc)) {
+			t.Fatalf("the Undo press sent the undo of %d before Take", d)
+		}
+		b.eval(take + `.click()`)
+		waitRouted(t, a, ana, d, d)
+		b.waitFor("the status names the undo", status+`.textContent.startsWith('Undone: ') && `+status+`.classList.contains('sode-panel__status--ok')`)
+		b.waitFor("the plan is empty again", undo+`.dataset.s === 'idle' && `+take+`.disabled`)
+	}
 	b.waitFor("Undo greyed with this instance's takes undone", undo+`.disabled`)
 	if !strings.Contains(apiDo(a, "GET", "/api/v1/tally", ana, nil).Body.String(), fmt.Sprintf(`"dst":%d,"level":1,"src":%d`, elsewhere, simSrc)) {
 		t.Fatal("the other instance's take was undone")
