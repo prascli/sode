@@ -230,8 +230,10 @@ function handle(m) {
     case 'sentAdd':
       emit(m.t, m);
       break;
-    default:
-      handlers.get(m.t)?.(m);
+    default: {
+      const fn = handlers.get(m.t);
+      if (typeof fn === 'function') fn(m);
+    }
   }
 }
 
