@@ -335,7 +335,7 @@
 :root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok,
 :root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand) .sode-lock__who-bar {
   opacity: 0;
-  transition: opacity var(--pb-motion-fast) var(--pb-ease);
+  transition: opacity var(--sode-motion-reveal) var(--pb-ease);
 }
 :root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer:is(:hover, :focus-within),
 :root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok:hover,

@@ -92,6 +92,11 @@ func TestChromeMainCompact(t *testing.T) {
 	b.waitFor("footer back on focus", opacity(".sode__footer", "1"))
 	b.eval(`document.getElementById('settings-open').blur(); true`)
 	b.waitFor("footer faded after blur", opacity(".sode__footer", "0"))
+	dur := `getComputedStyle(document.querySelector('.sode__footer')).transitionDuration`
+	b.waitFor("reveal fades over a quarter second", dur+` === '0.25s'`)
+	b.call("Emulation.setEmulatedMedia", map[string]any{"features": []map[string]string{{"name": "prefers-reduced-motion", "value": "reduce"}}})
+	b.waitFor("reveal snaps under reduced motion", dur+` === '0s'`)
+	b.call("Emulation.setEmulatedMedia", map[string]any{"features": []map[string]string{}})
 
 	// Centred: as much room above the block as below it. The block is #patch-view, whose box leaves
 	// out the result hanging under it.
