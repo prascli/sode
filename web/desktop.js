@@ -15,6 +15,7 @@ import { shortcutList } from './shortcuts.js';
 import { levelBox, combobox } from './widgets.js';
 import { desktopHistory } from './desktophistory.js';
 import { desktopKeys } from './desktopkeys.js';
+import { compactCentre } from './compactcentre.js';
 
 const sel = { src: null, dst: null };
 let dsts = [];
@@ -49,6 +50,7 @@ function renderConn() {
   const [label, isName] = routerTitle();
   $('conn-addr').textContent = label;
   $('conn-addr').classList.toggle('sode__conn-addr--name', isName);
+  $('conn').classList.toggle('sode__conn--ok', c.ok);
   $('conn').title = [c.ws[1], `${c.rt[1]} ${S.routerAddr}`, S.router !== 'up' && S.routerLastErr].filter(Boolean).join('\n');
   document.documentElement.dataset.conn = c.down ? 'down' : 'up';
   renderDown($('conn-down'), c);
@@ -176,6 +178,7 @@ function renderLast() {
   }
 }
 on('history', renderLast);
+on('last', renderLast);
 
 // Fills one box from the last take, then focuses the opposite box only if empty, else Levels.
 // next: use nextTake() and remember it so a repeat goes on.
@@ -457,3 +460,5 @@ presetHost({
     focusBox(lvlInput);
   },
 });
+
+compactCentre();
