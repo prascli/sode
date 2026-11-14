@@ -55,18 +55,35 @@ func TestChromeMainCompact(t *testing.T) {
 		xy := b.eval(`(() => { const r = document.querySelector('` + sel + `').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`).([]any)
 		mouse(xy[0], xy[1])
 	}
+	// near points 5rem (100px at 125%) past the item's inner corner, inside the apron but off the item.
+	near := func(sel string, dx, dy int) {
+		xy := b.eval(fmt.Sprintf(`(() => { const r = document.querySelector('%s').getBoundingClientRect(); return [(%d > 0 ? r.right : r.left) + %d, (%d > 0 ? r.bottom : r.top) + %d]; })()`, sel, dx, dx, dy, dy)).([]any)
+		mouse(xy[0], xy[1])
+	}
 	rest := func() { mouse(640, 400) }
 	opacity := func(sel, want string) string {
 		return `getComputedStyle(document.querySelector('` + sel + `')).opacity === '` + want + `'`
 	}
 	rest()
 	b.waitFor("status marked ok with both links up", `document.getElementById('conn').classList.contains('sode__conn--ok')`)
-	for _, sel := range []string{".sode__footer", "#conn"} {
+	for _, c := range []struct {
+		sel    string
+		dx, dy int
+	}{{".sode__footer", 100, -80}, {"#conn", -100, 80}} {
+		sel := c.sel
 		b.waitFor(sel+" faded", opacity(sel, "0")+` && `+shown(sel))
 		hover(sel)
 		b.waitFor(sel+" back on hover", opacity(sel, "1"))
 		rest()
 		b.waitFor(sel+" faded again", opacity(sel, "0"))
+		near(sel, c.dx, c.dy)
+		b.waitFor(sel+" back with the pointer near it", opacity(sel, "1"))
+		rest()
+		b.waitFor(sel+" faded once the pointer leaves", opacity(sel, "0"))
+	}
+	// The aprons stop short of the controls: each one's centre still hits the control itself.
+	for _, sel := range []string{"#src", "#dst", "#patch", "#patch-view [data-presets]"} {
+		b.waitFor(sel+" not under an apron", `(() => { const e = document.querySelector('`+sel+`'), r = e.getBoundingClientRect(), h = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return e === h || e.contains(h); })()`)
 	}
 	if got := b.eval(`[document.getElementById('settings-open').getAttribute('aria-label'), document.getElementById('settings-open').dataset.pbTip].join('|')`); got != "Settings|Settings" {
 		t.Fatalf("faded Settings button lost its name or tip: %v", got)
@@ -159,6 +176,10 @@ func TestChromeMainCompact(t *testing.T) {
 	b.waitFor("Lock bar back on hover", opacity(bar, "1"))
 	rest()
 	b.waitFor("Lock bar faded again", opacity(bar, "0"))
+	near(".sode-lock__who", 100, 80)
+	b.waitFor("Lock bar back with the pointer near it", opacity(bar, "1"))
+	rest()
+	b.waitFor("Lock bar faded once the pointer leaves", opacity(bar, "0"))
 	b.eval(`document.querySelector('.sode-lock__who .pb-btn').focus(); true`)
 	b.waitFor("Lock bar back on focus", opacity(bar, "1"))
 	b.eval(`document.activeElement.blur(); true`)

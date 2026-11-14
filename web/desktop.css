@@ -344,3 +344,28 @@
   .sode-lock__who-bar {
   opacity: 1;
 }
+/* A transparent apron reaches from each faded corner item toward the middle and out to the viewport edges, so a pointer
+   anywhere near the corner brings it back. Kept short of the centred block at 1280x720; TestChromeMainCompact checks it. */
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) :is(.sode__footer, .sode__conn--ok)::before,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand)::before {
+  --sode-apron: 6rem;
+  content: "";
+  inset: calc(var(--sode-apron) * -1);
+  position: absolute;
+  z-index: -1;
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer::before {
+  bottom: calc(var(--pb-space-4) * -1);
+  left: calc(var(--pb-space-5) * -1);
+  right: calc(var(--sode-apron) * -2);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok::before {
+  left: calc(var(--sode-apron) * -2);
+  right: calc(var(--pb-space-5) * -1);
+  top: calc(var(--pb-space-4) * -1);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand)::before {
+  left: calc(var(--pb-space-5) * -1);
+  right: calc(var(--sode-apron) * -2);
+  top: calc(var(--pb-space-4) * -1 - var(--sode-down-h, 0px));
+}
