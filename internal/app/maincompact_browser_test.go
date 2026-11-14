@@ -83,7 +83,7 @@ func TestChromeMainCompact(t *testing.T) {
 
 	b.eval(key("src", "Comma", ",", "ctrlKey: true"))
 	b.waitFor("Ctrl+, opens Settings", `document.documentElement.dataset.view === 'settings'`)
-	b.waitFor("Compact view under This browser", `document.getElementById('cfg-compact')?.closest('fieldset')?.querySelector('legend')?.textContent === 'This browser'`)
+	b.waitFor("Compact view shown under This browser", `(() => { const s = document.getElementById('cfg-compact'); return s?.closest('fieldset')?.querySelector('legend')?.textContent === 'This browser' && !!s.offsetParent; })()`)
 	b.waitFor("Settings shows this browser's value", `document.getElementById('cfg-compact').value === 'on'`)
 	b.waitFor("Global defaults has it too", `!!document.querySelector('select[data-gpref="compact"]')`)
 	b.eval(`document.getElementById('settings-back').click(); true`)

@@ -79,7 +79,6 @@ const GUARDED = [
   'pinMaxTries',
   'autoLockMinutes',
   'requireHttps',
-  'killEnabled',
 ];
 export const guardedEdited = (next, cur) =>
   !!cur &&

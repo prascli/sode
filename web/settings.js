@@ -27,7 +27,6 @@ import './users.js';
 import './apisettings.js'; // adds its section before the table of contents is built
 import './profiles.js';
 import './configfile.js';
-import './kill.js';
 
 const root = document.documentElement;
 const form = $('settings-view');
@@ -666,9 +665,9 @@ function flash(node, smooth) {
   flashTimer = setTimeout(start, 1000);
 }
 
-// A [data-find] row or button is hidden while it does not apply (Kill, Sign in, My API keys), so search skips it.
+// A [data-find] row or button is hidden while it does not apply (Sign in, My API keys), so search skips it.
 const offered = (h) => {
-  const node = h.kind === 'setting' && targets.get(`${h.sectionId}/${h.id}`);
+  const node = h.kind === 'setting' ? targets.get(`${h.sectionId}/${h.id}`) : null;
   return !(node?.matches('[data-find]') && node.closest('[hidden]'));
 };
 
