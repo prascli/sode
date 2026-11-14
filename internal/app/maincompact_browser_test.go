@@ -151,6 +151,10 @@ func TestChromeMainCompact(t *testing.T) {
 	rest()
 	const bar = ".sode-lock__who-bar"
 	b.waitFor("Lock bar faded", opacity(bar, "0"))
+	b.shot("compact-signed-in")
+	if got := b.eval(`getComputedStyle(document.querySelector('.sode-lock__who')).backgroundColor === getComputedStyle(document.body).backgroundColor`); got != true {
+		t.Fatal("the faded Lock bar leaves a box: its background differs from the page's")
+	}
 	hover(".sode-lock__who")
 	b.waitFor("Lock bar back on hover", opacity(bar, "1"))
 	rest()

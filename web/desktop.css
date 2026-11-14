@@ -300,7 +300,7 @@
   display: grid;
   grid-template-columns: minmax(0, 75rem);
   min-height: 100dvh;
-  padding: calc(var(--pb-space-8) + var(--sode-down-h, 0px)) var(--pb-space-8) var(--pb-space-8);
+  padding: calc(var(--sode-pad-bottom) + var(--sode-down-h, 0px)) var(--pb-space-8) var(--sode-pad-bottom);
   place-content: center;
 }
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view {
