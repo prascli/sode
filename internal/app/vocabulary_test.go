@@ -62,6 +62,7 @@ var retiredWords = []retiredWord{
 	{Terms: []string{"automation"}, Re: wordRe(`(?i)automation`)},
 	{Terms: []string{"operator"}, Re: wordRe(`(?i)operators?`)},
 	{Terms: []string{"account"}, Re: wordRe(`(?i)accounts?`)},
+	{Terms: []string{"PIN-less user"}, Re: wordRe(`(?i)pin-?less users?`)},
 	{Terms: []string{"log in", "log out"}, Re: wordRe(`(?i)log(?:s|ged|ging)? (?:in|out)|log-?(?:in|out)s?`)},
 	{Terms: []string{"unlock"}, Re: wordRe(`(?i)unlock(?:s|ed|ing)?`)},
 	{Terms: []string{"Settings PIN"}, Re: wordRe(`(?i)settings pin`)},

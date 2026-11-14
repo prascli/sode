@@ -156,6 +156,38 @@ _Avoid_: This device
 **Guest**:
 Someone who is not signed in. A guest sees This browser and Everyone values and has no Me scope. Guests have one rights entry, and the same entry covers an API call that sends no key.
 
+### Access in v2
+
+These terms come with the v2 auth model (ADR 0010). When v2 ships they replace the Advanced Settings PIN, the trusted flag and Sign-in mode, and the rows above change with them.
+
+**Role**:
+The one level of control each user holds: Standard, Trusted or Administrator. Rights still limit what any role may route. API clients hold no role.
+
+**Standard user**:
+A user whose role is Standard: patching within their Rights, their own Profile and their own panels. Always say Standard user, never bare Standard.
+
+**Administrator**:
+A user whose role lets them change advanced settings. There is always at least one, and every Administrator has a PIN.
+
+**User without a PIN**:
+A user who signs in by picking their name. Such a user is never Trusted or Administrator, opens no page lock, and acts with Rights no wider than Guest Rights. They exist to keep people's preferences apart.
+_Avoid_: PIN-less user
+
+**Critical action**:
+An advanced setting change that can't be undone or that changes who may do what, such as the router connection, a role or a destructive import. Each one asks a signed-in Administrator for their PIN again.
+
+**PIN recheck**:
+An Administrator typing their own PIN again before a critical action. It holds for one minute on that connection.
+
+**Approval**:
+A qualified user's name and PIN, typed in someone else's browser, that lets one browser do what needs a higher role than its own sign-in has, for one minute. History names both people.
+
+**Request approval**:
+Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
+
+**Public panels allowed**:
+The install-wide switch that lets panel owners make a panel Public. On by default.
+
 ### Panels
 
 **Panel**:
