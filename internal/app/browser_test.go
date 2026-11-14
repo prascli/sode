@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -24,7 +26,10 @@ func chromePath() string {
 	if p := os.Getenv("SODE_CHROME"); p != "" {
 		return p
 	}
+	// Chrome for Testing first: it has its own bundle ID, so a leaked headless one never stands in for the
+	// user's Chrome. macOS activates a running instance of the same app instead of opening a window.
 	for _, p := range []string{
+		"/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
 		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 		"/Applications/Chromium.app/Contents/MacOS/Chromium",
 	} {
@@ -38,6 +43,24 @@ func chromePath() string {
 		}
 	}
 	return ""
+}
+
+// watchChrome kills Chrome once this test binary is gone. t.Cleanup never runs after a -timeout panic or
+// a kill, and macOS has no parent-death signal. The returned func ends the watch; call it after Chrome
+// has exited so a reused pid is never killed.
+func watchChrome(pid int) (stop func()) {
+	if goruntime.GOOS == "windows" {
+		return func() {}
+	}
+	w := exec.Command("/bin/sh", "-c",
+		`while kill -0 "$0" 2>/dev/null && kill -0 "$1" 2>/dev/null; do sleep 1; done
+kill -0 "$0" 2>/dev/null && exit 0
+kill -TERM "$1" 2>/dev/null; sleep 2; kill -KILL "$1" 2>/dev/null`,
+		strconv.Itoa(os.Getpid()), strconv.Itoa(pid))
+	if w.Start() != nil {
+		return func() {}
+	}
+	return func() { _ = w.Process.Kill(); _ = w.Wait() }
 }
 
 type cdpReply struct {
@@ -83,7 +106,8 @@ func startBrowser(t *testing.T) *tab {
 			browserSkip(t, fmt.Sprintf("browser checks skipped: cannot start %s: %v", bin, err))
 		}
 		c := cancel
-		t.Cleanup(func() { c(); _ = cmd.Wait() })
+		stopWatch := watchChrome(cmd.Process.Pid)
+		t.Cleanup(func() { c(); _ = cmd.Wait(); stopWatch() })
 
 		// Chrome writes the port it chose into the profile directory.
 		for deadline := time.Now().Add(6 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
