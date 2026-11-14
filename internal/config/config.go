@@ -133,6 +133,7 @@ type DeviceDefaults struct {
 	SearchFilters bool           `yaml:"searchFilters" json:"searchFilters"`
 	SetStack      string         `yaml:"setStack" json:"setStack"`
 	NextMode      string         `yaml:"nextMode" json:"nextMode"`
+	Compact       bool           `yaml:"compact" json:"compact"`
 	Extra         map[string]any `yaml:",inline" json:"-"`
 }
 
@@ -208,13 +209,16 @@ func FromEnv(c Config) (Config, error) {
 	str("SODE_LEVEL_NUMBERING", &c.LevelNumbering)
 	num("SODE_PIN_MAX_TRIES", &c.PinMaxTries)
 	num("SODE_MAX_PIN_LEN", &c.MaxPinLen)
-	if v := os.Getenv("SODE_CONFIRM_ENTER"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("SODE_CONFIRM_ENTER: %w", err))
+	boolean := func(k string, dst *bool) {
+		if v := os.Getenv(k); v != "" {
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", k, err))
+			}
+			*dst = b
 		}
-		c.ConfirmEnter = b
 	}
+	boolean("SODE_CONFIRM_ENTER", &c.ConfirmEnter)
 	if v := os.Getenv("SODE_TRUSTED_PROXIES"); v != "" {
 		c.TrustedProxies = nil
 		for _, p := range strings.Split(v, ",") {

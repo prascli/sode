@@ -11,12 +11,14 @@ html {
   --sode-side-w: 0.3125rem;
   --sode-motion-enter: 400ms;
   --sode-motion-found: 600ms;
+  --sode-motion-reveal: 250ms;
   --pb-font-num: var(--pb-font);
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
     --sode-motion-enter: 0ms;
     --sode-motion-found: 0ms;
+    --sode-motion-reveal: 0ms;
   }
 }
 
