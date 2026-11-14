@@ -186,7 +186,7 @@ A qualified user's name and PIN, typed in someone else's browser, that lets one 
 Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
 
 **Access preset**:
-A named set of defaults for who may do what without signing in, such as page locks, Guest role and the keyless API, written once by the setup wizard, a reset, or Settings. Nothing remembers which preset was applied, and every setting it writes can be changed afterwards.
+A named set of defaults for who may do what without signing in, such as page locks and the keyless API, written once by the setup wizard or from Settings. Nothing remembers which preset was applied, and every setting it writes can be changed afterwards.
 _Avoid_: security preset, access position
 
 **Public panels allowed**:
