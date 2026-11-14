@@ -307,13 +307,24 @@
   gap: var(--pb-space-6);
   position: relative;
 }
+/* compactcentre.js sets the nudge that puts the boxes, not the whole block, at the viewport's centre. Relative offsets,
+   not a transform, so the fixed footer inside keeps the viewport as its containing block. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) #patch-view {
+  left: var(--sode-centre-x, 0px);
+  top: var(--sode-centre-y, 0px);
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) .sode__boxes {
+  padding-left: calc(var(--sode-take-w, 0px) + var(--pb-space-6));
+}
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view > .sode__result {
   left: 0;
   margin-top: var(--pb-space-4);
   position: absolute;
   top: 100%;
 }
+/* Label and pins sit together in the middle, under the centred boxes. */
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets {
+  justify-content: center;
   margin: 0;
 }
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view .sode__presets > .sode__label {
@@ -321,8 +332,13 @@
   font-size: var(--pb-text-xs);
 }
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets > .sode__sets {
+  flex: 0 1 auto;
   gap: var(--pb-space-1);
-  justify-content: flex-start;
+  justify-content: center;
+}
+/* With no pins the empty run would still take a gap and pull the group off centre. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets > .sode__sets:not(:has(.sode__set)) {
+  display: none;
 }
 :root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets .sode__set {
   font-size: var(--pb-text-xs);

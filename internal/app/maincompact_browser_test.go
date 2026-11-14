@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"math"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -98,12 +97,12 @@ func TestChromeMainCompact(t *testing.T) {
 	b.waitFor("reveal snaps under reduced motion", dur+` === '0s'`)
 	b.call("Emulation.setEmulatedMedia", map[string]any{"features": []map[string]string{}})
 
-	// Centred: as much room above the block as below it. The block is #patch-view, whose box leaves
-	// out the result hanging under it.
-	const block = `(() => { const r = document.getElementById('patch-view').getBoundingClientRect(); return [Math.round(r.top), Math.round(innerHeight - r.bottom)]; })()`
-	if m := b.eval(block).([]any); m[0].(float64) < 50 || math.Abs(m[0].(float64)-m[1].(float64)) > 2 {
-		t.Fatalf("block not centred: room above %v, below %v", m[0], m[1])
-	}
+	// Centred: the span from Source's left edge to Levels' right edge, at the height of the boxes,
+	// sits at the viewport's centre; the title and Presets fall where they may.
+	const boxes = `(() => { const a = document.getElementById('src').getBoundingClientRect(), z = document.getElementById('lvl').getBoundingClientRect(); return [(a.left + z.right) / 2 - innerWidth / 2, (a.top + a.bottom) / 2 - innerHeight / 2]; })()`
+	b.waitFor("boxes at the viewport centre", `(() => { const [x, y] = `+boxes+`; return Math.abs(x) <= 1 && Math.abs(y) <= 1; })()`)
+	const presets = `(() => { const p = document.querySelector('#patch-view [data-presets]'), k = [...p.children].filter((c) => c.getBoundingClientRect().width > 0).map((c) => c.getBoundingClientRect()); return (Math.min(...k.map((r) => r.left)) + Math.max(...k.map((r) => r.right))) / 2 - innerWidth / 2; })()`
+	b.waitFor("Presets centred under the boxes", `Math.abs(`+presets+`) <= 1`)
 	b.shot("compact")
 	const boxesTop = `Math.round(document.getElementById('patch').getBoundingClientRect().top)`
 	top := b.eval(boxesTop)

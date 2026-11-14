@@ -15,6 +15,7 @@ import { shortcutList } from './shortcuts.js';
 import { levelBox, combobox } from './widgets.js';
 import { desktopHistory } from './desktophistory.js';
 import { desktopKeys } from './desktopkeys.js';
+import { compactCentre } from './compactcentre.js';
 
 const sel = { src: null, dst: null };
 let dsts = [];
@@ -459,3 +460,5 @@ presetHost({
     focusBox(lvlInput);
   },
 });
+
+compactCentre();
