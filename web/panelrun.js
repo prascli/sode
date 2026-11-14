@@ -22,7 +22,7 @@ import {
   startInstant,
   finishTake,
   failTake,
-  startUndo,
+  pressUndo,
   finishUndo,
   applyTally,
   carryView,
@@ -50,6 +50,7 @@ import { savedPage, keepPage } from './pagekeep.js';
 
 const POLL_MS = 2000;
 const NAMES_MS = 30000;
+const UNDO_MOVED = 'What Undo would undo has changed; press it again';
 const ID_BYTES = 8;
 
 const say = (n, text) => {
@@ -282,6 +283,8 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     if (!undoCells || ended) return;
     try {
       undoNext = (await callJSON(`api/v1/panels/${id}/undo`)).undo;
+      // History's own Undo, another tab or a rename moved the target: Take would only get 409.
+      if (st.undoId !== null && !st.busy && undoNext?.id !== st.undoId) st = failTake(st, 'conflict', UNDO_MOVED, Date.now());
     } catch (e) {
       // A refusal (a key without the take scope) greys the cell; a lost link keeps what it knew.
       if (e.status !== undefined) undoNext = undefined;
@@ -346,10 +349,15 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     render();
   }
 
-  const takeOpts = (started) => ({ path: 'api/v1/takes', body: { routes: started?.routes }, finish: finishTake, word: 'take' });
+  // A staged undo goes to its own route with the id it was staged from, so the server marks that take undone.
+  const takeOpts = (started) =>
+    started.undoId !== null
+      ? { path: `api/v1/panels/${id}/undo`, body: { id: started.undoId }, finish: finishUndo, word: 'undo', onConflict: UNDO_MOVED }
+      : { path: 'api/v1/takes', body: { routes: started.routes }, finish: finishTake, word: 'take' };
 
-  async function send(started, { path, body, finish, word, onConflict } = takeOpts(started)) {
+  async function send(started) {
     if (!started) return;
+    const { path, body, finish, word, onConflict } = takeOpts(started);
     st = started.state;
     render();
     try {
@@ -371,15 +379,6 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     poll();
     askUndo();
   }
-
-  const sendUndo = () =>
-    send(startUndo(st, undoNext), {
-      path: `api/v1/panels/${id}/undo`,
-      body: { id: undoNext?.id },
-      finish: finishUndo,
-      word: 'undo',
-      onConflict: 'What Undo would undo has changed; press it again',
-    });
 
   function holdCancel() {
     clearTimeout(holdTimer);
@@ -414,14 +413,14 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       if (down.go) send(startTake(st, env));
       return render();
     }
-    if (cell.kind === 'undo') return void sendUndo();
-    if (cell.kind === 'destination') st = pressDestination(st, cell);
+    if (cell.kind === 'undo') st = pressUndo(st, undoNext, env, now);
+    else if (cell.kind === 'destination') st = pressDestination(st, cell);
     else if (cell.kind === 'source') st = pressSource(st, cell, env, now);
     else if (cell.kind === 'preset') st = pressPreset(st, cell, env, now);
     else if (cell.kind === 'clear') st = clear(st);
     else return;
-    // Instant mode: a Source or Preset press is the Confirm.
-    if (cell.kind === 'source' || cell.kind === 'preset') {
+    // Instant mode: a Source, Preset or Undo press is the Confirm.
+    if (cell.kind === 'source' || cell.kind === 'preset' || cell.kind === 'undo') {
       const started = startInstant(st, env);
       if (started) return void send(started);
     }

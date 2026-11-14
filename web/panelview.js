@@ -14,6 +14,7 @@ import {
   resultShown,
   guardWaiting,
   undoReady,
+  undoState,
   GUARD_HOLD_MS,
   GUARD_DOUBLE_MS,
 } from './panelmodel.js';
@@ -172,6 +173,7 @@ function paintNav(b, cell, { st, pages = [], wrap = true }) {
 
 function paintUndo(b, cell, { st, names, undo }) {
   b.disabled = !undoReady(st, undo);
+  b.dataset.s = undoState(st);
   fill(b, el('span', 'sode-panel__text', names.of(cell)));
 }
 
