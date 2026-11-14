@@ -180,7 +180,7 @@ An advanced setting change that can't be undone or that changes who may do what,
 An Administrator typing their own PIN again before a critical action. It holds for one minute on that connection.
 
 **Approval**:
-A qualified user's name and PIN, typed in someone else's browser, that lets one browser do what needs a higher role than its own sign-in has, for one minute. History names both people.
+A qualified user's name and PIN, typed in someone else's browser, that lets one browser do one action that needs a higher role than its own sign-in has. The browser then goes back to its own sign-in. History names both people.
 
 **Request approval**:
 Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
