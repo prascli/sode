@@ -152,6 +152,15 @@ export function wrongFeedback(err) {
 
 export const dots = (pin) => '●'.repeat(pin.length);
 
+// The confirm lockout in ms. Pages without a hello have no cfg, so 500. 10000 is the cap Config.Validate
+// enforces (internal/config/config.go); the explicit comparison is also what CodeQL takes as a bound.
+export const LOCKOUT_MAX_MS = 10000;
+export function lockoutMs(cfg) {
+  const ms = cfg?.confirmLockoutMs;
+  if (typeof ms !== 'number' || !(ms >= 0)) return 500;
+  return ms <= LOCKOUT_MAX_MS ? ms : LOCKOUT_MAX_MS;
+}
+
 // Random key never equal to the one before, so the answer can't be a habit. No i or l (easy to
 // confuse), no o.
 const CHURN_KEYS = 'abcdefghjkmnpqrstuvwxyz';

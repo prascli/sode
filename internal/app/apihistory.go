@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"math"
 	"net/http"
 	"slices"
 	"strconv"
@@ -46,6 +47,9 @@ func (a *App) apiHistory(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	if err != nil {
 		apiFail(w, http.StatusBadRequest, "bad_request", badPage)
 		return
+	}
+	if before > math.MaxInt32 {
+		before = -1 // past any History index; keeps int(before) safe on 32-bit builds
 	}
 	page, err := a.hist.Page(int(before), n)
 	if err != nil {

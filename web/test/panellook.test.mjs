@@ -137,7 +137,7 @@ test('with reduced motion the pulse stops and the state is still carried by stat
   const reduced = /@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*?\}\s*\}/.exec(css)[0];
   assert.match(reduced, /animation:\s*none/);
   for (const sel of ['[data-s="staged"]', '[data-s="pending"]', '--armed']) {
-    const rule = new RegExp(`${sel.replace(/[[\]"-]/g, '\\$&')}[^{]*\\{[^}]*box-shadow: inset`).test(css);
+    const rule = new RegExp(`${sel.replace(/[[\]"\\-]/g, '\\$&')}[^{]*\\{[^}]*box-shadow: inset`).test(css);
     assert.equal(rule, true, `${sel} has a ring`);
   }
 });

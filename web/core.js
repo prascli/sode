@@ -75,10 +75,11 @@ export const emit = (ev, ...args) => {
   for (const fn of listeners[ev] || []) fn(...args);
 };
 
-const handlers = {};
+// A Map, so a message type such as "constructor" never reaches an Object.prototype method.
+const handlers = new Map();
 export const onMsg = (t, fn) => {
-  if (handlers[t]) throw new Error(`onMsg('${t}') is already handled`);
-  handlers[t] = fn;
+  if (handlers.has(t)) throw new Error(`onMsg('${t}') is already handled`);
+  handlers.set(t, fn);
 };
 
 export const off = () => (S.cfg ? S.cfg.numberOffset : 0);
@@ -230,7 +231,7 @@ function handle(m) {
       emit(m.t, m);
       break;
     default:
-      handlers[m.t]?.(m);
+      handlers.get(m.t)?.(m);
   }
 }
 
