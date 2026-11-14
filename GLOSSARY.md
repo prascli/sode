@@ -142,9 +142,6 @@ A user with a flag that lets them save shared settings without the Advanced Sett
 A cover over the page that stops every key from reaching it until it is dismissed. With nobody signed in, pressing the shown letter dismisses it, which guards against mashing the keyboard and nothing more. With a user signed in, the Lock is held by the server for that session, so a reload or reconnect still shows it, and only that user's PIN resumes it. They can also sign out from it.
 _Avoid_: hand lock, soft lock, screen lock
 
-**Kill**:
-The emergency stop in Settings > Access: it ends the Sode process at once, with no graceful shutdown, so the router link drops and takes not yet sent are lost. It needs the `killEnabled` setting and the Advanced Settings PIN, typed again each time. It keeps Sode down only when the container's restart policy is `no` or `on-failure`.
-
 **Auto-lock**:
 Raises the Lock after a set number of idle minutes. It never signs anyone out. A user marked No auto-lock is skipped, and the Lock button still works for them.
 _Avoid_: idle timeout
@@ -286,7 +283,7 @@ The chip in a patch box that fills it with the value after Last, either the numb
 The state where keys act on History entries instead of the patch boxes. Esc from empty patch boxes starts it and any click ends it. Compact view has none.
 
 **Compact view**:
-The desktop main page with History hidden, leaving the patch boxes, results, Presets and the footer. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
+The desktop main page with History hidden and the title, patch boxes and a smaller Presets row centred in the window. The Settings and Sode Panels buttons, the Lock bar and the Server and Router status fade out until pointed at or focused; the status shows again whenever either link is not up. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
 
 **Server link**:
 The connection between a browser and the Sode server.

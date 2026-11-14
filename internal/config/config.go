@@ -83,9 +83,6 @@ type Config struct {
 	GuestAPIScopes []string    `yaml:"guestApiScopes" json:"-" owned:"true"`
 	// RequireHTTPS refuses requests a trusted proxy did not mark secure (ADR 0005).
 	RequireHTTPS bool `yaml:"requireHttps" json:"requireHttps" guard:"pin"`
-	// KillEnabled: an administrator's word that the container's restart policy is no or
-	// on-failure, so a Kill keeps Sode down. Sode cannot read the policy itself.
-	KillEnabled bool `yaml:"killEnabled" json:"killEnabled" guard:"pin"`
 	// Extra holds keys a newer release wrote, so a rollback keeps them; never mutated in place, so Clone shares it.
 	Extra map[string]any `yaml:",inline" json:"-" owned:"true"`
 }
@@ -222,7 +219,6 @@ func FromEnv(c Config) (Config, error) {
 		}
 	}
 	boolean("SODE_CONFIRM_ENTER", &c.ConfirmEnter)
-	boolean("SODE_KILL_ENABLED", &c.KillEnabled)
 	if v := os.Getenv("SODE_TRUSTED_PROXIES"); v != "" {
 		c.TrustedProxies = nil
 		for _, p := range strings.Split(v, ",") {

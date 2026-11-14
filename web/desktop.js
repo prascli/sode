@@ -49,6 +49,7 @@ function renderConn() {
   const [label, isName] = routerTitle();
   $('conn-addr').textContent = label;
   $('conn-addr').classList.toggle('sode__conn-addr--name', isName);
+  $('conn').classList.toggle('sode__conn--ok', c.ok);
   $('conn').title = [c.ws[1], `${c.rt[1]} ${S.routerAddr}`, S.router !== 'up' && S.routerLastErr].filter(Boolean).join('\n');
   document.documentElement.dataset.conn = c.down ? 'down' : 'up';
   renderDown($('conn-down'), c);

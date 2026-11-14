@@ -42,7 +42,7 @@ History lists every take, shared by all browsers and kept in a log. Undo restore
 
 ### Compact view
 
-Alt+Shift+c (⌥⇧c on a Mac) hides History on the desktop main page, and pressing it again shows it. The patch boxes, results, Presets and the footer stay. The key works from inside the patch boxes too, so on a Mac Option+Shift+c toggles Compact view there instead of typing Ç. It sets This browser; Settings can also set it for your profile or for Everyone. With History hidden there is no keyboard mode, and Esc only clears the boxes. While the preset editor's **Add from History…** is picking takes, History shows again so you can pick them. The phone layout ignores Compact view.
+Alt+Shift+c (⌥⇧c on a Mac) turns Compact view on or off on the desktop main page. It hides History and centres the title, the patch boxes and a smaller Presets row in the window; results show under Presets without moving the boxes. The Settings and Sode Panels buttons (bottom left), the Lock bar (top left) and the Server and Router status (top right) fade out and come back while pointed at or focused, and keep their place. The status fades only while both links are up: any other state, and the Lost link banner, always show. The key works from inside the patch boxes too, so on a Mac Option+Shift+c toggles Compact view there instead of typing Ç. It sets This browser; Settings can also set it for your profile or for Everyone. With History hidden there is no keyboard mode, and Esc only clears the boxes. While the preset editor's **Add from History…** is picking takes, History shows again so you can pick them. The phone layout ignores Compact view.
 
 ### Search and filters
 
@@ -86,7 +86,6 @@ Open Settings with the **Settings** button at the bottom of the page. Sode store
 | `SODE_TALLY_RESYNC_S` | `tallyResyncSeconds` | `300` | Re-read all routes and which destinations are protected this often (0 turns it off) |
 | `SODE_TRUSTED_PROXIES` | `trustedProxies` | | IPs/CIDRs whose `X-Forwarded-For` Sode believes (your proxy) |
 | `SODE_PIN_MAX_TRIES` | `pinMaxTries` | `10` | Wrong Advanced Settings PINs in a row before settings lock until reset or restart. `0` means never |
-| `SODE_KILL_ENABLED` | `killEnabled` | `false` | Shows the Kill button in Settings > Access (see [Kill](#kill)). Turn it on only when the container's restart policy is `no` or `on-failure`; Sode cannot read the policy. Only the Advanced Settings PIN can change it |
 | `SODE_MAX_PIN_LEN` | `maxPinLen` | `8` | Longest user PIN (4-12 digits). The lock pad stops there and submits on its own only at the longest length in use. Shorter PINs are sent with the check key or Enter. Also set in Settings > Users |
 
 Settings-only keys (no seed var): `brandText` (replaces "Sode" in the header and page title, up to 24 characters), `brandBorder` (`blue`, `teal`, `green`, `amber`, `violet`, `pink`; a border round the window, off by default), `routerName`, `routerShow` (`address`, `name`, `none`), `levelColors`, `filterSets`, `hiddenDsts`, `deviceDefaults` and `settingsPin`. `deviceDefaults` holds what a browser uses until it chooses its own under Settings > This browser: theme, layout, clock, flip, scrollTop, searchFilters, setStack (`and` or `or`), nextMode (`number` or `fuzzy`) and compact (Compact view, off by default; see Compact view above).
@@ -106,15 +105,6 @@ docker compose exec sode /sode -reset-pin && docker compose restart sode
 or delete the `settingsPin:` line from `/data/config.yaml` and restart.
 
 Every save keeps the file it replaces as `/data/config.yaml.prev`, and the first start of each release keeps the file as `/data/config.yaml.before-<version>` (for a rollback). Both hold PIN hashes, so they are mode 0600 like `config.yaml`; copy them with the same care. A failed backup is logged and never blocks a save or startup. When the file has keys this release doesn't know (a rollback from a newer release), startup and `-reset-pin` or `-reset-https` first keep it as `/data/config.yaml.unknown-<UTC time>`, mode 0600, unless the newest such copy is the same. Sode never removes these copies.
-
-### Kill
-
-An emergency stop for an engineer who suspects Sode is misbehaving. With `killEnabled` on and an Advanced Settings PIN set, Settings > Access shows a **Kill Sode** button once the PIN is entered on that browser. The dialog asks for the PIN again every time; a wrong one counts toward `pinMaxTries`. A Kill writes a `kill` row to the Communication Log, then the process exits at once with code 0, with no graceful shutdown:
-
-- The router link drops, and takes not yet sent are lost.
-- Takes already sent may still land on the router, and routes the router already accepted stay.
-- Every browser shows the Lost link banner.
-- Docker starts Sode again unless the container's restart policy is `no` or `on-failure`. Exit code 0 is not a failure, so `on-failure` keeps it down. With either policy, Docker also does not start Sode after a host reboot, so start it by hand (`docker compose up -d`). The shipped `compose.yaml` uses `unless-stopped`, under which a Kill only restarts Sode. Source: [Docker, Start containers automatically](https://docs.docker.com/engine/containers/start-containers-automatically/).
 
 ## Users and locks (optional)
 

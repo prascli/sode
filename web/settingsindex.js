@@ -203,7 +203,20 @@ export const DICT = {
   ...both('search-filters', ['quick search', 'search', 'filter', 'filters', 'hidden', 'respect', 'history search']),
   ...both('set-stack', ['stack', 'stacked', 'filter sets', 'sets', 'and', 'or', 'combine', 'all', 'any', 'filter']),
   ...both('next-mode', ['next', 'increment', 'plus one', 'number', 'fuzzy', 'chip', 'ctrl shift s', 'following']),
-  ...both('compact', ['compact', 'compact view', 'minimal', 'hide history', 'small', 'simple', 'alt shift c']),
+  ...both('compact', [
+    'compact',
+    'compact view',
+    'minimal',
+    'hide history',
+    'small',
+    'simple',
+    'alt shift c',
+    'centre',
+    'center',
+    'hide buttons',
+    'clean',
+    'focus',
+  ]),
 
   // ---- My defaults (per-row buttons shown while signed in)
   ...Object.fromEntries(
@@ -319,8 +332,6 @@ export const DICT = {
   'cfg-pin2': ['pin', 'password', 'confirm', 'repeat', 'retype', 'again'],
   'cfg-pin-clear': ['remove pin', 'delete pin', 'no pin', 'unlock', 'disable', 'password off', 'clear'],
   'cfg-pin-tries': ['wrong pin', 'tries', 'attempts', 'lock out', 'lockout', 'brute force', 'incorrect', 'guesses', 'reset pin'],
-  'cfg-kill-enabled': ['kill', 'emergency', 'stop', 'shut down', 'shutdown', 'panic', 'off switch', 'restart policy', 'docker', 'crash'],
-  'kill-open': ['kill', 'kill sode', 'emergency', 'stop', 'shut down', 'shutdown', 'panic'],
 
   // ---- Audit
   'cfg-proxies': [

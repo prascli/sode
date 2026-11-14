@@ -1,6 +1,6 @@
 // Settings PIN unlock shared by Settings and Filters; one flag follows the server's per-connection unlock (until lock, PIN change or socket drop).
 
-import { S, on, emit, wsSend, sentence } from './core.js';
+import { S, on, wsSend, sentence } from './core.js';
 import { needsPin as needsPinRule } from './lockrules.js';
 
 let seq = 0;
@@ -11,17 +11,12 @@ let isUnlocked = false;
 // Destructive controls are PIN-only: ask via pinprompt.js before, or after a refusal.
 let trustedUser = false;
 
-// Every change goes through here, so views that show only to an unlocked connection (Kill) hear 'pinUnlocked'.
-function setUnlocked(v) {
-  if (isUnlocked === v) return;
-  isUnlocked = v;
-  emit('pinUnlocked');
-}
-
 export const unlocked = () => isUnlocked;
 export const trusted = () => trustedUser;
 export const needsPin = () => needsPinRule(S.pinSet, isUnlocked, trustedUser);
-export const lostUnlock = () => setUnlocked(false);
+export const lostUnlock = () => {
+  isUnlocked = false;
+};
 
 function settle(r) {
   const w = waiting;
@@ -42,7 +37,7 @@ export function unlock(pin) {
 // Also sent with an unlock in flight: the server handles them in order, so the lock wins.
 export function relock(force = false) {
   if (force || isUnlocked || waiting) wsSend({ t: 'lock' });
-  setUnlocked(false);
+  isUnlocked = false;
   settle({ ok: false, stale: true });
 }
 
@@ -52,19 +47,19 @@ on('access', (m) => {
 
 on('unlockResult', (m) => {
   if (!waiting || m.id !== waiting.id) return;
-  if (m.ok) setUnlocked(true);
+  if (m.ok) isUnlocked = true;
   settle(m.ok ? { ok: true } : { ok: false, err: sentence(m.err) });
 });
 on('locked', () => {
-  setUnlocked(false);
+  isUnlocked = false;
 });
 on('conn', () => {
   if (S.wsState === 'up') return;
-  setUnlocked(false);
+  isUnlocked = false;
   trustedUser = false;
   settle({ ok: false, stale: true, err: 'Not connected to Sode.' });
 });
 // With no PIN now, one set later (even while disconnected) needs entering.
 on('hello', () => {
-  if (!S.pinSet) setUnlocked(false);
+  if (!S.pinSet) isUnlocked = false;
 });
