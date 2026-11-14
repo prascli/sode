@@ -161,6 +161,8 @@ export const drawnCells = (panel, i = 0) => {
 
 export function errorText(err, names) {
   switch (err?.code) {
+    case 'nothing-to-undo':
+      return 'Nothing to undo';
     case 'no-destination':
       return 'Pick a destination first';
     case 'protected':
