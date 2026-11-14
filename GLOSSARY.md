@@ -242,7 +242,7 @@ The panel setting that decides when a panel's plan is confirmed. In Take mode th
 Cancels the plan the panel has pending. It never changes the router.
 
 **Undo** (cell kind):
-Undoes the newest take this instance of the panel made that nothing has undone yet; each press steps one take further back. Takes from other instances and from the Sode page are left alone. It is greyed when there is nothing left to undo or the route to restore is outside the panel's Rights.
+Stages the routes that undo the newest take this instance of the panel made that nothing has undone yet, as a Preset press stages its routes; once taken, the next press steps one take further back. Takes from other instances and from the Sode page are left alone. It is greyed when there is nothing left to undo or the route to restore is outside the panel's Rights.
 
 **Fixed destination**:
 A panel setting that holds a list of destinations the panel always patches to, at most 16. A panel with it set has no viewed destination to choose: a Source press stages a route to each one. An empty list turns it off.

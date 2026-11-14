@@ -1701,7 +1701,8 @@ paths:
         Scope `take`. Undoes the take that GET names, as `POST /history/{id}/undo` does for each of its
         entries, so a panel key needs no `history` scope. Each call steps one take further back. 422
         `nothing_to_do` when the instance has no take left to undo; 403 `outside_rights` as for a take.
-        With `id`, the id GET answered, 409 `conflict` when the take to undo has changed since.
+        With `id`, the id GET answered, 409 `conflict` when the take to undo has changed since. The
+        Undo cell stages GET's `routes` and calls this, with that `id`, when the plan is taken.
       parameters:
         - { $ref: "#/components/parameters/IdempotencyKey" }
       requestBody:
