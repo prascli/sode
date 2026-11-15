@@ -18,7 +18,7 @@ test('terms', () => {
     '!name:CAM 1',
     '!name:MV',
   ]);
-  // "not" only before a number, quote or regex; otherwise it's part of a name.
+  // "not" only before a number, quote or regex; otherwise it is part of a name.
   assert.deepEqual(kinds("not 65, not 'MV', not /x/, NOT USED, 'NOT USED', 'it''s'"), [
     '!num:65',
     '!name:MV',
@@ -31,7 +31,7 @@ test('terms', () => {
   assert.deepEqual(kinds(' , ,'), []);
   assert.deepEqual(kinds('"a ""b"", c"'), ['exact:a "b", c']);
   assert.deepEqual(kinds('/a,b/'), ['re:a,b']);
-  // Single letters aren't words here: names keep them.
+  // Single letters are not words here: names keep them.
   assert.deepEqual(kinds('TX 1, 1 t 5'), ['name:TX 1', 'name:1 t 5']);
 });
 
@@ -291,8 +291,8 @@ test('quick search', async () => {
       .join(' ');
   setFilter({ ...FILTER_DEFAULT, ext: false });
   assert.equal(ids(), '4');
-  // Searching ignores the filters, finds takes by their follows, and
-  // doesn't merge.
+  // A search ignores the filters, finds takes by their follows, and
+  // does not merge.
   setSearch({ src: '', dst: 'MON' });
   assert.equal(ids(), '3 2');
   setSearch({ src: '', dst: 'MV 28' });
@@ -330,7 +330,7 @@ test('follows whose take is hidden, and trimming after a search', async () => {
       .join(' ');
   setFilter(FILTER_DEFAULT);
   assert.equal(rows(), '1+1');
-  // Watching multiviewers only: the DSM take is hidden, its MV follow isn't.
+  // Watching multiviewers only: the DSM take is hidden, its MV follow is not.
   setFilter({ ...FILTER_DEFAULT, dst: 'MV' });
   assert.equal(rows(), '2');
   setFilter(FILTER_DEFAULT);

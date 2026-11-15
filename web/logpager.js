@@ -1,5 +1,5 @@
-// How /log reads the sent log back, newest first. Filters hide entries, so it reads on until enough are shown (want)
-// or the log or page cap runs out; else a page of only hidden keepalives looked stuck. Pure, no imports.
+// How /log reads the Communication Log back, newest first. Filters hide entries, so it reads on until enough are
+// shown (want) or the log or page cap runs out. Else a page of only hidden keepalives looked stuck. Pure, no imports.
 // Methods return the request { before, n } to send, or null.
 
 export const PAGE = 100;
@@ -9,13 +9,13 @@ const FILL = 500;
 export const AUTO_PAGES = 20;
 
 export function newPager() {
-  let list = []; // loaded entries, newest first
-  const seen = new Set(); // their seqs
-  let more = false; // the server has older ones
-  let total = 0; // entries in the log, as last reported
-  let pending = null; // the `before` of the request awaiting its reply
-  let started = false; // asked for the newest page on this connection
-  let want = 0; // shown rows to read on until
+  let list = []; // loaded entries, newest first.
+  const seen = new Set(); // their seqs.
+  let more = false; // the server has older ones.
+  let total = 0; // entries in the log, as last reported.
+  let pending = null; // the `before` of the request that waits for its reply.
+  let started = false; // asked for the newest page on this connection.
+  let want = 0; // shown rows to read on until.
   let pages = 0; // requests since the last open or Load older
 
   const oldest = () => list[list.length - 1];
@@ -81,7 +81,7 @@ export function newPager() {
       const newest = m.before === -1;
       pending = null;
       const fresh = add(m.entries);
-      // Newest: live entries may have come in first. Older: all before the
+      // Newest: it is possible that live entries came in first. Older: all before the
       // oldest, which the list ends with.
       list = newest ? [...list, ...fresh].sort(byNewest) : [...list, ...fresh];
       more = m.more;

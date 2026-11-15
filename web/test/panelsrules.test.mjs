@@ -225,8 +225,8 @@ test('only a panel that may sign in says so after how it acts', () => {
   assert.equal(launchNote({ acts: 'public' }), '');
 });
 
-// Each switch of Authentication mode as apiPanelUpdate does it: making a client makes no key, going to User ends the
-// client (pruneKeys then ends its keys and setup links), and API to Both or back keeps the client and its keys.
+// Each switch of Authentication mode as apiPanelUpdate does it. A new client gets no key. A switch to User ends the
+// client (pruneKeys then ends its keys and setup links). API to Both or back keeps the client and its keys.
 test('each Authentication mode switch says what it does to keys, and only those that touch the client ask for a Confirm', () => {
   const s2a = actsSwitch('session', 'api');
   assert.equal(s2a.confirm, true);

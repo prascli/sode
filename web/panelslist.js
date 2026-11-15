@@ -1,5 +1,5 @@
 // The panels page (/panels): a list on the left, the chosen panel on the right. Calls go over /api/v1
-// with the user's session key. The server decides what a user may see and change (canEdit).
+// with the user's session key. The server decides what a user can see and change (canEdit).
 import { $, el, icon, on } from './core.js';
 import { sessionFetch, jsonCall, startSession, signInAgain, onSessionKey } from './sessionkey.js';
 import { paintOnline, paintOpenNow, openNow, watchBox, MON_POLL_MS } from './panelsmon.js';
@@ -176,8 +176,8 @@ async function setHide(id, instance, on) {
   }
 }
 
-// Renames the instance's device name: the page hears it down its stream (POST .../instances/rename). Answers null once
-// sent, or once a clash is handed to the name dialog, else renameRefusal's {why, pin}.
+// Renames the instance's device name: the page hears it down its stream (POST .../instances/rename). Answers null after
+// it is sent, or after a clash is handed to the name dialog, else renameRefusal's {why, pin}.
 async function rename(id, instance, name, pin = '') {
   const p = S.panels.find((x) => x.id === id);
   try {
@@ -198,7 +198,7 @@ async function rename(id, instance, name, pin = '') {
   }
 }
 
-// Online marks and the Open now list change without a redraw, so a button being pressed is not rebuilt.
+// Online marks and the Open now list change without a redraw, so a button that a person presses is not rebuilt.
 async function refreshOnline() {
   if (!S.loaded || document.hidden) return;
   try {

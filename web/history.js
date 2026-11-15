@@ -26,7 +26,7 @@ export function setSearch(next) {
 }
 export const searchRespectsFilters = () => pref('searchFilters') === 'on';
 
-// Once a search is cleared, drop all but the newest entries again (whole groups). A page still
+// After a search is cleared, drop all but the newest entries again (whole groups). A page still
 // on its way is for before the trim, so takePage ignores it.
 const KEEP_AFTER_SEARCH = 200;
 function trimHist() {
@@ -96,8 +96,8 @@ function buildRows(list) {
     if (!passes({ ...byId.get(id), follows: fs })) followsOf.delete(id);
   }
   const attached = new Set([...followsOf.values()].flat());
-  // Followers of a multi-take confirm go in its folder's f.followers (the server doesn't say
-  // which take), only when that folder is loaded and will show; otherwise they stand alone.
+  // Followers of a multi-take confirm go in its folder's f.followers (the server does not say
+  // which take). That occurs only when that folder is loaded and will show; otherwise they stand alone.
   const groups = new Set(list.filter((e) => e.group && !e.ext).map((e) => e.group));
   const shows = new Set(list.filter((e) => e.group && !e.ext && passes(e)).map((e) => e.group));
   const followers = new Map();
@@ -114,10 +114,10 @@ function buildRows(list) {
       continue;
     }
     const e = followsOf.has(orig.id) ? { ...orig, follows: followsOf.get(orig.id) } : orig;
-    // Merge into the row above if it's a change elsewhere to the same destination and levels
+    // Merge into the row above if it is a change elsewhere to the same destination and levels
     // with nothing else on it between.
     const solo = !e.group || e.groupN < 2;
-    const k = `${e.levels.join(',')}${e.found ? ' found' : ''}`; // found and announced don't mix
+    const k = `${e.levels.join(',')}${e.found ? ' found' : ''}`; // found and announced do not mix
     const t = Date.parse(e.time);
     const c = chains.get(e.dst);
     if (solo && e.ext && e.follow == null && !e.followGroup && c && c.k === k && c.t - t <= MERGE_MS && !searchActive()) {
@@ -154,8 +154,8 @@ function buildRows(list) {
   return rows.filter((r) => !r.f || r.f.shown.length);
 }
 
-// A folder's takes arrive one by one; one still filling is "in flight" for a while, after that
-// missing takes just aren't loaded.
+// A folder's takes arrive one by one; one still filling is "in flight" for a while. After that,
+// missing takes count as not loaded.
 const IN_FLIGHT_MS = 30000;
 
 function groupStatus(f) {
@@ -224,7 +224,7 @@ export function groupIds(f) {
   return `#${Math.min(...ids)}–#${Math.max(...ids)}`;
 }
 
-// Ignored unless it's the page before the oldest loaded: one asked for before history was
+// Ignored unless it is the page before the oldest loaded: one asked for before history was
 // trimmed, cleared or reloaded would land after a gap. True if added.
 export function takePage(m) {
   if (!S.histLoading || !S.hist.length || m.before !== S.hist[S.hist.length - 1].id) return false;
@@ -244,8 +244,8 @@ const AUTO_PAGES = 5;
 const SEARCH_PAGES = 40;
 const SEARCH_PAGE = 500;
 
-// more() reveals the next step, fetching another page once loaded entries run out. visible:
-// whether this layout is showing; the hidden one doesn't fetch.
+// more() reveals the next step, and fetches another page when loaded entries run out. visible:
+// whether this layout is showing; the hidden one does not fetch.
 export function historyPager(step, visible = () => true) {
   const cap = () => (searchActive() ? SEARCH_PAGES : AUTO_PAGES);
   const pg = {
@@ -280,7 +280,7 @@ export function historyPager(step, visible = () => true) {
   };
   on('filters', () => {
     pg.auto = 0;
-  }); // a new filter may need older pages
+  }); // it is possible that a new filter needs older pages
   on('search', () => {
     pg.auto = 0;
   });
@@ -306,7 +306,7 @@ export function beforeGroups(e) {
 }
 
 // [{levels, text}]: "still on X" (it ignored the take), "on X" (another route got there) or "no
-// answer" (may or may not have switched; also an unsent level). Empty for a take that worked
+// answer" (it is not known if it switched; also an unsent level). Empty for a take that worked
 // and for entries recorded before this existed.
 export function failureGroups(e) {
   if (e.ok || !e.failed?.length) return [];
@@ -324,7 +324,7 @@ export function failureGroups(e) {
 
 // A known id (a failed take the server corrected) is replaced in place; a new one goes first.
 // S.hist gets a new array either way (the filter cache compares by identity). An update for an
-// entry that isn't loaded is skipped: it comes with its page. Returns 'new', 'replaced' or
+// entry that is not loaded is skipped: it comes with its page. Returns 'new', 'replaced' or
 // 'skipped'.
 export function putEntry(e, hist = S, update = false) {
   const i = hist.hist.findIndex((x) => x.id === e.id);
@@ -357,7 +357,7 @@ export function entryNote(e) {
 
 onMsg('recent', (m) => {
   const how = putEntry(m.e, S, m.update);
-  if (how === 'new') S.newId = m.e.id; // views animate a new one in, once, not a correction
+  if (how === 'new') S.newId = m.e.id; // views animate a new one in, one time, not a correction
   if (how !== 'skipped') emit('history');
 });
 onMsg('historyCleared', () => {

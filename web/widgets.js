@@ -12,8 +12,8 @@ import { restorePlan, planEmpty } from './plans.js';
 
 // ---- level box: typed levels plus a picker of toggles and All/None
 
-// hold: the event whose default is stopped so the picker and All don't take focus ('mousedown'
-// on desktop, 'pointerdown' on a phone, to keep the keyboard up).
+// hold: the event whose default is stopped so the picker and All do not get focus. It is
+// 'mousedown' on desktop and 'pointerdown' on a phone, to keep the keyboard up.
 export function levelBox(input, picker, allBtn, { hold = 'mousedown', placeholder = defaultLevelsHint, onChange = () => {} } = {}) {
   let none = false; // none: picker cleared to no levels (a blank box would mean default)
   const levels = () => parseLevels(input.value, none);
@@ -81,8 +81,8 @@ const PAGE = 8;
 let boxSeq = 0;
 
 // input: the text box, or a function giving it for a list shared by several. press: 'mousedown'
-// picks keeping focus; 'click' stops pointerdown (keeps a phone's keyboard up) and picks on
-// click so a scroll doesn't pick. reverse: drawn bottom-up, ↑ moves to the next match. foot:
+// picks and keeps focus; 'click' stops pointerdown (keeps a phone's keyboard up) and picks on
+// click so a scroll does not pick. reverse: drawn bottom-up, ↑ moves to the next match. foot:
 // hidden element for the count line. add: + button on every row; canAdd() says whether the list
 // has them now.
 export function combobox(
@@ -107,8 +107,8 @@ export function combobox(
   let matches = [];
   let hi = 0;
   let last = null;
-  // A list opened by focus (browse): Enter and Tab must not take its first row. Cleared by
-  // typing, a row click, or moving the highlight.
+  // A list opened by focus (browse): Enter and Tab must not pick its first row. Typed text,
+  // a row click or a highlight move clears this flag.
   let browsing = false;
   // Opened by browse() at all: such a list is long, so only a window of it is drawn
   // (listwindow.js).
@@ -264,7 +264,7 @@ export function combobox(
   }
 
   // keepMoved: a browse list replaced by a fresh one (names changed) that the user already
-  // moved through stays one Enter may take from.
+  // moved through stays one that Enter can pick from.
   function show(items, at, isBrowse, keepMoved = false) {
     matches = items;
     browsed = isBrowse && items.length > 0;
@@ -332,11 +332,11 @@ export function disclosure(open, label, controls, onToggle) {
   return b;
 }
 
-// The label wraps the control, so clicking the words focuses it.
+// The label wraps the control, so a click on the words focuses it.
 export const labeled = (text, control, cls = '') => el('label', `sode__fld ${cls}`.trim(), el('span', 'sode__label', text), control);
 
 // A click anywhere on row (not a control, nor inside skip, nor a different row) works toggle,
-// as does one that selected text not. data-no-tap (a swipe just ended) skips one click.
+// as does one that selected text not. data-no-tap (a swipe has ended) skips one click.
 export function clickToToggle(row, toggle, skip) {
   row.addEventListener('click', (e) => {
     if (row.dataset.noTap) {
@@ -391,7 +391,7 @@ export function againButton(plan, label, onClick, { placeholder = true, cls = 'p
   return b;
 }
 
-// A live entry (S.newId) animates in once; one per layout, since each draws its own rows.
+// A live entry (S.newId) animates in one time; one per layout, since each draws its own rows.
 export function arrivals() {
   const seen = new Set();
   return {
@@ -400,8 +400,8 @@ export function arrivals() {
       seen.add(e.id);
       return true;
     },
-    // A folder animates if closed; either way it uses up the arrival of the take inside, so
-    // opening it doesn't replay it.
+    // A group animates if closed; either way it uses up the arrival of the take inside, so
+    // when it opens, it does not replay it.
     group(f, open) {
       const has = f.entries.some((e) => e.id === S.newId);
       const fresh = has && !seen.has(`g${f.group}`);
@@ -490,8 +490,8 @@ export function followBoxes(follows, levels, onPickDst) {
   );
 }
 
-// Pulling past the end of scroller presses Load more: a touch dragged PULL px up and let go, or
-// WHEEL of wheel scrolling at the bottom in one go (a pause starts over). box's --sode-pull
+// A pull past the end of scroller presses Load more. That is a touch dragged PULL px up and let go,
+// or WHEEL of wheel scroll at the bottom in one go. A pause starts over. box's --sode-pull
 // runs 0..1. when(): this layout is the one showing.
 const PULL = 140,
   WHEEL = 700,
@@ -570,7 +570,7 @@ export function pullToLoad(scroller, box, pager, when) {
   });
 }
 
-// First two as chips, all once open, toggle for the rest. onPick(d) uses one as the destination.
+// First two as chips, all when open, toggle for the rest. onPick(d) uses one as the destination.
 export function feeding(fed, { open, onToggle, onPick, hold = 'mousedown', empty = 'Not feeding any destination' }) {
   if (!fed.length) return el('div', 'sode__hint', empty);
   const chip = (d) => {

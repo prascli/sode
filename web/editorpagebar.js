@@ -1,5 +1,5 @@
 // The editor's Pages bar, left of the grid: a card per Page. Its title row holds the number, name and the On switch
-// (asked for by the user, though the change still waits for Save); one row of icons below holds rename, Copy to,
+// (asked for by the user, though the change still waits for Save). One row of icons below holds rename, Copy to,
 // Move up, Move down and Delete Page. Cards are dragged to reorder, and Add Page ends the list. Rules are editorpagerules.js; paneleditor.js holds the list and does each act.
 import { el, icon } from './core.js';
 import { btn } from './formbits.js';
@@ -85,7 +85,7 @@ export function createPageBar(host, act) {
     on.disabled = s.readOnly;
     on.dataset.act = 'enable';
     on.setAttribute('aria-label', `Page ${i + 1} enabled`);
-    // A refused change (the last enabled Page) may not repaint the bar, so the switch is put back here.
+    // A refused change (the last enabled Page) does not always repaint the bar, so the switch is put back here.
     on.addEventListener('change', () => {
       if (act.enable(i, on.checked) === false) on.checked = true;
     });

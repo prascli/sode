@@ -6,9 +6,9 @@ import { ART_B_CHOICES } from './panellook.js';
 // Icon B runs end at 16 for digits and Z for letters, never wrapping (panellook.js ART_B_CHOICES).
 const runEnd = (i) => (i <= ART_B_CHOICES.indexOf('16') ? ART_B_CHOICES.indexOf('16') : ART_B_CHOICES.length - 1);
 
-// choice is { a } (Icon A: an `art` value), { b } (Icon B: the glyph the first cell gets) or { clear: true }; order is
-// one of gridmodel's FILL_ORDERS. Slots are { r, c, patch } for each cell in the selection, top left square first;
-// empty counts squares with no cell, left counts cells past the last glyph. null when there is nothing to plan.
+// choice is { a } (Icon A: an `art` value), { b } (Icon B: the glyph the first cell gets) or { clear: true }. order is
+// one of gridmodel's FILL_ORDERS. Slots are { r, c, patch } for each cell in the selection, top left square first.
+// empty counts squares with no cell, and left counts cells past the last glyph. null when there is nothing to plan.
 export function artToolPlan(g, choice, order = 'across') {
   const q = rectOf(g);
   if (!q || !choice) return null;

@@ -1,5 +1,5 @@
 // The Assign to modal on the panels page: the open Sode panel pages, and a click sends one to the chosen panel.
-// The server checks who may (a Trusted user or the Advanced Settings PIN) and sends the key to the instance alone.
+// The server checks who can (a Trusted user or the Advanced Settings PIN) and sends the key to the instance alone.
 import { el, icon, on } from './core.js';
 import { trapDialog } from './dialogkeys.js';
 import { segmented } from './formbits.js';
@@ -117,7 +117,7 @@ function askAnyway(panel, row) {
         el(
           'p',
           'sode__hint',
-          `${row.device} is signed in as ${row.user}, who cannot open ${panel.name}. It will open it and say there is no panel there to use.`,
+          `${row.device} is signed in as ${row.user}, who cannot open ${panel.name}. The device will open the panel and show that there is no panel there to use.`,
         ),
       ),
       el('div', 'pb-modal__footer', cancel, ok),
@@ -140,7 +140,7 @@ function askAnyway(panel, row) {
   });
 }
 
-// ctx: {api, panels() (every panel the page has, with instances where the user may edit them), onDone() (re-reads them)}.
+// ctx: {api, panels() (every panel the page has, with instances where the user can edit them), onDone() (re-reads them)}.
 export function openAssign(panel, ctx) {
   const opener = document.activeElement;
   let busy = false;
@@ -197,7 +197,7 @@ export function openAssign(panel, ctx) {
   const list = el('div', 'sode-ov__people');
   list.id = 'assign-list';
   let shown = '';
-  // The page re-reads the instances every MON_POLL_MS; only a change is redrawn, so a button being pressed stays.
+  // The page re-reads the instances every MON_POLL_MS; only a change is redrawn, so a button that a person presses stays.
   function paint(force = true) {
     const all = assignRows(ctx.panels(), panel.id, Date.now(), way === 'user');
     const rows = rankAssign(all, find.value);

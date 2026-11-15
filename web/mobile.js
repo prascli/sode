@@ -1,5 +1,5 @@
-// Phone layout: one input steps Source → Destination → Levels; a bottom sheet with a slider
-// confirms. A blank Source or Destination goes to the other first (to see what's on it) and
+// Phone layout: one text field steps Source → Destination → Levels; a bottom sheet with a slider
+// confirms. A blank Source or Destination goes to the other first (to see what is on it) and
 // comes back.
 
 import {
@@ -379,8 +379,9 @@ function renderThread() {
   if (end) scrollThread();
 }
 
-// Redraws keep the thread's end in view only if it was in view, so reading back through Recent
-// isn't interrupted. While typing the summary is pinned at the top and nothing scrolls.
+// Redraws keep the thread's end in view only if it was in view, so a person who reads back
+// through History is not interrupted. While the person types, the summary stays pinned at the
+// top and nothing scrolls.
 function atEnd() {
   const t = $('m-thread');
   return t.scrollHeight - t.scrollTop - t.clientHeight < 24;
@@ -533,7 +534,7 @@ function swipeable(row, face, canRedo = false) {
     y0 = e.clientY;
     dx = 0;
     horiz = null;
-    delete face.dataset.noTap; // a drag doesn't always end in a click
+    delete face.dataset.noTap; // a drag does not always end in a click
     base = rest();
   });
   face.addEventListener('pointermove', (e) => {
@@ -608,7 +609,7 @@ let pending = null;
 function openSheet(plan) {
   const { block, prot } = planBlocked(plan);
   if (block) return showResult(block.kind, block.title, block.text);
-  pending?.lock.cancel(); // one replaced: its lockout mustn't unlock this one
+  pending?.lock.cancel(); // one replaced: its lockout must not unlock this one
   $('m-sheet-title').textContent = `Confirm ${planVerb(plan)}`;
   $('m-sheet-body').replaceChildren(...planSummary(plan, { prot }));
   $('m-slide-label').textContent = `Slide to ${planVerb(plan)}`;
@@ -789,7 +790,7 @@ for (const k of STEPS) {
 
 // ---- keyboard overlap (iOS)
 
-// iOS Safari doesn't shrink the layout viewport for the keyboard: size the phone view to the
+// iOS Safari does not shrink the layout viewport for the keyboard: size the phone view to the
 // visual viewport. Android Chrome resizes itself (interactive-widget).
 const vv = window.visualViewport;
 if (vv) {
@@ -841,7 +842,7 @@ onLayout((l) => {
   }
 });
 
-// Start on the right step so a Destination-first browser doesn't show Source until hello.
+// Start on the right step so a Destination-first browser does not show Source until hello.
 setStep(order()[0], false);
 
 presetHost({

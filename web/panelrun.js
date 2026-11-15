@@ -1,7 +1,7 @@
-// Runs one panel (the page /panels/<id>, or the editor's live test): loads the panel, polls the router over
-// /api/v1, keeps the state model and draws it. Every call goes out with the panel's key: the user's session
-// key, the key in the URL fragment for a panel that acts as its API client, or a Public panel's short-lived key
-// (panelpublic.go). The editor's live test passes its own ui and call, and is not an instance of the panel: no
+// Runs one panel (the page /panels/<id>, or the editor's live test). It loads the panel, polls the router over
+// /api/v1, keeps the state model and draws it. Every call goes out with the panel's key. That key is the user's
+// session key or, for a panel that acts as its API client, the key in the URL fragment. The third kind is a Public
+// panel's short-lived key (panelpublic.go). The editor's live test passes its own ui and call, and is not an instance of the panel: no
 // keepalive, no device name.
 import { emit } from './core.js';
 import { sessionFetch, jsonCall, startSession, signInAgain, onSessionKey, nameSessionKey } from './sessionkey.js';
@@ -58,7 +58,7 @@ const say = (n, text) => {
   n.hidden = !text;
 };
 
-// A random key per press: a retry of the same request replays its answer instead of taking twice.
+// A random key per press: a retry of the same request replays its answer instead of a second take.
 function takeKey() {
   const b = crypto.getRandomValues(new Uint8Array(ID_BYTES));
   return `panel-${Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')}`;
@@ -107,7 +107,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     };
   };
   const endedCode = (code) => code === 'key_revoked' || code === 'key_expired';
-  let id = seg; // the id once the panel is read: the address may hold its short name
+  let id = seg; // the id after the panel is read: it is possible that the address holds its short name
   let key = embedded ? null : keyFromHash(location.hash);
   const setup = embedded ? '' : setupFromHash(location.hash);
   if (!key && setup) {
@@ -131,7 +131,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     keyIsPublic = !!key;
     if (keyIsPublic) tellLock(true);
   }
-  // Before the first read: a Session-mode page waits there for a sign-in that may never come.
+  // Before the first read: a Session-mode page waits there for a sign-in. It is possible that the sign-in never comes.
   if (!key) announce(false);
   // Every call names its panel and instance for the Communication Log; the editor's live test is no instance.
   let instance = '';
@@ -182,9 +182,9 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       return;
     }
   }
-  // Back to editing came before the panel did: nothing below may start a timer or a watch.
+  // Back to editing came before the panel did: nothing below is allowed to start a timer or a watch.
   if (ended) return;
-  // Kept only once it worked, so a mistyped or ended key never replaces a stored one.
+  // Kept only after it worked, so a mistyped or ended key never replaces a stored one.
   if (linked) stored = keepLinkKey(seg, key);
   if (panel.acts === 'api' && !key && !embedded) {
     say(ui.note, 'This panel acts as its own API client. Open its link with the key.');
@@ -272,7 +272,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   };
   let grid = buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
 
-  // Blur the whole panel and say Offline, so nobody takes a stale grid for a working one.
+  // Blur the whole panel and say Offline, so nobody mistakes a stale grid for a working one.
   const showOffline = (o) => {
     ui.main.classList.toggle('sode-panels--offline', !!o);
     ui.offline.hidden = !o;
@@ -320,7 +320,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       st = applyTally(st, env);
       const off = offlineOf({ failed: false, routerUp: link ? link.routerUp : true });
       showOffline(off);
-      // Each ask walks History, so none runs on a timer; History may have moved while Sode was out of reach.
+      // Each ask walks History, so none runs on a timer; it is possible that History moved while Sode was out of reach.
       if (undoMoved(was, env, undoNext) || (!ready && !off)) askUndo();
       ready = !off;
       say(ui.note, '');
@@ -337,7 +337,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
         ready = false;
         tellLock(false);
         if (stored && f.forget) forgetKey(seg);
-        // Nothing may call Sode again: not the polls, the update check or the keepalive.
+        // Nothing is allowed to call Sode again: not the polls, the update check or the keepalive.
         timers.forEach(clearInterval);
         stopWatch();
         keep?.stop();
@@ -372,7 +372,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       const why = (e.code === 'conflict' && onConflict) || e.message;
       st =
         e.status === undefined
-          ? failTake(st, 'network', `Sode did not answer, so the ${word} may not have been sent`, Date.now())
+          ? failTake(st, 'network', `Sode did not answer, so it is possible that the ${word} was not sent`, Date.now())
           : failTake(st, e.code || String(e.status), why || `The ${word} was refused`, Date.now());
     }
     render();
@@ -463,7 +463,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       ask,
     );
   }
-  // A newer saved copy: rebuild the grid and the state from it, keeping the viewed destination. The watcher counts down and waits out staged routes first.
+  // A newer saved copy: rebuild the grid and the state from it, and keep the viewed destination. The watcher counts down and waits out staged routes first.
   stopWatch = watchPanel({
     ui,
     id,

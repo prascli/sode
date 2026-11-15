@@ -1,7 +1,7 @@
 // The Choose icon picker's Uploaded section: the Icon library's icons and its Upload. Any editor picks; adding needs a
 // Trusted user or the Advanced Settings PIN, asked for after the first refusal as Default artwork does. Tiles draw
 // through the panel's createArt, so their blob URLs go when the panel does. Manage (rename and delete) shows only to a
-// Trusted user, as does Rescan (the drop-in directory, docs/reference.md); the server also takes the PIN, but only
+// Trusted user, as does Rescan (the drop-in directory, docs/reference.md). The server also accepts the PIN, but only
 // from the API.
 import { el, on, S } from './core.js';
 import { btn } from './formbits.js';
@@ -186,7 +186,7 @@ export function createLibSection({ ed, set, gone = () => {} }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: n }),
       });
-      note.textContent = got.name === n ? `Renamed to ${got.name}.` : `Renamed to ${got.name}, since ${n} is taken.`;
+      note.textContent = got.name === n ? `Renamed to ${got.name}.` : `Renamed to ${got.name}, since ${n} is already in use.`;
       await load();
     } catch (e) {
       note.textContent = e.message;
@@ -269,7 +269,7 @@ export function createLibSection({ ed, set, gone = () => {} }) {
       pin.value = '';
       pinRow.hidden = true;
       name.value = '';
-      note.textContent = ic.name === n ? `Added ${ic.name}.` : `Added as ${ic.name}, since ${n} is taken.`;
+      note.textContent = ic.name === n ? `Added ${ic.name}.` : `Added as ${ic.name}, since ${n} is already in use.`;
       await load();
       set(`lib:${ic.id}`);
     } catch (e) {

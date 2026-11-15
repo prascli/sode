@@ -75,16 +75,16 @@ export async function runEditor() {
   let open = [''];
   let list = [];
   let names = namesFrom({});
-  let discardAsked = ''; // the panel the user tried to leave unsaved; asking again discards
-  const menuSections = []; // (grid) => items: where Find and later actions plug in
-  const keyHooks = []; // (event) => true when a grid key was handled (Find takes typing and Enter)
+  let discardAsked = ''; // the panel the user tried to leave unsaved; a second try discards.
+  const menuSections = []; // (grid) => items: where Find and later actions plug in.
+  const keyHooks = []; // (event) => true when a grid key was handled (Find handles typed text and Enter).
   const changeWatchers = [];
   const fieldWatchers = [];
-  let art = null; // createArt for the loaded panel: blob URLs of its uploaded artwork
-  let defaults = new Map(); // Default artwork by item (defaultsBy): drawn only, never put into g
-  let trusted = false; // only a Trusted user can make a client, so a new panel starts as Both for them and Session for the rest
+  let art = null; // createArt for the loaded panel: blob URLs of its uploaded artwork.
+  let defaults = new Map(); // Default artwork by item (defaultsBy): drawn only, never put into g.
+  let trusted = false; // only a Trusted user can make a client, so a new panel starts as Both for them and Session for the rest.
   on('access', (a) => (trusted = !!a.trusted && !!a.user));
-  let edits = {}; // the sidebar's unsaved panel fields: {settings, acts, clientRights}, each once edited
+  let edits = {}; // the sidebar's unsaved panel fields: {settings, acts, clientRights}, each after its first edit.
   const paintWatchers = []; // (grid, selection box) after every repaint, for things that sit over the squares
   const readOnly = () => !!loaded && !loaded.canEdit;
   const fields = () => ({
@@ -135,7 +135,7 @@ export async function runEditor() {
   const dirty = () => isDirty(loaded, nameBox.value, firstGrid(), edits, livePages());
 
   // Every cell edit, on any Page, passes here, so this is where undo records (gridundo.js): one stack for the
-  // panel. what names the step on the status line, join makes a run of edits one step, list marks a step that
+  // panel. what names the step on the status line. join makes a run of edits one step. list marks a step that
   // replaces the Page list (a template). A selection move or a Page op changes no cells, so it records nothing.
   let steps = emptyUndo();
   const snap = (list = false) => pageSnap(livePages(), g.rows, g.cols, { list, focus, sel: g.sel });
@@ -289,14 +289,14 @@ export async function runEditor() {
 
   // The menu goes with the selection when a click or Tab lands outside the grid, the menu and the sidebar. The
   // sidebar edits the selected cell, so a click there keeps the selection and only puts the menu away (it sat over
-  // the sidebar's fields); the next grid click or key brings it back. Not a blur: the menu rebuilds itself on every
+  // the sidebar's fields). The next grid click or key brings it back. Not a blur: the menu rebuilds itself on every
   // change and drops focus for a moment. The event path, not the target: a click on a square repaints the grid,
   // which detaches that target.
   let menuAway = false;
   const leave = (e) => {
     if (!g.sel) return;
     const path = e.composedPath();
-    // The paste past the edge dialog answers for the selection, so focus in it is not leaving the grid.
+    // The paste past the edge dialog answers for the selection, so focus in it does not leave the grid.
     // A press on another open Page moves the selection there itself.
     if ([$('ed-open-pages'), menu.root].some((n) => path.includes(n)) || path.some((n) => n.id === 'ed-edge')) return;
     if (path.includes($('ed-side'))) {
@@ -336,7 +336,7 @@ export async function runEditor() {
     const block = readBlock(text);
     if (!block) return say('ed-status', 'Nothing pasted: the clipboard holds no valid Sode cells.');
     const plan = pastePlan(g, block, { panel: loaded?.id, fixed: fixedOn() });
-    if (!plan) return say('ed-status', 'Nothing pasted: select the square to paste at first.');
+    if (!plan) return say('ed-status', 'Nothing pasted: first select the square to paste at.');
     if (!plan.fits) return void pasteOverflow(plan);
     const dropped = setGrid(applyPaste(g, plan.placed), { what: 'paste' });
     say('ed-status', `${pasteNote(plan)} ${droppedNote(dropped)}`.trim());
@@ -460,7 +460,8 @@ export async function runEditor() {
     const link = $('ed-open');
     link.hidden = !loaded;
     if (loaded) link.href = `panels/${loaded.id}`;
-    // A panel that only acts as its API client has no link without its key (Share, Link with key); a Both panel's plain link opens in Session mode, a Public panel's for anyone.
+    // A panel that only acts as its API client has no link without its key (Share, Link with key).
+    // A Both panel's plain link opens in Session mode, and a Public panel's opens for anyone.
     const copy = $('ed-copylink');
     copy.hidden = !loaded || loaded.acts === 'api';
   }
@@ -689,8 +690,8 @@ export async function runEditor() {
   on('wsclose', () => note('offline'));
   startSession();
   show(null);
-  // Not awaited: the seams below must exist while the page still waits for a sign-in, so the sidebar and Find are
-  // built and nothing is left half drawn.
+  // Not awaited: the seams below must exist while the page still waits for a sign-in. Then the sidebar and Find
+  // get built, and nothing is left half drawn.
   (async () => {
     try {
       await loadList();
