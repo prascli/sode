@@ -1,0 +1,98 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "web/index.html"
+        ],
+        "createdAt": "2026-11-15T03:25:49.220Z",
+        "reason": "Claude triage of sode#414: #brand-icon has no src in HTML on purpose; settings.js sets src before the image shows"
+      },
+      {
+        "rule": "wide-tracking",
+        "value": "*",
+        "files": [
+          "web/index.html"
+        ],
+        "createdAt": "2026-11-15T03:31:04.797Z",
+        "reason": "Claude triage of sode#414: the only hit is patchbay .pb-menu__label, 0.06em on short uppercase labels, the case the rule allows"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "web/panel.html"
+        ],
+        "createdAt": "2026-11-15T03:31:04.829Z",
+        "reason": "Claude triage of sode#414: panels.css draws inset rings in --pb-view (state borders), not a glow; rendered scans do not flag it"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "web/paneleditor.html"
+        ],
+        "createdAt": "2026-11-15T03:31:04.858Z",
+        "reason": "Claude triage of sode#414: panels.css draws inset rings in --pb-view (state borders), not a glow; rendered scans do not flag it"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "web/panels.html"
+        ],
+        "createdAt": "2026-11-15T03:31:04.900Z",
+        "reason": "Claude triage of sode#414: panels.css draws inset rings in --pb-view (state borders), not a glow; rendered scans do not flag it"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "web/index.html"
+        ],
+        "createdAt": "2026-11-15T03:31:04.987Z",
+        "reason": "Claude triage of sode#414: the only source is patchbay .pb-split-handle, a drag grip texture, not decoration"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "web/log.html"
+        ],
+        "createdAt": "2026-11-15T03:31:05.094Z",
+        "reason": "Claude triage of sode#414: the only source is patchbay .pb-split-handle, a drag grip texture, not decoration"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "web/panel.html"
+        ],
+        "createdAt": "2026-11-15T03:31:05.179Z",
+        "reason": "Claude triage of sode#414: the only source is patchbay .pb-split-handle, a drag grip texture, not decoration"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "web/paneleditor.html"
+        ],
+        "createdAt": "2026-11-15T03:31:05.248Z",
+        "reason": "Claude triage of sode#414: the only source is patchbay .pb-split-handle, a drag grip texture, not decoration"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "web/panels.html"
+        ],
+        "createdAt": "2026-11-15T03:31:05.278Z",
+        "reason": "Claude triage of sode#414: the only source is patchbay .pb-split-handle, a drag grip texture, not decoration"
+      }
+    ]
+  }
+}
