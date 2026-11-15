@@ -13,7 +13,7 @@ export const MODES = [
 export const MODE_HINT = {
   key: 'Makes a key for this instance. The link shows one time, so copy it when it appears. Anyone with the link can use the panel as this instance. To get a link again, rotate the instance.',
   setup:
-    "Makes a link that works once, for one hour. The device opens it and keeps its own key, so the link cannot be reused. This instance's old key ends now.",
+    "Makes a link that works one time, for one hour. The device opens it and keeps its own key, so the link cannot be reused. This instance's old key ends now.",
 };
 
 // The instance name is required and becomes the device name (the page's ?instance=), so it has the monitor's limits.
@@ -69,7 +69,7 @@ export function keyRow(k, now) {
 export const SESSION_WARNING =
   'This panel acts as the signed-in user, so it has no key. A link to it asks for a sign-in in any tab or device not already signed in to Sode.';
 export const SESSION_NEXT =
-  'For a link that opens without a sign-in, set Authentication mode to API, Both or Public on the Access tab. That saves the panel at once.';
+  'For a link that opens without a sign-in, set Authentication mode to API, Both or Public on the Access tab. That saves the panel immediately.';
 
 // A Public panel has a client, but its plain link already opens it, so keyed links add nothing.
 export const keyTabMuted = (panel) => !hasClient(panel) || isPublic(panel);
@@ -130,7 +130,7 @@ export function pollFail(status, code, message, hadKey) {
     return { stop: true, forget: true, text: "This page's sign-in key was ended. Reload the page to sign in again." };
   if (status === 403 && code === 'network_not_allowed') return { stop: true, forget: false, text: message || 'This panel is not allowed on this network.' };
   if (status === 429) return { stop: false, text: 'Sode asked this page to wait before it tries again.' };
-  return { stop: false, text: 'Lost contact with Sode. Sode will try again.' };
+  return { stop: false, text: 'Lost contact with Sode. The page will try again.' };
 }
 
 const codeOf = (res) =>
