@@ -166,7 +166,7 @@ func (s *panelStore) restoreCheckpoint(id, cp, by string) (p Panel, ok bool, err
 
 func (s *panelStore) dropCheckpoints(id string) {
 	delete(s.cps, id)
-	if s.dir != "" {
+	if s.dir != "" && panelIDRe.MatchString(id) { // the store's ids already match; CodeQL needs the check at the path
 		os.Remove(s.cpPath(id))
 	}
 }

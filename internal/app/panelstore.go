@@ -305,6 +305,14 @@ func loadPanels(cfgPath string) *panelStore {
 		}
 		p.Extra = extraOwnFields(p.Extra)
 		p.normalize()
+		// Art ids name files under <id>.art, so a hand-edited one must not reach a path.
+		p.Art = slices.DeleteFunc(p.Art, func(a PanelArt) bool {
+			if artIDRe.MatchString(a.ID) {
+				return false
+			}
+			s.problem("%s: artwork id %q is not valid, so it was dropped", path, a.ID)
+			return true
+		})
 		if p.Slug != "" && (!validPanelSlug(p.Slug) || slugSeen[p.Slug]) {
 			s.problem("%s: short name %q is not valid or is used by an earlier panel, so it was dropped", path, p.Slug)
 			p.Slug = ""
@@ -439,7 +447,7 @@ func (s *panelStore) followUsers(renames map[string]string, removed map[string]b
 
 func (s *panelStore) delete(id string) (bool, error) {
 	return s.remove(id, func(p Panel) {
-		if s.dir != "" {
+		if s.dir != "" && panelIDRe.MatchString(id) { // as dropCheckpoints
 			os.RemoveAll(filepath.Join(s.dir, id+".art"))
 		}
 		for _, a := range p.Art {

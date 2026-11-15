@@ -75,5 +75,7 @@ A release digest passes with `promote.yml`; a candidate only with `rc.yml@refs/t
 | Branch protection on `main` | `ci-ok main` required, branch must be up to date (strict), enforced for admins |
 | Merge settings | auto-merge and the Update branch button on; head branches deleted on merge; merge commits, squash and rebase allowed |
 | Dependabot | version updates (actions, gomod, docker), vulnerability alerts and security update PRs |
+| Private vulnerability reporting | on (SECURITY.md points reporters at it) |
+| CodeQL | default setup for actions, go and javascript-typescript; findings land in the Security tab, not a required check |
 
 With strict on, a PR behind main must be updated before it merges; turn on auto-merge and use Update branch instead of waiting.

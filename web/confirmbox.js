@@ -2,9 +2,7 @@
 // letter or its button. Rotate and Revoke (panelkeytab.js) and the Authentication mode switch (actsguard.js) share it.
 import { el, S } from './core.js';
 import { btn } from './formbits.js';
-import { churnKey } from './lockrules.js';
-
-const LOCKOUT_FALLBACK_MS = 500; // the panels page has no hello, so S.cfg can be unset
+import { churnKey, lockoutMs } from './lockrules.js';
 
 // The letter answers while focus is anywhere inside root. ask resolves true on the Confirm and false on Cancel or when a
 // newer ask or cancel() replaces it.
@@ -37,7 +35,7 @@ export function confirmBox(root) {
       c.ready = true;
       keyEl.classList.remove('sode__key--locked');
       ok.disabled = false;
-    }, S.cfg?.confirmLockoutMs ?? LOCKOUT_FALLBACK_MS);
+    }, lockoutMs(S.cfg));
     cur = c;
     node.replaceChildren(el('p', null, text), el('div', 'sode__prompt', 'Press', keyEl, 'to confirm', ok, cancel));
     node.hidden = false;

@@ -9,7 +9,7 @@ import { sessionFetch, jsonCall } from './sessionkey.js';
 import { pinNeeded } from './templaterules.js';
 import { prepareArt } from './artcompress.js';
 import { artImage } from './panelview.js';
-import { churnKey } from './lockrules.js';
+import { churnKey, lockoutMs } from './lockrules.js';
 import { libNameOf, libNameProblem, libDeleteText, libRescanText, pickerSections, LIB_TYPES } from './iconlibrules.js';
 
 const send = jsonCall(sessionFetch, { down: 'Sode did not answer, so the icon was not uploaded.', failed: (s) => `The icon was not uploaded (${s}).` });
@@ -18,7 +18,6 @@ const change = jsonCall(sessionFetch, {
   down: 'Sode did not answer, so the Icon library was not changed.',
   failed: (s) => `The Icon library was not changed (${s}).`,
 });
-const LOCKOUT_FALLBACK_MS = 500; // as confirmbox.js: the editor has no hello, so S.cfg can be unset
 
 let trusted = false;
 const repaints = new Set();
@@ -212,7 +211,7 @@ export function createLibSection({ ed, set, gone = () => {} }) {
       c.ready = true;
       keyEl.classList.remove('sode__key--locked');
       ok.disabled = false;
-    }, S.cfg?.confirmLockoutMs ?? LOCKOUT_FALLBACK_MS);
+    }, lockoutMs(S.cfg));
     c.go = async () => {
       if (!c.ready || confirming !== c) return;
       cancelAsk();
