@@ -25,7 +25,7 @@ func init() {
 }
 
 // artDefaultIn is a set or clear. Panel names the panel an `a-` artwork id belongs to, whose image
-// is copied; Pin is read only for a user who is not Trusted, and never stored.
+// is copied. Pin is read only for a user who is not Trusted, and never stored.
 type artDefaultIn struct {
 	ArtDefault
 	Panel string `json:"panel"`
@@ -63,8 +63,8 @@ func (a *App) artDefaultsFor(cl *apiCtx, keep func(ArtDefault) bool) []ArtDefaul
 	return out
 }
 
-// panelArtDefaults are the defaults of the items p's cells show, as cl may see them. GET
-// /panels/{id} carries them, so a changed default reaches an open panel through its update check.
+// panelArtDefaults are the defaults of the items p's cells show, as cl can see them. GET
+// /panels/{id} carries them, so a changed default reaches an open panel page through its update check.
 func (a *App) panelArtDefaults(cl *apiCtx, p Panel) []ArtDefault {
 	shown := map[string]bool{}
 	for c := range allCells(p.Pages) {
@@ -121,7 +121,7 @@ func (a *App) readArtDefault(w http.ResponseWriter, r *http.Request, cl *apiCtx)
 		apiFail(w, http.StatusBadRequest, "bad_request", err.Error())
 		return in, false
 	}
-	if err := a.mayEveryone(cl, in.Pin, "only a Trusted user, or the Advanced Settings PIN, may change Default artwork"); err != nil {
+	if err := a.mayEveryone(cl, in.Pin, "only a Trusted user, or the Advanced Settings PIN, can change Default artwork"); err != nil {
 		failWith(w, err)
 		return in, false
 	}
@@ -218,7 +218,7 @@ func (a *App) apiArtDefaultClear(w http.ResponseWriter, r *http.Request, cl *api
 	}
 }
 
-// apiArtDefaultImage serves an image only while a default the caller may see names it.
+// apiArtDefaultImage serves an image only while a default the caller can see names it.
 func (a *App) apiArtDefaultImage(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	id := r.PathValue("art")
 	seen := len(a.artDefaultsFor(cl, func(d ArtDefault) bool { return d.Art == id })) > 0

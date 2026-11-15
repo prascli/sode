@@ -130,7 +130,7 @@ func TestChangingModeNeedsThePinAndKeepsEverything(t *testing.T) {
 	if err := a.SaveUsers(ana, req); err == nil {
 		t.Fatal("SaveUsers took the mode without the PIN")
 	}
-	// The Settings form can't change it either.
+	// The Settings form cannot change it either.
 	cfg := a.r().cfg
 	cfg.SignInMode = config.SignInUsername
 	if err := a.SaveSettings(adminClient(t, a), cfg, "", false); err != nil {
@@ -194,7 +194,7 @@ func TestUsernameModeBackToPinOnlyWithNewUniquePins(t *testing.T) {
 
 func TestUsernameModeBackToPinOnlyRefusesUsersWithoutNewPin(t *testing.T) {
 	a := usernameApp(t)
-	// Ana and Bo share 1234, but the server can't see that: any user without a typed PIN is refused.
+	// Ana and Bo share 1234, but the server cannot see that: any user without a typed PIN is refused.
 	err := a.SaveUsers(adminClient(t, a), backToPin(userEdit{Name: "Ana", Was: "Ana", Pin: "1111"}, userEdit{Name: "Bo", Was: "Bo"}))
 	if err == nil || !strings.Contains(err.Error(), "Bo") || strings.Contains(err.Error(), "Ana") {
 		t.Fatalf("want a refusal naming only Bo, got %v", err)
@@ -260,7 +260,7 @@ func TestHeldLockResumesWithThePinInUsernameMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.UserLock(c)
-	// Bo shares Ana's PIN; neither name nor PIN may switch a held session to Bo.
+	// Bo shares Ana's PIN; the name and the PIN must not switch a held session to Bo.
 	if err := a.UserUnlockAs(c, "bobby", "1234"); err == nil {
 		t.Fatal("another user's username resumed a held Lock")
 	}
@@ -346,7 +346,7 @@ func TestUnknownUsernameCostsAsMuchAsAKnownOne(t *testing.T) {
 	}
 }
 
-// PIN lengths are public (lockState.lens), so a wrong-length PIN for a known username must
+// PIN lengths are public (lockState.lens). So a wrong-length PIN for a known username must
 // still pay the hash cost, or a fast answer says the username exists.
 func TestWrongLengthPinCostsAsMuchAsARightLengthOne(t *testing.T) {
 	a := usernameApp(t)

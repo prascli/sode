@@ -38,8 +38,8 @@ func waitNamesAndTally(t *testing.T, a *App, key string) {
 }
 
 // A keyless page (its key revoked) of a panel with a Fixed destination is assigned to another panel with fixed
-// destinations: it opens the target by its short name on the key stored as sode-panel-key-<slug>, a Source press
-// and Take patch both fixed destinations, and once that key is revoked it shows the ended-key note and announces
+// destinations. It opens the target by its short name on the key stored as sode-panel-key-<slug>. A Source press
+// and Take patch both fixed destinations. After that key is revoked, it shows the ended-key note and announces
 // itself keyless again.
 func TestChromeSeamKeylessAssignRunsFixedDestsThenKeyEnds(t *testing.T) {
 	b := startBrowser(t)
@@ -121,8 +121,9 @@ func TestChromeSeamKeylessAssignRunsFixedDestsThenKeyEnds(t *testing.T) {
 	}
 }
 
-// A panel holding an Icon library icon with Icon B, and a cell drawn whole by a Default artwork image with Icon B
-// (a cell with art of its own takes none of the default), is Pushed and Copied: on both the copy's and the target's panel page each cell draws its image with Icon B as the corner badge.
+// A panel holds an Icon library icon with Icon B, and a cell drawn whole by a Default artwork image with Icon B.
+// A cell with art of its own gets none of the default. The panel is Pushed and Copied. On both the copy's and the
+// target's panel page, each cell draws its image with Icon B as the corner badge.
 func TestChromeSeamIconBBadgeAfterPushAndCopy(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)

@@ -11,8 +11,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// A short link: /panels/<slug>#key=<key without its prefix>&kiosk=1 opens the panel, ?instance= names the
-// session so the device question is skipped, and an unknown short name says only that nothing is there.
+// A short link: /panels/<slug>#key=<key without its prefix>&kiosk=1 opens the panel. ?instance= names the
+// session so the device question is skipped. An unknown short name says only that nothing is there.
 func TestChromePanelShortLink(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)

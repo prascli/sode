@@ -67,8 +67,8 @@ type apiRouteRow struct {
 	Src   int `json:"src"`   // -1 = nothing routed
 }
 
-// apiProtectedRow: router.protect maps dst and level to a device, which is not a source, so
-// the row carries no value and visibility asks about the destination only.
+// apiProtectedRow: router.protect maps dst and level to a device, which is not a source. So
+// the row carries no value, and visibility asks about the destination only.
 type apiProtectedRow struct {
 	Dst   int `json:"dst"`
 	Level int `json:"level"` // UI level
@@ -137,8 +137,8 @@ func (a *App) apiProtected(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
 }
 
 // linkStatus is the Router link as any caller with the status scope sees it. The router
-// address and the error text (which quotes it) go only to a caller with the log scope, the
-// same rule as the Communication Log's raw router rows.
+// address and the error text (which quotes it) go only to a caller with the log scope. This is
+// the same rule as for the Communication Log's raw router rows.
 func linkStatus(s statusMsg, withDetail bool) map[string]any {
 	m := map[string]any{"router": s.Router, "routerUp": s.Router == string(swp08.StateUp), "error": s.Err != ""}
 	if withDetail {

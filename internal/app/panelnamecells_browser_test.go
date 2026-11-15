@@ -9,7 +9,7 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// Panel Name and Instance Name cells show the panel's and the instance's names and cannot be pressed, and no
+// Panel Name and Instance Name cells show the panel's and the instance's names and cannot be pressed. No
 // cell's text runs past its square: a long unbroken caption wraps and shrinks inside it.
 func TestChromePanelNameCellsAndTextFit(t *testing.T) {
 	b := startBrowser(t)

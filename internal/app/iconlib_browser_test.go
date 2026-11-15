@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// The Icon library end to end: Upload in the Choose icon picker's Uploaded section adds a PNG, its tile picks it for
-// a cell, the save stores `lib:<id>`, and the panel page draws it as a picture with Icon B as its corner badge.
+// The Icon library end to end. Upload in the Choose icon picker's Uploaded section adds a PNG, and its tile picks it
+// for a cell. The save stores `lib:<id>`, and the panel page draws it as a picture with Icon B as its corner badge.
 func TestChromeIconLibraryUploadPickAndDraw(t *testing.T) {
 	b, a, _, id := editorTabPrep(t, `{"name":"Lib","rows":2,"cols":2,"cells":[{"r":1,"c":1,"kind":"source","n":1,"artB":"2"}]}`, nil)
 	sq := `document.querySelector('.sode-ed__sq[data-r="1"][data-c="1"]')`
@@ -56,7 +56,7 @@ func TestChromeIconLibraryUploadPickAndDraw(t *testing.T) {
 }
 
 // A Trusted user renames and deletes from a tile under Manage. Delete asks the churning-letter Confirm with the use
-// count; after it the cells that used the icon draw no Icon A, on the editor canvas and on the panel page, and keep
+// count. After it, the cells that used the icon draw no Icon A, on the editor canvas and on the panel page. They keep
 // their Icon B and text.
 func TestChromeIconLibraryRenameAndDelete(t *testing.T) {
 	var ic LibIcon
@@ -122,7 +122,7 @@ func TestChromeIconLibraryRenameAndDelete(t *testing.T) {
 	}
 }
 
-// A library SVG draws as a mask in the art row's text colour, so a red and blue file shows one colour that follows the
+// A library SVG draws as a mask in the art row's text colour. So a red and blue file shows one colour that follows the
 // theme. It is never an <img> with its own colours, and the editor's canvas and picker tile draw it the same way.
 func TestChromeIconLibrarySVGTakesTheTextColour(t *testing.T) {
 	b, _, _, id := editorTabPrep(t, `{"name":"Lib","rows":2,"cols":2}`, func(b *tab, a *App, ana, id string) {

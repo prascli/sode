@@ -21,8 +21,8 @@ const (
 	apiViaMax      = 32
 )
 
-// userKeyScopes: a user's key acts as the user in full, except the Communication Log, which
-// takes an explicit scope an API client or Guest can be given.
+// userKeyScopes: a user's key acts as the user in full, except the Communication Log. That
+// needs an explicit scope, which an API client or Guest can be given.
 var userKeyScopes = slices.DeleteFunc(slices.Clone(config.AllScopes), func(s string) bool { return s == config.ScopeLog })
 
 type authFail struct {
@@ -143,9 +143,9 @@ func (a *App) apiAuth(w http.ResponseWriter, r *http.Request) (*apiCtx, bool) {
 }
 
 // panelHeaders ties the call to the panel page that made it, for log rows. A panel client's key
-// proves its panel, and the key's name is the instance when the page sends none (a key is made per
+// proves its panel. The key's name is the instance when the page sends none (a key is made per
 // instance, panelkey.go). A user's key proves nothing, so `X-Sode-Panel` must name a panel that
-// exists and is marked unverified; a instance with no panel is dropped.
+// exists and is marked unverified; an instance with no panel is dropped.
 func (a *App) panelHeaders(r *http.Request, cl *apiCtx, k apiKey) {
 	instance := cleanDevice(r.Header.Get("X-Sode-Instance"))
 	if cl.Panel != "" {
@@ -294,7 +294,7 @@ func (a *App) writeAuthFail(ip string, f *authFail) {
 }
 
 // refuseEnded answers a key that ended: final, so the client stops. Its own count per address
-// caps how often it is answered and gives one `endedKeyUsed` row per window; it never touches
+// caps how often it is answered and gives one `endedKeyUsed` row per window. It never touches
 // the failed-key throttle, so a stale page does not lock out the others at its address.
 func (a *App) refuseEnded(w http.ResponseWriter, ip string, expired bool, now time.Time) {
 	s := &a.apiS

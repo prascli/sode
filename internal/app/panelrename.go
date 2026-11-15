@@ -10,7 +10,7 @@ import (
 )
 
 // Renaming an instance from the panels page (docs/panels-design.md): the new device name goes down the instance's
-// held stream as its last line, the page applies it as its own header rename does and reopens under it, and the
+// held stream as its last line. The page applies it as its own header rename does and reopens under it. The
 // instance's key is renamed so the key list and the instances agree. The name is the device name itself.
 
 func init() {

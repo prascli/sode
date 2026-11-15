@@ -46,7 +46,7 @@ func TestChromePanelLockBarLayout(t *testing.T) {
 	}
 	// Null-safe: right after a reload the elements are not drawn yet, and a throw would fail the test instead of retrying.
 	shown := `(() => { const w = document.querySelector('.sode-lock__who'); return !!w && getComputedStyle(w).display !== 'none' && !w.hidden; })()`
-	// Overlap of the Lock bar with the first thing under it that is not the bar: the header, or the grid when the header is off.
+	// Overlap of the Lock bar with the first thing under it that is not the bar. That is the header, or the grid when the header is off.
 	covers := `(() => {
 		const bar = document.querySelector('.sode-lock__who-bar').getBoundingClientRect();
 		const head = document.querySelector('.sode-panels__head');

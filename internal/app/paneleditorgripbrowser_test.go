@@ -11,7 +11,7 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// The editor's corner grip extends numbering with a tip, the fill order picker changes the preview, the toolbar
+// The editor's corner grip extends numbering with a tip, and the fill order picker changes the preview. The toolbar
 // counts an unassigned cell, and Test it live saves and opens a panel that leaves that cell out.
 func TestChromeEditorGripOrderLive(t *testing.T) {
 	b := startBrowser(t)

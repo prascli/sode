@@ -230,7 +230,7 @@ func FromEnv(c Config) (Config, error) {
 	return c, errors.Join(errs...)
 }
 
-// Clone shares no slices, so Normalize can't touch a config others read.
+// Clone shares no slices, so Normalize cannot touch a config others read.
 func (c Config) Clone() Config {
 	c.TrustedProxies = slices.Clone(c.TrustedProxies)
 	c.LevelColors = slices.Clone(c.LevelColors)
@@ -577,8 +577,8 @@ func Load(path string) (c Config, exists bool, err error) {
 	return c, true, nil
 }
 
-// Parse is Load's decoder (also config import): unknown keys are kept (see UnknownKeys), legacy
-// keys load, no Validate so a caller can merge PIN hashes first.
+// Parse is Load's decoder (also config import). Unknown keys are kept (see UnknownKeys) and legacy
+// keys load. It does not Validate, so a caller can merge PIN hashes first.
 func Parse(b []byte) (Config, error) {
 	c := Defaults()
 	dec := yaml.NewDecoder(bytes.NewReader(b))
@@ -597,7 +597,7 @@ func (c Config) UnknownKeysProblem() string {
 	if len(keys) == 0 {
 		return ""
 	}
-	return "config.yaml has keys this release doesn't know, kept as is: " + NameKeys(keys)
+	return "config.yaml has keys this release does not know, kept as is: " + NameKeys(keys)
 }
 
 // maxNamedKeys bounds key lists in the startup row and the import reply.
@@ -693,7 +693,7 @@ func BackupOnce(path, label string) error {
 }
 
 // After a rollback .before-<version> often exists already and .prev lasts
-// one save. A copy equal to the newest one is skipped, so a restart loop doesn't fill the disk.
+// one save. A copy equal to the newest one is skipped, so a restart loop does not fill the disk.
 func BackupUnknown(path string, now time.Time) error {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {

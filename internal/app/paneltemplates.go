@@ -34,7 +34,7 @@ var (
 	errTemplateCap = errors.New("too many templates")
 	errTemplateDup = errors.New("there is already a template with that name")
 
-	// contentKeys are what fills a cell once its type is set. A template leaves them out unless
+	// contentKeys are what fills a cell after its type is set. A template leaves them out unless
 	// asked, so a new show's Sources and Destinations are chosen afresh.
 	contentKeys = []string{"n", "scope", "name", "caption"}
 )
@@ -42,7 +42,7 @@ var (
 // Template is a file's content. Owner is the user a Me template belongs to, and for an Everyone
 // template the user who saved it. Settings is nil when the template carries none. Sources keeps
 // Source and Preset contents, Dests keeps Destination contents. Contents is the single flag from
-// before the split: a save or file that sets it means both, and it is never stored or sent back.
+// before the split. A save or file that sets it means both, and it is never stored or sent back.
 type Template struct {
 	ID       string      `yaml:"id" json:"id"`
 	Name     string      `yaml:"name" json:"name"`
@@ -291,7 +291,7 @@ func (a *App) apiTemplateRead(w http.ResponseWriter, r *http.Request, cl *apiCtx
 
 // mayEveryone is the rule of story 80, for Everyone templates and Checkpoint sets: a Trusted
 // user, or whoever holds the Advanced Settings PIN. A REST call has no connection to unlock,
-// so the PIN rides in the body and counts as a wrong try of the same pool as the Settings
+// so the PIN rides in the body. It counts as a wrong try of the same pool as the Settings
 // dialog's. msg is the refusal when no PIN is set or sent.
 func (a *App) mayEveryone(cl *apiCtx, pin, msg string) error {
 	if a.trusted(cl.Actor.Name) {

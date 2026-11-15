@@ -25,7 +25,7 @@ type inflight struct {
 	kinds map[string]int
 }
 
-// start counts one write of kind; false once shutdown began. done may be called more than once.
+// start counts one write of kind; false after shutdown began. done can be called more than one time.
 func (f *inflight) start(kind string) (done func(), ok bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

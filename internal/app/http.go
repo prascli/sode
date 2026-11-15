@@ -137,7 +137,7 @@ func (a *App) serveHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(healthMsg{"up", st.Router, st.Addr, st.Err, VersionLabel(), int64(time.Since(a.started).Seconds()), browsers})
 }
 
-// clientIP: a hop that isn't an address ends the search at the peer rather than trusting
+// clientIP: a hop that is not an address ends the search at the peer rather than trusting
 // what lies beyond.
 func clientIP(r *http.Request, trusted []netip.Prefix) string {
 	host, ok := trustedPeer(r, trusted)
@@ -167,7 +167,7 @@ func clientIP(r *http.Request, trusted []netip.Prefix) string {
 	return host
 }
 
-// wsHeartbeat: browsers can't see ping frames, so a silently dropped socket would stay
+// wsHeartbeat: browsers cannot see ping frames, so a silently dropped socket would stay
 // OPEN on the page. A var so tests can shorten it.
 var wsHeartbeat = 5 * time.Second
 

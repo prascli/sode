@@ -45,7 +45,7 @@ func chromePath() string {
 	return ""
 }
 
-// watchChrome kills Chrome once this test binary is gone. t.Cleanup never runs after a -timeout panic or
+// watchChrome kills Chrome when this test binary is gone. t.Cleanup never runs after a -timeout panic or
 // a kill, and macOS has no parent-death signal. The returned func ends the watch; call it after Chrome
 // has exited so a reused pid is never killed.
 func watchChrome(pid int) (stop func()) {
@@ -95,7 +95,7 @@ func startBrowser(t *testing.T) *tab {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	for try := 0; try < 3 && port == ""; try++ {
-		// Chrome's helper processes can still write to the profile after the main one exits, which makes
+		// Chrome's helper processes can still write to the profile after the main one exits. That makes
 		// t.TempDir's single RemoveAll fail with "directory not empty" on a slow runner.
 		dir := settledTempDir(t)
 		ctx, cancel = context.WithCancel(context.Background())

@@ -12,8 +12,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// With "Ask users to set an instance name" off the page never asks and shows no name in the header, yet it
-// still beats under its address, and ?instance= or a stored name still apply. On, the question is back.
+// With "Ask users to set an instance name" off, the page never asks and shows no name in the header. It still
+// beats under its address, and ?instance= or a stored name still apply. On, the question is back.
 func TestChromePanelAskInstanceNameOff(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
