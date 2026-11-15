@@ -97,7 +97,7 @@ test('the menu goes right of the selection, else left, else below, and stays ins
   assert.equal(placeMenu({ left: 20, top: 50, right: 680, bottom: 100 }, menu, area, 8).side, 'below');
 });
 
-// The sidebar edits the selected cell, so the menu must not sit over it: beside the grid it bounds the menu's area,
+// The sidebar edits the selected cell, so the menu must not sit over it. Beside the grid it bounds the menu's area;
 // under the grid (the narrow layout) it does not.
 test('the menu area is the viewport, cut at the sidebar when the sidebar is beside the grid', async () => {
   const { menuArea } = await import('../editorrules.js');
@@ -108,8 +108,8 @@ test('the menu area is the viewport, cut at the sidebar when the sidebar is besi
   assert.deepEqual(menuArea(vp, null, grid), { left: 0, top: 0, right: 1600, bottom: 900 });
 });
 
-// A flyout (Type, Find) opens away from the selection, so on the menu's own side; when that side has no room it
-// flips to the other, and when neither fits it takes the side with more room.
+// A flyout (Type, Find) opens away from the selection, so on the menu's own side. When that side has no room it
+// flips to the other, and when neither fits it picks the side with more room.
 test('a flyout opens on the menu side when it fits there, else on the other side', async () => {
   const { subSide } = await import('../editorrules.js');
   const area = { left: 0, top: 0, right: 1000, bottom: 600 };
@@ -124,7 +124,7 @@ test('a flyout opens on the menu side when it fits there, else on the other side
 });
 
 // The Find flyout sits beside its menu item and is pulled back inside the viewport when it would run off the bottom or
-// the right; it never moves when it already fits.
+// the right. It never moves when it already fits.
 test('a flyout that runs off the viewport is shifted back inside, and one that fits stays put', async () => {
   const { flyoutShift } = await import('../editorrules.js');
   const vp = { w: 1000, h: 600 };

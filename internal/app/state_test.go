@@ -34,7 +34,7 @@ func fillRouterDerived(a *App) {
 }
 
 // noZeroFields fails for any field of the struct v points to that is still its
-// zero value, so a field added to routerState or extTracker must be filled by
+// zero value. So a field added to routerState or extTracker must be filled by
 // fillRouterDerived (and so is checked to be cleared).
 func noZeroFields(t *testing.T, v any) {
 	t.Helper()

@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-// The editor's Pages bar on a 3-Page panel: Add Page twice, Cmd-click and a Mac Ctrl-click (contextmenu) open all
-// three side by side, a copy on Page 1 pastes onto Page 2 and Page 3, Copy to over the used Page 3 asks before it
-// replaces, and an undo pressed on Page 1 takes back the Copy to on Page 3. The save stores every Page, and the copied
+// The editor's Pages bar on a 3-Page panel. The check presses Add Page twice. Cmd-click and a Mac Ctrl-click
+// (contextmenu) open all three side by side. A copy on Page 1 pastes onto Page 2 and Page 3. Copy to over the used
+// Page 3 asks before it replaces. An undo pressed on Page 1 takes back the Copy to on Page 3. The save stores every Page, and the copied
 // Go to Page cell keeps its target. The Info cell copied to Page 3 names Page 3, and Test it live opens on Page 3.
 func TestChromeEditorPages(t *testing.T) {
 	b, a, ana, id := editorTab(t, `{"name":"Paged","rows":2,"cols":4,"pages":[{"id":"p1","enabled":true,"cells":[

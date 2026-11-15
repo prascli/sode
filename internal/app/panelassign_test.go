@@ -135,7 +135,7 @@ func TestAssignSendsAKeyForTheTargetDownOnlyThatInstancesStream(t *testing.T) {
 	}
 }
 
-// Anyone who may use a panel can hold a stream under any device name, so the key goes to the newest stream alone.
+// Anyone who can use a panel can hold a stream under any device name, so the key goes to the newest stream alone.
 func TestAssignSendsTheKeyToTheNewestStreamOfADeviceOnly(t *testing.T) {
 	a := panelsApp(t)
 	cy := userKey(t, a, "Cy")
@@ -474,7 +474,7 @@ func TestInstanceRowsSayWhoHoldsTheStreamFromWhereAndSince(t *testing.T) {
 	if wall["signIn"] != "client" || wall["user"] != nil || wall["addr"] != "127.0.0.1" || wall["page"] != true || wall["trusted"] != nil {
 		t.Fatalf("wall %v", wall)
 	}
-	// trusted is read live, so the Assign to list can tell which panels the user may open.
+	// trusted is read live, so the Assign to list can tell which panels the user can open.
 	if desk["signIn"] != "user" || desk["user"] != "Cy" || desk["trusted"] != true {
 		t.Fatalf("desk %v", desk)
 	}

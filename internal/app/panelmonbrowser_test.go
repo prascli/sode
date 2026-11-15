@@ -92,8 +92,8 @@ func TestChromePanelWatchToast(t *testing.T) {
 	b.check()
 }
 
-// The Sode page: a watcher signed in there sees a banner for a panel that went offline, clears it
-// for now, sees it again for the next outage, and stops monitoring from the same menu.
+// The Sode page: a watcher signed in there sees a banner for a panel that went offline and clears it
+// for now. The watcher sees it again for the next outage, and stops monitoring from the same menu.
 func TestChromePanelOutageBanner(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)

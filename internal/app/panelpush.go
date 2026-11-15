@@ -187,7 +187,7 @@ type PanelSetEntry struct {
 	panelLayout `yaml:",inline"`
 }
 
-// PanelSet: Scope is panelShareMe (Owner only) or panelShareAll (every user may push it).
+// PanelSet: Scope is panelShareMe (Owner only) or panelShareAll (every user can push it).
 type PanelSet struct {
 	ID      string          `yaml:"id" json:"id"`
 	Name    string          `yaml:"name" json:"name"`
@@ -289,7 +289,7 @@ func (s *panelSetStore) putLocked(set PanelSet) error {
 	return nil
 }
 
-// followUsers renames set owners. A Me set's file is named for its owner, so the set moves to the new
+// followUsers renames set owners. A Me set's file is named for its owner. So the set moves to the new
 // name's file and the old file is rewritten without it.
 func (s *panelSetStore) followUsers(renames map[string]string) {
 	s.mu.Lock()

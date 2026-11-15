@@ -11,7 +11,7 @@ import (
 )
 
 // A paste past the edge of the grid asks Clip, Wrap or Cancel. Escape and Cancel change nothing and give focus
-// back to the grid; Clip and Wrap are one undo step each; Wrap follows the fill order picked in Find.
+// back to the grid. Clip and Wrap are one undo step each. Wrap follows the fill order picked in Find.
 func TestChromeEditorPasteEdge(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)

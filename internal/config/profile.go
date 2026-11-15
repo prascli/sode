@@ -59,7 +59,7 @@ func knownPref(k string) bool {
 	return ok
 }
 
-// A browser can't add or remove a pref this release doesn't know; only the file holds those.
+// A browser cannot add or remove a pref this release does not know; only the file holds those.
 func WithUnknownPrefs(sent, saved map[string]string) map[string]string {
 	out := maps.Clone(sent)
 	if out == nil {

@@ -57,7 +57,7 @@ export const PROFILE_NOTICE = 'A Profile is not private. Trusted users and the A
 
 export const canSeeProfiles = (names, trusted, unlocked) => (names?.length || 0) > 0 && !!(trusted || unlocked);
 
-// ---- editing a profile
+// ---- profile edits
 
 // value '' = Not set (also for an invalid one); options are [value, text] pairs, Not set first.
 export function prefFields(prefs) {

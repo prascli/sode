@@ -186,7 +186,7 @@ export function desktopHistory({ select, focusBox, openConfirm, focusSearch, ope
   const pager = historyPager(10, () => layout() === 'desktop');
   pullToLoad(window, $('history-more'), pager, () => active() && !document.querySelector('dialog[open]'));
 
-  // scroll: only when the cursor just moved; other redraws leave the page where it is.
+  // scroll: only when the cursor moved; other redraws leave the page where it is.
   function renderHistory(scroll = false) {
     const list = pager.list();
     if (cursor && !stops(list).some((x) => x.key === cursor)) {

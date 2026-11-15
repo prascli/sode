@@ -13,8 +13,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// Fixed destination from the editor to the router: the Panel tab's picker sets the list, which sets aside the
-// Destination cell, greys Destination in Type and turns off Stage several Destinations; clearing the list brings
+// Fixed destination from the editor to the router: the Panel tab's picker sets the list. The list sets aside the
+// Destination cell, greys Destination in Type and turns off Stage several Destinations. A cleared list brings
 // them back. Saved, the panel page patches a Source press and a Preset press to the fixed destinations only.
 func TestChromeEditorFixedDests(t *testing.T) {
 	b := startBrowser(t)
@@ -162,7 +162,7 @@ func TestChromeEditorFixedDests(t *testing.T) {
 }
 
 // A Destination cell set aside by Fixed destination is dropped when the grid shrinks past it or a merge covers its
-// square, and the status note counts it, so a save never loses a cell without a word.
+// square. The status note counts it, so a save never loses a cell without a word.
 func TestChromeEditorFixedDestsSaysWhatIsDropped(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)

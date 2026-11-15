@@ -49,18 +49,22 @@ func (r *runtime) probe() []byte {
 
 // App is all server state. A router change (applyConfig with reconnect) RESETS what
 // describes the old router:
-// router (*routerState: names, tally, protect, seenAt, pending broadcasts, name refresh
-// buffers); ext (*extTracker: burst, own, causes, leaders, late*; the pointer is the
-// router's generation); waiters and checks (cutRoutes fails them with "the router changed";
-// each keeps the extTracker it started on); status (Router/Addr/Err set to "connecting").
-// KEPT: sw, hist, sent, txq, evq, txLost, up, cfgPath, rt, pin, userPin, tokens, cfgMu,
-// gapHook, xffWarn, fireMu, fire, lateQ (plumbing, config, PINs); clients (get a fresh
-// hello); pendSent; nameReqAt, nameRxAt, namesDirt, dumpAt (polling clock, not cleared;
-// onRouterUp re-asks).
+//   - router (*routerState: names, tally, protect, seenAt, pending broadcasts, name refresh buffers).
+//   - ext (*extTracker: burst, own, causes, leaders, late*). The pointer is the router's generation.
+//   - waiters and checks. cutRoutes fails them with "the router changed"; each keeps the
+//     extTracker it started on.
+//   - status (Router/Addr/Err set to "connecting").
+//
+// KEPT:
+//   - sw, hist, sent, txq, evq, txLost, up, cfgPath, rt, pin, userPin, tokens, cfgMu,
+//     gapHook, xffWarn, fireMu, fire, lateQ (plumbing, config, PINs).
+//   - clients (get a fresh hello) and pendSent.
+//   - nameReqAt, nameRxAt, namesDirt, dumpAt (polling clock, not cleared; onRouterUp re-asks).
+//
 // Fields from mu down to dumpAt are guarded by mu.
 type App struct {
 	// profMemo: marshalled profile per user for one config snapshot, so an apply marshals
-	// once. Guarded by mu.
+	// one time. Guarded by mu.
 	profMemoRT *runtime
 	profMemo   map[string]string
 
@@ -369,7 +373,7 @@ func (a *App) onRouterState(s swp08.State, err error) {
 	a.broadcast(a.status)
 }
 
-// logLink logs up/down once each, not every retry unless the error changes. Caller holds mu.
+// logLink logs up/down one time each, not every retry unless the error changes. Caller holds mu.
 func (a *App) logLink(s swp08.State, err error) {
 	why := ""
 	if err != nil {
@@ -509,7 +513,7 @@ func (a *App) applyNames(nb *swp08.NameBlock) {
 }
 
 const (
-	namesQuiet   = 300 * time.Millisecond // refresh is done once names stop for this long
+	namesQuiet   = 300 * time.Millisecond // refresh is done when names stop for this long
 	namesTimeout = 10 * time.Second
 )
 
@@ -654,7 +658,7 @@ func (a *App) broadcast(v any) {
 	a.streamFan(v)
 }
 
-// deliver drops b if the browser can't keep up. Caller holds mu.
+// deliver drops b if the browser cannot keep up. Caller holds mu.
 func (a *App) deliver(c *client, b []byte) {
 	if c.api != nil && c.api.sink != nil {
 		c.api.sink(b)

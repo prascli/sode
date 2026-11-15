@@ -11,8 +11,8 @@ import (
 )
 
 // Push, checkpoints and checkpoint sets over REST (docs/panels-design.md). Reach follows
-// panelReach: a Push needs the right to change the source and every target, so the owner
-// pushes to their own panels and a Trusted user to anybody's. Nothing is changed unless every
+// panelReach. A Push needs the right to change the panel it copies and every target. So the owner
+// pushes to their own panels, and a Trusted user to anybody's. Nothing is changed unless every
 // target is allowed.
 
 func init() {
@@ -55,8 +55,8 @@ func (a *App) editable(w http.ResponseWriter, cl *apiCtx, ids []string) ([]Panel
 		}
 		seen[id] = true
 		p, read, edit := a.reachPanel(cl, id)
-		if refuseReach(w, read, edit, true, "no panel "+id+" that this key may use",
-			"panel "+id+" is use only for this key: only its owner or a Trusted user may change it") {
+		if refuseReach(w, read, edit, true, "no panel "+id+" that this key can use",
+			"panel "+id+" is use only for this key: only its owner or a Trusted user can change it") {
 			return nil, false
 		}
 		out = append(out, p)
@@ -173,8 +173,8 @@ func (a *App) apiCheckpointRestore(w http.ResponseWriter, r *http.Request, cl *a
 	}
 }
 
-// setReach is what cl may do with set: use is every user's for Everyone sets and the owner's
-// for Me sets; change is the owner's, or a Trusted user's for an Everyone set.
+// setReach is what cl can do with set. Use is every user's for Everyone sets and the owner's
+// for Me sets. Change is the owner's, or a Trusted user's for an Everyone set.
 func (a *App) setReach(cl *apiCtx, set PanelSet) (use, change bool) {
 	if cl.Actor.Kind != actorUser {
 		return false, false
@@ -197,10 +197,11 @@ func setOut(set PanelSet, change bool) map[string]any {
 	return map[string]any{"id": set.ID, "name": set.Name, "scope": set.Scope, "owner": set.Owner, "entries": entries, "canEdit": change}
 }
 
-const setEveryoneMsg = "only a Trusted user, or the Advanced Settings PIN, may save or change a checkpoint set for Everyone"
+const setEveryoneMsg = "only a Trusted user, or the Advanced Settings PIN, can save or change a checkpoint set for Everyone"
 
-// mayChangeSet settles a change the caller named in pin: the owner, or a Trusted user for an
-// Everyone set, as setReach says, or whoever sends the Advanced Settings PIN for an Everyone set.
+// mayChangeSet settles a change the caller named in pin. It allows the owner, or a Trusted user for
+// an Everyone set, as setReach says. It also allows whoever sends the Advanced Settings PIN for an
+// Everyone set.
 // Without a PIN the refusal is the plain 403 not_owner of setFor.
 func (a *App) mayChangeSet(w http.ResponseWriter, cl *apiCtx, set PanelSet, pin string) bool {
 	use, change := a.setReach(cl, set)
@@ -211,8 +212,8 @@ func (a *App) mayChangeSet(w http.ResponseWriter, cl *apiCtx, set PanelSet, pin 
 		}
 		return true
 	}
-	return !refuseReach(w, use, change, true, "no checkpoint set "+set.ID+" that this key may use",
-		"this checkpoint set is use only for this key: only its owner or a Trusted user may change it")
+	return !refuseReach(w, use, change, true, "no checkpoint set "+set.ID+" that this key can use",
+		"this checkpoint set is use only for this key: only its owner or a Trusted user can change it")
 }
 
 func (a *App) setFor(w http.ResponseWriter, r *http.Request, cl *apiCtx, needChange bool) (PanelSet, bool) {
@@ -221,8 +222,8 @@ func (a *App) setFor(w http.ResponseWriter, r *http.Request, cl *apiCtx, needCha
 	if ok {
 		use, change = a.setReach(cl, set)
 	}
-	if refuseReach(w, use, change, needChange, "no checkpoint set "+r.PathValue("sid")+" that this key may use",
-		"this checkpoint set is use only for this key: only its owner or a Trusted user may change it") {
+	if refuseReach(w, use, change, needChange, "no checkpoint set "+r.PathValue("sid")+" that this key can use",
+		"this checkpoint set is use only for this key: only its owner or a Trusted user can change it") {
 		return PanelSet{}, false
 	}
 	return set, true

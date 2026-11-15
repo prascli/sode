@@ -104,7 +104,7 @@ export function createPanelTab(ed) {
   const levelBoxes = createLevelBoxes({ ed, onPatch: (v) => set('levels', v || []) });
   const levelField = el('div', 'sode__field', el('span', 'sode__field-label', 'Default levels'), levelBoxes.node);
   const fixed = createFixedField(ed);
-  const multi = toggle('multi', 'Stage several Destinations at once', 'Off lets one Destination be staged at a time.');
+  const multi = toggle('multi', 'Stage several Destinations at the same time', 'Off lets one Destination be staged at a time.');
   const multiNote = el('span', 'sode__hint');
   multiNote.id = 'ed-multi-note';
   multi.append(multiNote);
@@ -165,7 +165,7 @@ export function createPanelTab(ed) {
       multiNote.textContent = fixedOn ? 'No effect while Fixed destination is on: every press stages all of them together.' : '';
       fixed.update();
       fullscreenHint.textContent = fullscreenNote(s);
-      deviceNote.textContent = feel.wake ? '' : "This browser has no support for keeping the screen awake. It is the panel's own browser that counts.";
+      deviceNote.textContent = feel.wake ? '' : "This browser cannot keep the screen awake. It is the panel's own browser that counts.";
       if (document.activeElement !== size) size.value = String(s.fontSize || 100); // shown, so the arrows step from the default
       size.disabled = ro;
       mode.set(s.mode === 'instant' ? 'instant' : 'take');

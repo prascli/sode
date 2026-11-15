@@ -1,6 +1,6 @@
 // Settings search: pure, no imports (Node-tested), own scorer because core.js `search` needs the DOM.
 // RULE: a new settings section needs an entry in DICT under its slug (see `slug`); settingsindex.test.mjs fails otherwise.
-// Settings are keyed by their control's id; DICT ids that don't exist (yet) are ignored.
+// Settings are keyed by their control's id; DICT ids that do not exist (yet) are ignored.
 
 export const slug = (s) =>
   String(s)
@@ -189,7 +189,7 @@ export const DICT = {
     'filter sets',
   ],
   'transfer-open': ['export', 'import', 'backup', 'restore', 'yaml', 'file', 'download', 'upload', 'share link', 'review', 'transfer', 'copy to another site'],
-  // Sections other branches may add; ignored until they exist.
+  // Sections for other branches to add later; ignored until they exist.
   salvos: ['preset', 'presets', 'salvo', 'salvos', 'scene', 'batch', 'multi take', 'macro', 'group'],
   'fire-mode': ['fire', 'native', 'sync', 'salvo', 'router salvo', 'simultaneous', 'together'],
   grids: ['grid', 'grids', 'panel', 'panels', 'tablet', 'buttons'],

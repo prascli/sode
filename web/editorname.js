@@ -1,5 +1,5 @@
 // The toolbar's Name: the saved name as text beside a Rename button. A click swaps in the field (#ed-name stays the one
-// source of the name for the rest of the editor); Enter or leaving keeps the edit, Escape puts the old name back.
+// source of the name for the rest of the editor). Enter or leaving keeps the edit, and Escape puts the old name back.
 import { $, el } from './core.js';
 
 export function initNameEdit() {

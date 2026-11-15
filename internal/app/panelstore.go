@@ -61,7 +61,7 @@ var (
 )
 
 // PanelShare: Mode is panelShareMe, panelShareNamed (Users) or panelShareAll. Everyone it
-// reaches may use the panel, never change it.
+// reaches can use the panel, never change it.
 type PanelShare struct {
 	Mode  string   `yaml:"mode" json:"mode"`
 	Users []string `yaml:"users,omitempty" json:"users,omitempty"`
@@ -75,7 +75,7 @@ type PanelArt struct {
 }
 
 // Panel is a file's content. Cells and Settings stay free-form here: their shape belongs to
-// the panel page and editor, and Extra keeps any field this version does not know, so an
+// the panel page and editor. Extra keeps any field this version does not know, so an
 // older Sode never drops what a newer one wrote.
 type Panel struct {
 	ID     string `yaml:"id" json:"id"`
@@ -103,11 +103,12 @@ type Panel struct {
 }
 
 // panelKnown are the JSON names the struct owns plus every output-only field a read adds (panelOut, monFields,
-// apiPanelRead), so a client that echoes a read back does not plant one in Extra. Keep in step with those.
+// apiPanelRead). So a client that echoes a read back does not plant one in Extra. Keep in step with those.
 var panelKnown = []string{"id", "name", "owner", "acts", "client", "slug", "share", "rows", "cols", "pages", "cells", "settings", "art", "rev", "canEdit", "clientRights", "hasKey", "clientNetworks", "online", "watching", "instances", "artDefaults", "keyless", "instancesOnline", "instancesKnown", "hiddenInstances", "watchingInstances", "rights", "artSkipped"}
 
-// extraOwnFields is extra without panelKnown names. Files, checkpoints and sets saved before panelKnown listed every
-// output-only field may hold one. A copy, since extra may be shared with a stored panel.
+// extraOwnFields is extra without panelKnown names. It is possible that files, checkpoints and sets saved
+// before panelKnown listed every output-only field hold one. A copy, since it is possible that extra is shared with a
+// stored panel.
 func extraOwnFields(extra map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, v := range extra {
@@ -183,7 +184,7 @@ func validatePanel(p *Panel) error {
 	case p.Name == "":
 		return errors.New("a panel needs a name")
 	case p.Slug != "" && !validPanelSlug(p.Slug):
-		return errors.New("a short name is 1 to 32 lowercase letters, digits and dashes, and starts and ends with a letter or digit")
+		return errors.New("a short name has 1 to 32 lowercase letters, digits and dashes. It starts and ends with a letter or digit")
 	case p.Rows < 1 || p.Rows > panelRowsMax || p.Cols < 1 || p.Cols > panelColsMax:
 		return fmt.Errorf("rows and columns are 1 to %d and 1 to %d", panelRowsMax, panelColsMax)
 	case p.Acts != panelActsSession && !actsHasClient(p.Acts):
@@ -369,8 +370,8 @@ func (s *panelStore) replace(p Panel) (bool, error) {
 	return s.replaceLocked(p)
 }
 
-// replaceBody stores an editor's save. Artwork, owner and Rev come from the stored copy under the lock,
-// so an upload, a Push or a Users rename that landed after the caller read the panel is kept.
+// replaceBody stores an editor's save. Artwork, owner and Rev come from the stored copy under the lock.
+// So an upload, a Push or a Users rename that landed after the caller read the panel is kept.
 func (s *panelStore) replaceBody(p Panel) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -568,7 +569,7 @@ func (s *panelStore) copyArt(src Panel, dst string) []string {
 	return left
 }
 
-// putArtAs checks the total under the lock, since an upload or another copy may land between
+// putArtAs checks the total under the lock, since it is possible that an upload or another copy lands between
 // copyArt's reads. Only the total: older artwork past 2 MB or 1024 by 1024 still copies.
 func (s *panelStore) putArtAs(id string, art PanelArt, data []byte) bool {
 	s.mu.Lock()

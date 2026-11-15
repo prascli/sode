@@ -250,8 +250,8 @@ function place(g, kind, slots) {
 
 export const applyFill = (g, plan) => (plan && plan.slots.length ? place(g, plan.kind, plan.slots) : g);
 
-// Dragging a selection's corner grip: toRect grows the selection on one side and each line of cells running
-// that way continues by its own step (the gap between its last two numbers, else 1), in its last cell's kind.
+// A drag of a selection's corner grip. toRect grows the selection on one side. Each line of cells that runs that
+// way continues in its last cell's kind, by its own step. The step is the gap between its last two numbers, else 1.
 export function extendPlan(g, toRect) {
   const q = rectOf(g);
   if (!q) return null;
@@ -290,7 +290,7 @@ export function extendPlan(g, toRect) {
   return { slots, to, first: slots[0]?.n ?? -1, last: slots.at(-1)?.n ?? -1, count: slots.length };
 }
 
-// The rectangle a grip drag asks extendPlan for: the pointer's square decides which one side grows, the side it
+// The rectangle a grip drag asks extendPlan for. The pointer's square decides which one side grows: the side it
 // is furthest past (a tie goes across). Null while the pointer is inside the selection.
 export function dragRect(g, r, c) {
   const q = rectOf(g);
@@ -326,8 +326,8 @@ export const liveCells = (g) => cellsIn(g);
 
 // The grid as a panel stores it: reading order, no selection. Unassigned cells are kept.
 // Fixed destination keeps Destination cells out of the editor's grid but in the stored panel, so no edit can touch a
-// square nobody sees. putBack drops a held cell whose squares were filled meanwhile or that no longer fits;
-// the editor drops them at once and says how many (paneleditor.js holdOrPutBack).
+// square nobody sees. putBack drops a held cell whose squares were filled meanwhile or that no longer fits.
+// The editor drops them immediately and says how many (paneleditor.js holdOrPutBack).
 export function setAside(g, kind) {
   const held = g.cells.filter((c) => c.kind === kind);
   return held.length

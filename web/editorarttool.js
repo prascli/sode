@@ -1,6 +1,6 @@
-// The Artwork item in the panel editor's smart menu, below Find: one Icon A for every selected cell, Icon B one
-// glyph per cell in Find's fill order, or Clear artwork. The plan is arttoolrules.js; this file is the DOM.
-// initArtTool(editor, find) takes what runEditor and initFind return.
+// The Artwork item in the panel editor's smart menu, below Find. It sets one Icon A for every selected cell, or Icon
+// B as one glyph per cell in Find's fill order. Or it does Clear artwork. The plan is arttoolrules.js; this file is the DOM.
+// initArtTool(editor, find) accepts what runEditor and initFind return.
 import { el, icon, $ } from './core.js';
 import { btn } from './formbits.js';
 import { artPane, uploadArt } from './editorart.js';
@@ -24,7 +24,7 @@ function describe(plan, choice, done) {
   const n = plan.slots.length;
   const cells = plural(n, 'cell');
   let text;
-  if (!n) text = 'No cell in the selection can take it.';
+  if (!n) text = 'No cell in the selection can accept it.';
   else if (choice.clear) text = `${done ? 'Cleared' : 'Clears'} the artwork of ${cells}.`;
   else if ('b' in choice) {
     const first = plan.slots[0].patch.artB;
@@ -39,7 +39,7 @@ function describe(plan, choice, done) {
 export function initArtTool(editor, find) {
   let preview = [];
   let shown = null; // the choice the preview or the last change is for
-  let quiet = false; // a change just landed, so no preview of it again until the choice changes
+  let quiet = false; // the last change landed, so no preview of it again until the choice changes
   let hovered = false;
   let rebuilding = false;
 
@@ -168,7 +168,7 @@ export function initArtTool(editor, find) {
     try {
       const { blob, problem } = await prepareArt(f);
       if (problem) return void (note.textContent = problem);
-      // One upload, one id on every cell: the panel stores the image once.
+      // One upload, one id on every cell: the panel stores the image one time.
       const id = await uploadArt(editor.panel().id, f, blob);
       if (id) apply({ a: id });
     } catch (e) {

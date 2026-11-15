@@ -10,7 +10,7 @@ export function pagesOf(panel) {
   return [{ id: '', enabled: true, cells: panel?.cells || [] }];
 }
 
-// The cells shown for a panel or a grid: its own cells when it has them (a grid, or a pageView), else Page i's.
+// The cells shown for a panel or a grid. It is its own cells when it has them (a grid, or a pageView), else the cells of Page i.
 export const pageCells = (panel, i = 0) => (Array.isArray(panel?.cells) ? panel.cells : pagesOf(panel)[i]?.cells || []);
 
 // The panel with cells as a view onto Page i, for code that reads a panel's cells.
@@ -45,7 +45,7 @@ export function fitPages(pages, rows, cols) {
   return { pages: pages.map((p) => ({ ...p, cells: fitCells(p.cells, rows, cols) })), lost };
 }
 
-// The Page list as a save sends it: Page 1 holds cells (Page 1 as stored, which already has the focused Page's edits
-// folded in) and every other Page is fitted to rows by cols, ids, names and enabled kept. A Page with no id gets one
+// The Page list as a save sends it. Page 1 holds cells (Page 1 as stored, which already has the focused Page's edits
+// folded in). Every other Page is fitted to rows by cols, with ids, names and enabled kept. A Page with no id gets one
 // from the server.
 export const storedPages = (pages, cells, rows, cols) => pages.map((p, i) => ({ ...p, cells: i === 0 ? cells : fitCells(p.cells, rows, cols) }));

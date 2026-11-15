@@ -1,4 +1,4 @@
-// The sidebar's Cell tab: caption, levels, font size and artwork of the one cell selected. Fields are built once
+// The sidebar's Cell tab: caption, levels, font size and artwork of the one cell selected. Fields are built one time
 // and updated in place, so typing a caption keeps the caret while the grid repaints.
 import { el, S } from './core.js';
 import { field } from './formbits.js';

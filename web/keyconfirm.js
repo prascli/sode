@@ -22,7 +22,7 @@ export function keyConfirm({ prompt, spaceHint = false, onTake, onClose }) {
     isOpen: () => cur != null,
 
     open(plan, prot) {
-      cur?.lock.cancel(); // one replaced: its lockout mustn't unlock this one
+      cur?.lock.cancel(); // one replaced: its lockout must not unlock this one
       const key = churnKey(lastKey);
       lastKey = key;
       const keyEl = el('kbd', 'sode__key sode__key--locked', key.toUpperCase());

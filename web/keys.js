@@ -15,7 +15,8 @@ export function listStep(e) {
   return (mod && !e.altKey && !e.shiftKey && { KeyJ: 1, KeyK: -1 }[e.code]) || 0;
 }
 
-// Step for a search box's result list: arrows or Ctrl/Cmd+J/K, 0 when there are no results so the key falls through to other handlers (Settings steps sections then).
+// Step for a search box's result list: arrows or Ctrl/Cmd+J/K. 0 when there are no results, so the key falls through to
+// other handlers (Settings steps sections then).
 export function resultStep(e, hasResults) {
   if (!hasResults) return 0;
   if (e.ctrlKey || e.metaKey || e.altKey) return listStep(e);

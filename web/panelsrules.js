@@ -1,11 +1,11 @@
 // What the panels page (/panels) groups, labels and offers. Pure. Panels come from GET /api/v1/panels
-// with canEdit set by the server, which is the only place that decides who may change one.
+// with canEdit set by the server, which is the only place that decides who can change one.
 import { cellsIn } from './panelrules.js';
 import { wordScore } from './findrules.js';
 
 const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 
-// Fuzzy score of a panel for a query, 0 when some word matches no field. Each word takes its best field
+// Fuzzy score of a panel for a query, 0 when some word matches no field. Each word scores on its best field
 // (name, short name, owner) with the editor Find's scoring; a name hit outranks an owner hit.
 export function panelScore(p, q) {
   const words = String(q || '')
@@ -34,7 +34,7 @@ const ranked = (panels, q) =>
         .map(([p]) => p)
     : panels;
 
-// A Trusted user is sent every panel, so grouping by owner is only a view over that list.
+// A Trusted user is sent every panel, so the group by owner is only a view over that list.
 export function groupPanels(panels, me, trusted, filter = '') {
   const shown = ranked(panels, filter);
   const mine = shown.filter((p) => same(p.owner, me));
@@ -53,7 +53,7 @@ export function groupPanels(panels, me, trusted, filter = '') {
 // Link with key and Push to panels join this list in their own tickets.
 export const actionsFor = (p) => (p.canEdit ? ['launch', 'edit', 'share', 'push', 'delete'] : ['launch', 'copy']);
 
-// The People tab. Sharing is only the share field of PUT /api/v1/panels/{id}; the server keeps
+// The People tab. Sharing is only the share field of PUT /api/v1/panels/{id}. The server keeps
 // names for Named users only and applies the change to open lists and launches.
 export const shareDraft = (share) => ({ mode: share?.mode || 'me', users: share?.mode === 'named' ? [...(share.users || [])] : [] });
 
@@ -98,7 +98,7 @@ export function deleteStep(armed, id) {
 
 export const thumbCells = (p) => cellsIn(p).map(({ r, c, rs, cs, kind }) => ({ r, c, rs, cs, kind }));
 
-// `acts` `api`, `both` and `public` own an API client and hold keys; `both` falls back to Session mode when the page has
+// `acts` `api`, `both` and `public` own an API client and hold keys. `both` falls back to Session mode when the page has
 // no key, and `public` gets a short-lived key for any page. Keep in step with actsHasClient in internal/app/panelstore.go.
 export const hasClient = (p) => p?.acts === 'api' || p?.acts === 'both' || p?.acts === 'public';
 
@@ -117,7 +117,7 @@ const LABEL = {
 
 const MODE_NAME = { session: 'User', both: 'Both', api: 'API', public: 'Public' };
 
-// What switching Authentication mode does to the panel's client and keys, as apiPanelUpdate and pruneKeys do it.
+// What a switch of Authentication mode does to the panel's client and keys, as apiPanelUpdate and pruneKeys do it.
 // confirm: the switch makes or ends the client (docs/agents/panels.md). null: no switch.
 export function actsSwitch(from, to) {
   const was = from || 'session';
@@ -127,10 +127,10 @@ export function actsSwitch(from, to) {
     return {
       confirm: true,
       name,
-      text: `${name} ends the panel's API client, every instance key and every setup link. Each instance opened with a key signs out and its link stops working. This cannot be undone. Switching back makes a new client with no keys.`,
+      text: `${name} ends the panel's API client, every instance key and every setup link. Each instance opened with a key signs out and its link stops working. This cannot be undone. A switch back makes a new client with no keys.`,
     };
   }
-  // Public opens the panel to anyone, so going there always asks; leaving it ends the short-lived keys (endPublicKeys).
+  // Public opens the panel to anyone, so a switch to it always asks; a switch away ends the short-lived keys (endPublicKeys).
   if (to === 'public') {
     const how = hasClient({ acts: was }) ? "keeps the panel's API client and every instance key, and" : 'makes the panel its own API client and';
     return { confirm: true, name, text: `${name} ${how} lets anyone with the plain link use the panel with the client's Rights and no sign-in.` };
@@ -141,7 +141,7 @@ export function actsSwitch(from, to) {
   const next =
     to === 'api'
       ? 'Each instance needs a link made under Share, Link with key, and the plain link stops opening the panel.'
-      : 'Links with a key are made under Share, Link with key, and the plain link still opens it as the signed-in user.';
+      : 'Make links with a key under Share, Link with key. The plain link still opens it as the signed-in user.';
   return { confirm: true, name, text: `${name} makes the panel its own API client, with no keys yet. ${next}` };
 }
 
@@ -152,16 +152,16 @@ export const actsLabel = (p) => LABEL[p.acts] || 'Acts as the user';
 
 const SAVED_NOTE = {
   api: 'Saved. The panel now has its own API client. Make its links under Share, Link with key.',
-  both: 'Saved. The panel has its own API client for links with a key, and the plain link opens it as the signed-in user.',
+  both: 'Saved. The panel has its own API client for links with a key. The plain link opens it as the signed-in user.',
   public: "Saved. Anyone with the link can use the panel, with its API client's Rights and no sign-in.",
   session: 'Saved. The panel acts as the signed-in user, and its API client and every key are gone.',
 };
 
-// The editor's note once an Authentication mode is saved.
+// The editor's note after an Authentication mode is saved.
 export const actsSavedNote = (acts) => SAVED_NOTE[acts] || 'Saved.';
 
 // The server lets any page open a Public panel, whatever its share says (ADR 0008).
-export const PUBLIC_WARNING = "Anyone with the link can use a Public panel, with its client's Rights. Its sharing does not limit who may open it.";
+export const PUBLIC_WARNING = "Anyone with the link can use a Public panel, with its client's Rights. Its sharing does not limit who can open it.";
 
 export function shareLabel(share) {
   if (share?.mode === 'everyone') return 'Everyone';
@@ -181,7 +181,7 @@ export function listKey(e, mac = false) {
   return { e: 'edit', Enter: 'launch', j: 'next', k: 'prev' }[key] || '';
 }
 
-// Ctrl/Cmd+J and K in the find box: the id the highlight moves to, stopping at the ends.
+// Ctrl/Cmd+J and K in the find box: the id the highlight moves to. It stops at the ends.
 export function stepPanel(ids, cur, step) {
   if (!ids.length) return '';
   const i = ids.indexOf(cur);
@@ -199,7 +199,7 @@ export function panelStatus(p) {
 }
 
 // The Open now rows: every instance Sode knows, then the ones the user watches that Sode has not heard from since it
-// started, less the ones the user hid. Names compare ignoring case.
+// started. The ones the user hid are left out. Names compare ignoring case.
 export function shownInstances(p) {
   const hidden = new Set(p.hiddenInstances || []);
   const seen = new Set((p.instances || []).map((i) => i.device.toLowerCase()));

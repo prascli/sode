@@ -12,7 +12,7 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// The editor's sidebar: it opens on Panel, a selected square switches it to Cell, and what is set in the
+// The editor's sidebar: it opens on Panel, and a selected square switches it to Cell. What is set in the
 // three tabs is what the panel stores.
 func TestChromeEditorSidebar(t *testing.T) {
 	b := startBrowser(t)
@@ -121,8 +121,8 @@ func TestChromeEditorSidebar(t *testing.T) {
 		t.Errorf("API to Both did not save Both with the same client: %s", body)
 	}
 
-	// A short window: the sidebar is never wider than its column, scrolls inside itself, and fits the window whole once
-	// the page is scrolled to it, whatever height the toolbar above it takes.
+	// A short window: the sidebar is never wider than its column and scrolls inside itself. It fits the window whole
+	// after the page is scrolled to it, whatever height the toolbar above it takes.
 	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1600, "height": 600, "deviceScaleFactor": 1, "mobile": false})
 	b.waitFor("the sidebar is beside the grid", `document.getElementById('ed-side').getBoundingClientRect().left >= document.getElementById('ed-grid').getBoundingClientRect().right`)
 	side := `document.getElementById('ed-side')`

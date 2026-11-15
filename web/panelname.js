@@ -1,4 +1,4 @@
-// The instance name in the panel header. A click turns it into a field; Enter or leaving saves, Escape drops the edit.
+// The instance name in the panel header. A click turns it into a field; Enter or a move away saves, and Escape drops the edit.
 import { el, icon } from './core.js';
 
 // box is the header slot; rename(name) returns true when the name changed. Returns show(name, editable).

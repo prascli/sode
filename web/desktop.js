@@ -184,7 +184,7 @@ on('last', renderLast);
 // next: use nextTake() and remember it so a repeat goes on.
 function useLast(k, next = false) {
   const fill = lastFill(k, next, boxState());
-  if (fill?.none) return showResult('info', 'No take yet', "There's no earlier take to reuse.");
+  if (fill?.none) return showResult('info', 'No take yet', 'There is no earlier take to reuse.');
   if (!fill) return;
   const t = fill.t;
   if (k === 'src') {
@@ -208,7 +208,7 @@ function useLast(k, next = false) {
 
 // ---- tally display
 
-// Both lists show at once, on their own row (the flip swaps them).
+// Both lists show at the same time, on their own row (the flip swaps them).
 function underHead(text, up) {
   return el('div', 'sode__under-head', el('span', up ? 'sode__down-arrow sode__down-arrow--up' : 'sode__down-arrow'), el('span', 'sode__label', text));
 }
@@ -437,7 +437,7 @@ on('names', () => {
   renderTally();
 });
 on('tally', renderTally);
-// Done (or Cancel) in a pick bar: no match list may stay open over the page.
+// Done (or Cancel) in a pick bar: a match list must not stay open over the page.
 on('pick', () => {
   if (!boxPicking()) for (const k of ['src', 'dst']) boxes[k].cb.close();
 });
