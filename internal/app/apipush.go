@@ -55,7 +55,7 @@ func (a *App) editable(w http.ResponseWriter, cl *apiCtx, ids []string) ([]Panel
 		}
 		seen[id] = true
 		p, read, edit := a.reachPanel(cl, id)
-		if refuseReach(w, read, edit, true, "no panel "+id+" that this key may use",
+		if refuseReach(w, read, edit, true, "no panel "+id+" that this key can use",
 			"panel "+id+" is use only for this key: only its owner or a Trusted user can change it") {
 			return nil, false
 		}
@@ -212,7 +212,7 @@ func (a *App) mayChangeSet(w http.ResponseWriter, cl *apiCtx, set PanelSet, pin 
 		}
 		return true
 	}
-	return !refuseReach(w, use, change, true, "no checkpoint set "+set.ID+" that this key may use",
+	return !refuseReach(w, use, change, true, "no checkpoint set "+set.ID+" that this key can use",
 		"this checkpoint set is use only for this key: only its owner or a Trusted user can change it")
 }
 
@@ -222,7 +222,7 @@ func (a *App) setFor(w http.ResponseWriter, r *http.Request, cl *apiCtx, needCha
 	if ok {
 		use, change = a.setReach(cl, set)
 	}
-	if refuseReach(w, use, change, needChange, "no checkpoint set "+r.PathValue("sid")+" that this key may use",
+	if refuseReach(w, use, change, needChange, "no checkpoint set "+r.PathValue("sid")+" that this key can use",
 		"this checkpoint set is use only for this key: only its owner or a Trusted user can change it") {
 		return PanelSet{}, false
 	}

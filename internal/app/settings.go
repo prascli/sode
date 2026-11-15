@@ -67,7 +67,7 @@ func (a *App) saveSettings(c *client, msg json.RawMessage, pin string, clearPin 
 	return err
 }
 
-var errInsecureSave = errors.New("turning on Require HTTPS needs a request that arrived over HTTPS through a trusted proxy, so you can't lock yourself out; open Sode through your HTTPS address and save again")
+var errInsecureSave = errors.New("to turn on Require HTTPS, save from a request that came over HTTPS through a trusted proxy. This stops a lock-out. Open Sode through your HTTPS address and save again")
 
 func (a *App) SaveFilterSets(c *client, sets []config.FilterSet) error {
 	return a.saveShared(c, func(cur *config.Config) error {
@@ -199,7 +199,7 @@ func (a *App) applyConfig(mutate func(*config.Config) error) error {
 type guardedErr struct{}
 
 func (guardedErr) Error() string {
-	return "changing the router, levels, name settings, fire mode, trusted proxies, PIN attempt limit or the locks needs the Advanced Settings PIN"
+	return "a change to these settings needs the Advanced Settings PIN: the router, levels, name settings, fire mode, trusted proxies, PIN attempt limit and the locks"
 }
 func (guardedErr) Is(target error) bool { return target == errLocked }
 

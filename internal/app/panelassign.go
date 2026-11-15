@@ -21,7 +21,7 @@ func init() {
 	registerAPI(apiRoute{"POST", apiBase + "/panels/{id}/assign", config.ScopePanelsManage, (*App).apiPanelAssign})
 }
 
-const assignMsg = "only a Trusted user, or the Advanced Settings PIN, may assign an instance to another panel"
+const assignMsg = "only a Trusted user, or the Advanced Settings PIN, can assign an instance to another panel"
 
 // assignLine is the stream's last line to the instance. Slug lets the page keep a short address.
 type assignLine struct {
@@ -215,7 +215,7 @@ func (a *App) apiPanelAssign(w http.ResponseWriter, r *http.Request, cl *apiCtx)
 	}
 	// An empty list allows any address, as it does for the key itself.
 	if addr != "" && !networkAllowed(c.Networks, addr) {
-		apiFail(w, http.StatusForbidden, "network_not_allowed", name+" is at "+addr+", outside the allowed networks of "+to.Name+", so it is not allowed to get a key for it")
+		apiFail(w, http.StatusForbidden, "network_not_allowed", name+" is at "+addr+", outside the allowed networks of "+to.Name+". It is not allowed to get a key for it")
 		return
 	}
 	owner := keyOwner{Kind: actorClient, Name: c.Name}

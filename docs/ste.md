@@ -18,7 +18,7 @@ These rules apply to:
 
 - UI text in `web/`: labels, buttons, tooltips, dialogs, errors and status text.
 - Server text that a person can see: error messages and log text that the UI shows.
-- Docs: README.md, RELEASING.md, GLOSSARY.md definitions, AGENTS.md, everything under `docs/` and new CHANGELOG sections and `changelog.d/` fragments.
+- Docs: README.md, RELEASING.md, GLOSSARY.md definitions, AGENTS.md, everything under `docs/`, the summaries and descriptions in `internal/app/openapi.yaml`, new CHANGELOG sections and `changelog.d/` fragments.
 - Code comments in Go and JavaScript.
 
 These rules do not apply to:
@@ -118,8 +118,8 @@ This is Sode's own list. Add a row when review finds a word that has two meaning
 
 `internal/app/ste_test.go` checks the rules that a program can check:
 
-- The word table, in all text in scope.
-- Sentence length: 25 words for docs and comments, and 20 words for a UI string that is a sentence.
-- Contractions.
+- The word table, in all text in scope, and in the string literals of Go code that is not a test.
+- Sentence length: 25 words for docs and comments, and 20 words for a UI string or a Go message.
+- Contractions, with a straight or a curly apostrophe.
 
 A reviewer checks the other rules. The reviewer reads for meaning first. A rewrite that changes a fact about the protocol or the router is a defect, even if it obeys every rule.

@@ -156,7 +156,7 @@ func (a *App) apiArtDefaultSet(w http.ResponseWriter, r *http.Request, cl *apiCt
 		p, read, _ := a.reachPanel(cl, in.Panel)
 		data, _, found := a.panels.artData(p.ID, d.Art)
 		if !read || !found {
-			apiFail(w, http.StatusNotFound, "not_found", "no artwork "+d.Art+" on a panel this key may use")
+			apiFail(w, http.StatusNotFound, "not_found", "no artwork "+d.Art+" on a panel this key can use")
 			return
 		}
 		typ, err := checkArtBytes(data)

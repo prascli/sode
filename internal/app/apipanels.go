@@ -110,7 +110,7 @@ func hideNamesFromPublic(m map[string]any, cl *apiCtx) {
 func (a *App) panelFor(w http.ResponseWriter, r *http.Request, cl *apiCtx, needEdit bool) (Panel, bool) {
 	id := r.PathValue("id")
 	p, read, edit := a.reachPanel(cl, id)
-	if refuseReach(w, read, edit, needEdit, "no panel "+id+" that this key may use",
+	if refuseReach(w, read, edit, needEdit, "no panel "+id+" that this key can use",
 		"this panel is use only for this key: only its owner or a Trusted user can change it") {
 		return Panel{}, false
 	}
@@ -204,7 +204,7 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	// The refusal names the segment as sent, never the id a short name resolved to.
 	seg := r.PathValue("id")
 	p, read, edit := a.reachPanel(cl, a.panelIDOf(seg))
-	if refuseReach(w, read, edit, false, "no panel "+seg+" that this key may use", "") {
+	if refuseReach(w, read, edit, false, "no panel "+seg+" that this key can use", "") {
 		return
 	}
 	out := a.panelOut(p, edit)

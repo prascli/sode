@@ -170,7 +170,7 @@ A user whose role is Standard: patching within their Rights, their own Profile a
 A user whose role lets them change advanced settings. There is always at least one, and every Administrator has a PIN.
 
 **User without a PIN**:
-A user who signs in by picking their name. Such a user is never Administrator and opens no page lock. It takes Guest role when it is Trusted, and acts with Rights no wider than Guest Rights. They exist to keep people's preferences apart.
+A user who signs in by picking their name. Such a user is never Administrator and opens no page lock. It gets Guest role when it is Trusted, and acts with Rights no wider than Guest Rights. Users without a PIN exist to keep people's preferences apart.
 _Avoid_: PIN-less user
 
 **Critical action**:

@@ -94,7 +94,7 @@ func (c Config) KeepPins(live Config) (Config, error) {
 	if c.SettingsPin == "" {
 		c.SettingsPin = live.SettingsPin
 	} else if !ValidPinHash(c.SettingsPin) {
-		return c, fmt.Errorf("settingsPin in the file is not a PIN hash (a PIN cannot be typed into a file; set it in Settings)")
+		return c, fmt.Errorf("settingsPin in the file is not a PIN hash. A PIN cannot be typed into a file. Set it in Settings")
 	}
 	users := make([]User, len(c.Users))
 	for i, u := range c.Users {
@@ -105,7 +105,7 @@ func (c Config) KeepPins(live Config) (Config, error) {
 		} else {
 			keep, ok := live.FindUser(u.Name)
 			if !ok || keep.Pin == "" {
-				return c, fmt.Errorf("user %q has no PIN in the file and no PIN here to keep: export with PINs included, or add the user in Settings first", u.Name)
+				return c, fmt.Errorf("user %q has no PIN in the file and no PIN here to keep. Export with PINs included, or add the user in Settings first", u.Name)
 			}
 			u.Pin, u.Len = keep.Pin, keep.Len
 		}

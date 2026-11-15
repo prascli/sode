@@ -184,7 +184,7 @@ func validatePanel(p *Panel) error {
 	case p.Name == "":
 		return errors.New("a panel needs a name")
 	case p.Slug != "" && !validPanelSlug(p.Slug):
-		return errors.New("a short name is 1 to 32 lowercase letters, digits and dashes, and starts and ends with a letter or digit")
+		return errors.New("a short name has 1 to 32 lowercase letters, digits and dashes. It starts and ends with a letter or digit")
 	case p.Rows < 1 || p.Rows > panelRowsMax || p.Cols < 1 || p.Cols > panelColsMax:
 		return fmt.Errorf("rows and columns are 1 to %d and 1 to %d", panelRowsMax, panelColsMax)
 	case p.Acts != panelActsSession && !actsHasClient(p.Acts):

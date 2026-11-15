@@ -340,7 +340,7 @@ func (c Config) Validate() error {
 	if c.Router != "" {
 		host, port, err := net.SplitHostPort(c.Router)
 		if p, perr := strconv.Atoi(port); err != nil || host == "" || perr != nil || p < 1 || p > 65535 {
-			bad("router must be host:port, e.g. 10.0.0.50:8910")
+			bad("router must be host:port, for example 10.0.0.50:8910")
 		}
 	}
 	switch c.NameRequests {

@@ -276,8 +276,8 @@ func (a *App) templateFor(w http.ResponseWriter, r *http.Request, cl *apiCtx, ne
 	if ok && validTemplateID(id) {
 		read, edit = a.templateReach(cl, t)
 	}
-	if refuseReach(w, read, edit, needEdit, "no template "+id+" that this key may use",
-		"this template is use only for this key: only its owner or a Trusted user may delete it") {
+	if refuseReach(w, read, edit, needEdit, "no template "+id+" that this key can use",
+		"this template is use only for this key: only its owner or a Trusted user can delete it") {
 		return Template{}, false
 	}
 	return t, true
@@ -331,7 +331,7 @@ func (a *App) apiTemplateCreate(w http.ResponseWriter, r *http.Request, cl *apiC
 		return
 	}
 	if t.Scope == templateEveryone {
-		if err := a.mayEveryone(cl, in.Pin, "only a Trusted user, or the Advanced Settings PIN, may save a template to Everyone"); err != nil {
+		if err := a.mayEveryone(cl, in.Pin, "only a Trusted user, or the Advanced Settings PIN, can save a template to Everyone"); err != nil {
 			failWith(w, err)
 			return
 		}

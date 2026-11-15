@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -22,6 +24,7 @@ var steEnforced = map[string]bool{
 	"agentdocs":  true,
 	"ui":         true,
 	"gocomments": true,
+	"gostrings":  true,
 	"jscomments": true,
 }
 
@@ -47,12 +50,15 @@ var steWords = []steWord{
 	{"in case", wordRe(`(?i)in case`)},
 	{"whether or not", wordRe(`(?i)whether or not`)},
 	{"may", wordRe(`(?i)may|might`)},
-	{"contraction", regexp.MustCompile(`(?i)\b(?:\w+n't|(?:it|that|there|here|what|who|you|we|they|i|let)'(?:s|re|ll|ve|d|m))\b`)},
+	{"contraction", regexp.MustCompile(`(?i)\b(?:\w+n't|(?:it|that|there|here|what|who|you|we|they|i|let)['’](?:s|re|ll|ve|d|m))\b|\b\w+n’t\b`)},
 }
 
 // steAllow exempts lines from one rule (Term is a steWords ID, or "length"), as vocabAllow does.
 var steAllow = []allowEntry{
 	{"length", "GLOSSARY.md", `^What a cell does: `, "a list of the cell kinds, not a sentence to split"},
+	{"via", "internal/app/apiaudit.go", `^unverified via:`, "the Communication Log note names the Via field, and tests and docs/agents/comm-log.md match it"},
+	{"length", "internal/app/http.go", `^default-src `, "the Content-Security-Policy header, not prose"},
+	{"length", "internal/app/settings.go", `^a change to these settings needs`, "a list of the guarded settings after a colon, not a sentence to split"},
 }
 
 const (
@@ -303,7 +309,59 @@ func jsCommentUnits(t *testing.T) []steUnit {
 
 var goCodeLine = regexp.MustCompile(`^(?:\t| {2,})`)
 
-func goCommentUnits(t *testing.T) []steUnit {
+// goMessageText joins the string literals of a message argument; anything else (a name, a
+// call) reads as one word, X.
+func goMessageText(e ast.Expr) string {
+	switch e := e.(type) {
+	case *ast.BasicLit:
+		if v, err := strconv.Unquote(e.Value); err == nil && e.Kind == token.STRING {
+			return regexp.MustCompile(`%[-+# 0]*\d*(?:\.\d+)?[a-zA-Z]`).ReplaceAllString(v, "X")
+		}
+	case *ast.BinaryExpr:
+		if e.Op == token.ADD {
+			return goMessageText(e.X) + goMessageText(e.Y)
+		}
+	case *ast.ParenExpr:
+		return goMessageText(e.X)
+	}
+	return "X"
+}
+
+// goMessages returns the string arguments and constants of a file that read as prose: three
+// words or more. Import paths and struct tags are not prose, and a message built with + is
+// joined first, so its parts count as one string.
+func goMessages(f *ast.File) []ast.Expr {
+	var out []ast.Expr
+	skip := map[ast.Node]bool{}
+	for _, im := range f.Imports {
+		skip[im.Path] = true
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.Field:
+			if n.Tag != nil {
+				skip[n.Tag] = true
+			}
+		case *ast.BinaryExpr:
+			if n.Op == token.ADD && !skip[n] {
+				if strings.Count(goMessageText(n), " ") >= 2 {
+					out = append(out, n)
+				}
+				ast.Inspect(n, func(m ast.Node) bool { skip[m] = true; return true })
+				return false
+			}
+		case *ast.BasicLit:
+			if n.Kind == token.STRING && !skip[n] && strings.Count(goMessageText(n), " ") >= 2 {
+				out = append(out, n)
+			}
+		}
+		return true
+	})
+	return out
+}
+
+// goUnits returns the comment groups of every Go file, and the messages of non-test files.
+func goUnits(t *testing.T) (comments, messages []steUnit) {
 	t.Helper()
 	var out []steUnit
 	fset := token.NewFileSet()
@@ -335,10 +393,55 @@ func goCommentUnits(t *testing.T) []steUnit {
 				out = append(out, steUnit{filepath.ToSlash(rel), fset.Position(g.Pos()).Line, text})
 			}
 		}
+		if !strings.HasSuffix(p, "_test.go") {
+			for _, e := range goMessages(f) {
+				if text := strings.TrimSpace(goMessageText(e)); wordToken.MatchString(text) {
+					messages = append(messages, steUnit{filepath.ToSlash(rel), fset.Position(e.Pos()).Line, text})
+				}
+			}
+		}
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	return out, messages
+}
+
+var (
+	yamlProse  = regexp.MustCompile(`^(\s*)(?:summary|description):\s*(.*)$`)
+	yamlIndent = regexp.MustCompile(`^(\s*)\S`)
+)
+
+// yamlUnits reads the summary and description values of an OpenAPI file, block scalars too.
+func yamlUnits(file, src string) []steUnit {
+	var out []steUnit
+	lines := strings.Split(src, "\n")
+	for i := 0; i < len(lines); i++ {
+		m := yamlProse.FindStringSubmatch(lines[i])
+		if m == nil {
+			continue
+		}
+		val := strings.TrimSpace(m[2])
+		if val == "|" || val == ">" || val == "|-" || val == ">-" {
+			var block []string
+			for i+1 < len(lines) {
+				ind := yamlIndent.FindStringSubmatch(lines[i+1])
+				if ind != nil && len(ind[1]) <= len(m[1]) {
+					break
+				}
+				i++
+				block = append(block, strings.TrimSpace(lines[i]))
+			}
+			for _, u := range mdUnits(file, strings.Join(block, "\n")) {
+				out = append(out, steUnit{file, i + 1, u.Text})
+			}
+			continue
+		}
+		val = strings.Trim(val, `"'`)
+		if val != "" {
+			out = append(out, steUnit{file, i + 1, val})
+		}
 	}
 	return out
 }
@@ -402,8 +505,15 @@ func steScan(t *testing.T) []steHit {
 	for _, u := range uiUnits(t) {
 		hits = append(hits, steCheck("ui", u, steUIMax)...)
 	}
-	for _, u := range goCommentUnits(t) {
+	comments, messages := goUnits(t)
+	for _, u := range comments {
 		hits = append(hits, steCheck("gocomments", u, steDescriptiveMax)...)
+	}
+	for _, u := range messages {
+		hits = append(hits, steCheck("gostrings", u, steUIMax)...)
+	}
+	for _, u := range yamlUnits("internal/app/openapi.yaml", readRepo(t, "internal/app/openapi.yaml")) {
+		hits = append(hits, steCheck("docs", u, steDescriptiveMax)...)
 	}
 	for _, u := range jsCommentUnits(t) {
 		hits = append(hits, steCheck("jscomments", u, steDescriptiveMax)...)
@@ -460,6 +570,7 @@ func TestSTEMechanics(t *testing.T) {
 		"See [the guide](https://x/e.g./etc.).":   0,
 		"Make sure the destination is protected.": 0,
 		`Write "do not", not "don't".`:            0,
+		"It wasn’t sent.":                         1,
 	} {
 		if got := len(steCheck("x", steUnit{"a.md", 1, text}, steDescriptiveMax)); got != want {
 			t.Errorf("%q: %d hits, want %d", text, got, want)
@@ -468,6 +579,24 @@ func TestSTEMechanics(t *testing.T) {
 	strs, _ := jsLex("const re = /['\"]/g; const n = a / b; x('Late text.');")
 	if len(strs) != 1 || strs[0].Text != "Late text." {
 		t.Errorf("jsLex past a regex literal = %+v", strs)
+	}
+	src := "package p\nimport \"fmt\"\ntype T struct{ A int `json:\"a b c\"` }\n" +
+		"func f(n string) error { return fmt.Errorf(\"no panel \"+n+\" that this key may use\") }\n" +
+		"const short = \"two words\"\n"
+	f, err := parser.ParseFile(token.NewFileSet(), "p.go", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var msgs []string
+	for _, e := range goMessages(f) {
+		msgs = append(msgs, goMessageText(e))
+	}
+	if strings.Join(msgs, "|") != "no panel X that this key may use" {
+		t.Errorf("goMessages = %q", msgs)
+	}
+	yu := yamlUnits("o.yaml", "paths:\n  /x:\n    get:\n      summary: List it.\n      description: |\n        One line\n        wraps.\n      responses: {}\n")
+	if len(yu) != 2 || yu[0].Text != "List it." || yu[1].Text != "One line wraps." {
+		t.Errorf("yamlUnits = %+v", yu)
 	}
 	units := mdUnits("a.md", "# Head\n\nOne line\nwraps here.\n- item one\n- item two\n```\ncode e.g.\n```\n| a | e.g. |\n")
 	if len(units) != 3 || units[0].Text != "One line wraps here." || units[0].Line != 3 {

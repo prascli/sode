@@ -73,14 +73,14 @@ func (a *App) clientRightsFor(cl *apiCtx, want *config.Rights, cur *config.Right
 		return *cur, false, nil
 	}
 	if !a.trusted(cl.Actor.Name) {
-		return config.Rights{}, false, &panelClientFail{http.StatusForbidden, "trusted_required", "only a Trusted user may make a panel act as an API client or change its rights"}
+		return config.Rights{}, false, &panelClientFail{http.StatusForbidden, "trusted_required", "only a Trusted user can make a panel act as an API client or change its rights"}
 	}
 	r := cl.Rights.Clone()
 	if want != nil {
 		r = clean(*want)
 	}
 	if !r.Within(cl.Rights) {
-		return config.Rights{}, false, &panelClientFail{http.StatusForbidden, "outside_rights", "the panel's rights may not be wider than your own"}
+		return config.Rights{}, false, &panelClientFail{http.StatusForbidden, "outside_rights", "the panel's rights must not be wider than your own"}
 	}
 	return r, true, nil
 }

@@ -328,7 +328,7 @@ func (a *App) refuseEnded(w http.ResponseWriter, ip string, expired bool, now ti
 	}
 }
 
-const revokedText = "this key was ended (revoked, replaced, its session ended or its owner changed); stop using it and get a new key"
+const revokedText = "this key has ended (revoked, replaced, its session ended or its owner changed). Do not use it again. Get a new key"
 
 func (a *App) writeEndedUse(ip string, f *authFail) {
 	a.apiEvent(Actor{Kind: actorAddress, Name: ip}, "endedKeyUsed", "refused",

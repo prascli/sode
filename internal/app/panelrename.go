@@ -17,7 +17,7 @@ func init() {
 	registerAPI(apiRoute{"POST", apiBase + "/panels/{id}/instances/rename", config.ScopePanelsManage, (*App).apiPanelRename})
 }
 
-const renameMsg = "only the panel's owner, a Trusted user or the Advanced Settings PIN may rename an instance"
+const renameMsg = "only the panel's owner, a Trusted user or the Advanced Settings PIN can rename an instance"
 
 type renameLine struct {
 	T        string `json:"t"` // "rename"
