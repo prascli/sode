@@ -116,7 +116,7 @@ paths:
                   numberOffset: { type: integer, description: Add to a router number to show it }
                   sources: { type: array, items: { $ref: "#/components/schemas/Name" } }
                   destinations: { type: array, items: { $ref: "#/components/schemas/Name" } }
-                  namesAt: { type: string, format: date-time, description: When the names were last read, zero if never }
+                  namesAt: { type: string, format: date-time, description: "When the names were last read, zero if never" }
               example:
                 numberOffset: 1
                 sources: [{ n: 0, name: CAM 1 }, { n: 1, name: CAM 2 }]
@@ -147,7 +147,7 @@ paths:
                       type: object
                       required: [level, label]
                       properties:
-                        level: { type: integer, description: UI level, from 1 }
+                        level: { type: integer, description: "UI level, from 1" }
                         label: { type: string, description: How a person writes the level }
                   routes: { type: array, items: { $ref: "#/components/schemas/Route" } }
               example:
@@ -219,7 +219,7 @@ paths:
                 type: object
                 required: [before, entries, more]
                 properties:
-                  before: { type: integer, description: The page asked for, -1 for the newest }
+                  before: { type: integer, description: "The page asked for, -1 for the newest" }
                   entries: { type: array, items: { $ref: "#/components/schemas/Entry" } }
                   more: { type: boolean }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -248,7 +248,7 @@ paths:
                 type: object
                 required: [group, entries]
                 properties:
-                  group: { type: string, description: The Group id, as `group` on each entry }
+                  group: { type: string, description: "The Group id, as `group` on each entry" }
                   entries: { type: array, items: { $ref: "#/components/schemas/Entry" } }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -497,7 +497,7 @@ paths:
         act as an API client (403 `trusted_required`). `clientRights` are its rights and default
         to the creator's. The panel's rights must not be wider than the creator's own (403
         `outside_rights`), and Sode creates nothing. Its scopes start as names, tally, protected,
-        status, presets, history, layouts, take and panels. Its keys are made elsewhere. It
+        status, presets, layouts, take and panels, never history, log or panelsmanage. Its keys are made elsewhere. It
         shows in the administrator's client list and does not count toward the limit of API
         clients.
       requestBody:
@@ -691,8 +691,8 @@ paths:
               required: [name, data]
               properties:
                 name: { type: string, maxLength: 40 }
-                data: { type: string, format: byte, description: The PNG or SVG file, base64 }
-                pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted. Never stored }
+                data: { type: string, format: byte, description: "The PNG or SVG file, base64" }
+                pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted. Never stored" }
             example: { name: Station logo, data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" }
       responses:
         "201":
@@ -729,7 +729,7 @@ paths:
             schema:
               type: object
               properties:
-                pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted. Never stored }
+                pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted. Never stored" }
       responses:
         "200":
           description: What was added and what was skipped
@@ -795,7 +795,7 @@ paths:
               required: [name]
               properties:
                 name: { type: string, maxLength: 40 }
-                pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted. Never stored }
+                pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted. Never stored" }
             example: { name: Studio logo }
       responses:
         "200":
@@ -825,7 +825,7 @@ paths:
             schema:
               type: object
               properties:
-                pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted. Never stored }
+                pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted. Never stored" }
       responses:
         "204": { description: Deleted }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -960,8 +960,9 @@ paths:
       tags: [panels]
       summary: Read a panel
       description: |
-        Scope `panels`. `{id}` can also be the panel's short name (`slug`) on this route and on the
-        setup route only; every other route accepts only the id. A panel the caller is not allowed to use is 404
+        Scope `panels`. `{id}` can also be the panel's short name (`slug`) on this route and on
+        `/panels/{id}/setup`, `/panels/{id}/public` and `/panels/{id}/instances/keyless`. Every
+        other route accepts only the id. A panel the caller is not allowed to use is 404
         `not_found`, as if it did not exist. An unknown short name answers the same way.
       responses:
         "200":
@@ -980,8 +981,8 @@ paths:
       summary: Update a panel
       description: |
         Scope `panelsmanage`. Replaces the panel with the body. Only the owner, or a Trusted user
-        for anyone's, can change it (403 `not_owner` for a panel the caller is allowed only to use). Id, owner, API
-        client and artwork cannot be changed here. A field Sode does not know that is stored on
+        for anyone's, can change it (403 `not_owner` for a panel the caller is allowed only to use). Sode keeps
+        the stored id, owner, API client and artwork and ignores those fields in the body. A field Sode does not know that is stored on
         the panel and left out of the body is kept.
 
         `acts` decides the API client. `api`, `both` or `public` makes one if the panel has none, and
@@ -1319,8 +1320,8 @@ paths:
               type: object
               required: [instance]
               properties:
-                instance: { type: string, maxLength: 40, description: The instance's name, also its device name }
-                setup: { type: boolean, description: Make a one-time setup link, not a key }
+                instance: { type: string, maxLength: 40, description: "The instance's name, also its device name" }
+                setup: { type: boolean, description: "Make a one-time setup link, not a key" }
       responses:
         "201":
           description: The new key, or with `setup` the new setup link
@@ -1329,12 +1330,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  key: { type: string, description: The secret, shown once. Not in a setup answer }
+                  key: { type: string, description: "The secret, shown once. Not in a setup answer" }
                   id: { type: string, description: The key's id in the key list. Not in a setup answer }
                   instance: { type: string, description: The instance's name as stored }
                   rotated: { type: boolean, description: True when this instance's older key was ended }
                   link: { type: string, description: "`panels/<id>?instance=<name>#key=<secret>`, or with `setup` `panels/<id>?instance=<name>#setup=<token>`, relative to Sode's root. Sode's own pages build a shorter link: the short name when there is one, and the secret without its `sode_` or `sode_setup_` prefix" }
-                  setup: { type: string, description: The one-time token, shown once. Only in a setup answer }
+                  setup: { type: string, description: "The one-time token, shown once. Only in a setup answer" }
                   expires: { type: string, format: date-time, description: When the setup link stops working. Only in a setup answer }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -1351,7 +1352,7 @@ paths:
         pending setup link for it and its open streams. The panel, its API client and the other
         instances stay. Revoking an instance that has none is a 204 too.
       parameters:
-        - { name: instance, in: query, required: true, schema: { type: string, maxLength: 40 }, description: The instance's name, ignoring case }
+        - { name: instance, in: query, required: true, schema: { type: string, maxLength: 40 }, description: "The instance's name, ignoring case" }
       responses:
         "204": { description: Revoked }
         "400": { $ref: "#/components/responses/Error" }
@@ -1436,7 +1437,7 @@ paths:
                 properties:
                   key: { type: string }
                   id: { type: string }
-                  instance: { type: string, description: The instance's name, which is also the key's name }
+                  instance: { type: string, description: "The instance's name, which is also the key's name" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -1634,7 +1635,7 @@ paths:
         keeps at most 1000 such pages in memory for 24 hours, the oldest dropped. Only an Assign
         (`POST /panels/{id}/assign` with `keyless`) sends anything on it but the beat.
       parameters:
-        - { name: instance, in: query, required: false, schema: { type: string, maxLength: 40 }, description: The device name the page holds, if any }
+        - { name: instance, in: query, required: false, schema: { type: string, maxLength: 40 }, description: "The device name the page holds, if any" }
         - { name: ended, in: query, required: false, schema: { type: string, enum: ["1"] }, description: "The page's key answered `key_revoked` or `key_expired`" }
       responses:
         "200":
@@ -1659,7 +1660,7 @@ paths:
         default: { $ref: "#/components/responses/Error" }
   /panels/{id}/undo:
     parameters:
-      - { name: id, in: path, required: true, schema: { type: string, pattern: "^(p-[0-9a-f]{8}|[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?)$" } }
+      - { name: id, in: path, required: true, schema: { type: string, pattern: "^p-[0-9a-f]{8}$" } }
     get:
       operationId: nextPanelUndo
       tags: [panels]
@@ -1686,7 +1687,7 @@ paths:
                     required: [id, entries, routes, allowed]
                     properties:
                       id: { type: integer, description: "The take's newest History entry, to send back to POST" }
-                      entries: { type: array, items: { $ref: "#/components/schemas/Entry" }, description: The History entries to undo, oldest first }
+                      entries: { type: array, items: { $ref: "#/components/schemas/Entry" }, description: "The History entries to undo, oldest first" }
                       routes:
                         type: array
                         description: What the undo would send, one route per source to restore
@@ -1698,7 +1699,7 @@ paths:
                             dst: { type: integer }
                             levels: { type: array, items: { type: integer } }
                       allowed: { type: boolean }
-                      reason: { type: string, description: Why not, when allowed is false }
+                      reason: { type: string, description: "Why not, when allowed is false" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/Error" }
@@ -1778,7 +1779,7 @@ paths:
                 keyless: { type: string, description: "A keyless instance's id from a panel read's `keyless` rows, in place of `from` and `instance`" }
                 instance: { type: string, maxLength: 40, description: "The instance's device name, ignoring case; required unless `keyless` is sent" }
                 name: { type: string, maxLength: 40, description: "Its name on the target, after a `name_taken`; left out, it keeps its own" }
-                pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted }
+                pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted" }
                 as: { type: string, enum: [client, user], description: "A key for the target's API client, or the device's own sign-in; left out, the client where the target has one" }
       responses:
         "200":
@@ -2061,7 +2062,7 @@ paths:
           required: true
           schema: { type: string, example: "names,tally,results" }
       responses:
-        "101": { description: Switching protocols, the stream follows }
+        "101": { description: "Switching protocols, the stream follows" }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -2388,12 +2389,12 @@ components:
         kind: { type: string, enum: [source, destination, preset] }
         n: { type: integer, minimum: 0, maximum: 65535 }
         scope: { type: string, enum: [everyone], description: "`me` is refused (400): Default artwork is one shared set" }
-        name: { type: string, description: A Preset's name; ignored for a Source or Destination, whose name Sode reads from the router }
+        name: { type: string, description: "A Preset's name; ignored for a Source or Destination, whose name Sode reads from the router" }
         art: { type: string, description: "`icon:<name>`, an Icon library icon (`lib:<id>`, kept as the reference; 404 when the library lacks it), a panel's artwork id (`a-`, with `panel`) or a Default artwork image id (`d-`)" }
         artB: { type: string, pattern: "^([0-9]|1[0-6]|[A-Z])$" }
         hideText: { type: boolean }
         panel: { type: string, description: The panel an `a-` artwork id is on. Its image is copied }
-        pin: { type: string, description: The Advanced Settings PIN, for a user who is not Trusted. Never stored }
+        pin: { type: string, description: "The Advanced Settings PIN, for a user who is not Trusted. Never stored" }
     Panel:
       allOf:
         - $ref: "#/components/schemas/PanelIn"
@@ -2422,7 +2423,7 @@ components:
               type: array
               items: { type: string }
               description: "For an editor of an API panel: the allowed networks as CIDRs, empty = anywhere"
-            online: { type: boolean, description: Output only. A device was heard in the last 45 seconds, on a list or a read }
+            online: { type: boolean, description: "Output only. A device was heard in the last 45 seconds, on a list or a read" }
             watching: { type: boolean, description: Output only. The calling user watches the whole panel; never a list of watchers }
             watchingInstances: { type: array, items: { type: string }, description: Output only. The devices (lowercase) the calling user watches one by one }
             hiddenInstances: { type: array, items: { type: string }, description: "Output only. The devices (lowercase) the calling user hid on the panels page" }
@@ -2447,7 +2448,7 @@ components:
                   page: { type: boolean, description: "It has held `/panels/{id}/instances/stream` since Sode started. Only then are the fields below sent, from the last stream it opened" }
                   addr: { type: string, description: The address the stream came from }
                   signIn: { type: string, enum: [client, user, none], description: "Who opened it: the panel's API client, a user, or nobody signed in" }
-                  user: { type: string, description: The user's name, when `signIn` is `user` }
+                  user: { type: string, description: "The user's name, when `signIn` is `user`" }
                   trusted: { type: boolean, description: "That user is Trusted now, so they can open every panel. Sent only when true" }
                   streamSince: { type: string, format: date-time, description: When its current stream connected. Sent only while `stream` is true }
                   uptime:
@@ -2532,7 +2533,7 @@ components:
         why: { type: string }
         rows: { type: integer }
         cols: { type: integer }
-        cells: { type: integer, description: How many cells the layout has, over every Page }
+        cells: { type: integer, description: "How many cells the layout has, over every Page" }
         pages: { type: integer, description: How many Pages the layout has }
     CheckpointSet:
       type: object
@@ -2553,7 +2554,7 @@ components:
               name: { type: string, description: The panel's name when saved }
               rows: { type: integer }
               cols: { type: integer }
-              cells: { type: integer, description: How many cells, over every Page }
+              cells: { type: integer, description: "How many cells, over every Page" }
               pages: { type: integer }
     Name:
       type: object
@@ -2595,9 +2596,9 @@ components:
       properties:
         kind: { type: string, enum: [user, client, guest] }
         name: { type: string }
-        key: { type: string, description: The key name, verified }
+        key: { type: string, description: "The key name, verified" }
         owner: { type: string, description: "For a panel's own API client, the user who made it; `client` then reads \"Seth (Panel p-1a2b3c4d)\"" }
-        via: { type: string, description: The caller's own note, unverified }
+        via: { type: string, description: "The caller's own note, unverified" }
     Entry:
       type: object
       description: One route of a take. Optional fields appear only when they apply.
@@ -2605,7 +2606,7 @@ components:
       properties:
         id: { type: integer }
         time: { type: string, format: date-time }
-        client: { type: string, description: Who did it, a user, an API actor with key name, or an address }
+        client: { type: string, description: "Who did it, a user, an API actor with key name, or an address" }
         actor: { $ref: "#/components/schemas/Actor" }
         src: { type: integer }
         srcName: { type: string }
@@ -2615,13 +2616,13 @@ components:
         prev: { type: array, items: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 }, description: "[UI level, src] before the take, -1 = nothing routed" }
         ok: { type: boolean }
         err: { type: string }
-        failed: { type: array, items: { type: integer }, description: Levels the router never confirmed, or that were not sent }
+        failed: { type: array, items: { type: integer }, description: "Levels the router never confirmed, or that were not sent" }
         now: { type: array, items: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 }, description: "[UI level, src] the router reported for the failed levels afterwards, -1 = nothing routed; absent when it gave no answer" }
         already: { type: array, items: { type: integer }, description: Levels that were already on src }
         late: { type: array, items: { type: integer }, description: Levels that were failed until the router confirmed them after the take gave up }
         unsent: { type: array, items: { type: integer }, description: Levels never sent }
         sendErr: { type: string, description: Why a level was not sent }
-        cut: { type: boolean, description: The router changed under the take, so its failed levels just got no answer }
+        cut: { type: boolean, description: "The router changed under the take, so its failed levels just got no answer" }
         undo: { type: integer, description: The id of the entry this one undid }
         retry: { type: integer, description: The id of the failed entry this one retries }
         group: { type: string, description: Entries of one take of several routes share it }
@@ -2629,11 +2630,11 @@ components:
         preset: { type: string, description: The preset this take was fired from }
         panel: { type: string, description: "The panel whose page made the take: its name, else its short name. A Session-mode page names itself" }
         panelId: { type: string, description: "That panel's id, which a rename leaves; the Undo cell matches by it" }
-        instance: { type: string, description: The instance of that panel, its device name }
+        instance: { type: string, description: "The instance of that panel, its device name" }
         ext: { type: boolean, description: An External change }
-        found: { type: boolean, description: External only, changed without a Connected and seen when Sode re-read the router }
-        follow: { type: integer, description: External only, the id of the take this seems to follow }
-        followGroup: { type: string, description: External only, the Group of that take }
+        found: { type: boolean, description: "External only, changed without a Connected and seen when Sode re-read the router" }
+        follow: { type: integer, description: "External only, the id of the take this seems to follow" }
+        followGroup: { type: string, description: "External only, the Group of that take" }
     LogRow:
       type: object
       description: One Communication Log row, a router message or an event such as an `api` row.
