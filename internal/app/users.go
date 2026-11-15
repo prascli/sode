@@ -20,6 +20,7 @@ import (
 
 var errPageLocked = errors.New("locked; unlock with your PIN first")
 
+//lint:ignore ST1005 Settings shows this as is
 var errNeedAdminPin = errors.New("Set an Advanced Settings PIN first: users and locks are administered with it")
 
 type gate int
@@ -452,7 +453,7 @@ func (a *App) SaveUsers(c *client, req usersReq) error {
 				u.Username = strings.TrimSpace(*e.Username)
 			}
 			if e.Rights != nil {
-				u.Rights = e.Rights.Clone()
+				u.Rights = e.Rights.WithExtraOf(u.Rights)
 			}
 			if e.NoAutoLock != nil {
 				u.NoAutoLock = *e.NoAutoLock
@@ -501,10 +502,10 @@ func (a *App) SaveUsers(c *client, req usersReq) error {
 		}
 		cur.Users = out
 		if req.APIClients != nil {
-			cur.APIClients = keepPanelClients(cur.APIClients, *req.APIClients)
+			cur.APIClients = keepPanelClients(cur.APIClients, config.WithAPIClientExtras(*req.APIClients, cur.APIClients))
 		}
 		if req.GuestRights != nil {
-			cur.GuestRights = req.GuestRights.Clone()
+			cur.GuestRights = req.GuestRights.WithExtraOf(cur.GuestRights)
 		}
 		if req.GuestScopes != nil {
 			cur.GuestAPIScopes = slices.Clone(*req.GuestScopes)

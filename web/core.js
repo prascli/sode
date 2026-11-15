@@ -291,7 +291,8 @@ export function connState() {
       links: [true, false],
     };
   }
-  return { ws, rt: [dot, `Router ${word}`], down };
+  // ok: both links up, the only state Compact view may hide the status for.
+  return { ws, rt: [dot, `Router ${word}`], down, ok: ws[0] === 'ok' && dot === 'ok' && !down };
 }
 
 export function routerTitle() {

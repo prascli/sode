@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -132,6 +133,7 @@ type DeviceDefaults struct {
 	SearchFilters bool           `yaml:"searchFilters" json:"searchFilters"`
 	SetStack      string         `yaml:"setStack" json:"setStack"`
 	NextMode      string         `yaml:"nextMode" json:"nextMode"`
+	Compact       bool           `yaml:"compact" json:"compact"`
 	Extra         map[string]any `yaml:",inline" json:"-"`
 }
 
@@ -207,13 +209,16 @@ func FromEnv(c Config) (Config, error) {
 	str("SODE_LEVEL_NUMBERING", &c.LevelNumbering)
 	num("SODE_PIN_MAX_TRIES", &c.PinMaxTries)
 	num("SODE_MAX_PIN_LEN", &c.MaxPinLen)
-	if v := os.Getenv("SODE_CONFIRM_ENTER"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("SODE_CONFIRM_ENTER: %w", err))
+	boolean := func(k string, dst *bool) {
+		if v := os.Getenv(k); v != "" {
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", k, err))
+			}
+			*dst = b
 		}
-		c.ConfirmEnter = b
 	}
+	boolean("SODE_CONFIRM_ENTER", &c.ConfirmEnter)
 	if v := os.Getenv("SODE_TRUSTED_PROXIES"); v != "" {
 		c.TrustedProxies = nil
 		for _, p := range strings.Split(v, ",") {
@@ -646,6 +651,13 @@ func (c Config) UnknownKeys() []string {
 		}
 	}
 	walk(reflect.ValueOf(c), "")
+	for i, u := range c.Users {
+		for k := range u.Profile.Prefs {
+			if !knownPref(k) {
+				out = append(out, fmt.Sprintf("users[%d].profile.prefs.%s", i, k))
+			}
+		}
+	}
 	slices.Sort(out)
 	return out
 }
@@ -678,6 +690,32 @@ func BackupOnce(path, label string) error {
 		return nil
 	}
 	return copyFile(path, dst)
+}
+
+// After a rollback .before-<version> often exists already and .prev lasts
+// one save. A copy equal to the newest one is skipped, so a restart loop doesn't fill the disk.
+func BackupUnknown(path string, now time.Time) error {
+	b, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	c, err := Parse(b)
+	if err != nil || len(c.UnknownKeys()) == 0 {
+		return err
+	}
+	older, err := filepath.Glob(path + ".unknown-*")
+	if err != nil {
+		return err
+	}
+	if len(older) > 0 {
+		if last, err := os.ReadFile(slices.Max(older)); err == nil && bytes.Equal(last, b) {
+			return nil
+		}
+	}
+	return AtomicWrite(path+".unknown-"+now.UTC().Format("20060102T150405Z"), b)
 }
 
 // copyFile treats a missing source as nothing to copy.
