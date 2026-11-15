@@ -1,5 +1,10 @@
 /* The panel pages (/panels, /panels/editor, /panels/<id>). Load after base.css. */
 
+/* These pages reflow and have no matrix, so they drop patchbay's page floor in a narrow mouse window too. */
+body {
+  min-width: 0;
+}
+
 .sode-panels {
   display: flex;
   flex-direction: column;
