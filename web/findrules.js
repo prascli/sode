@@ -3,13 +3,29 @@
 import { allowed } from './rightsrules.js';
 import { fillPlan, applyFill, setCell, rectOf, select, isUnassigned, cellAt } from './gridmodel.js';
 
-export const CATEGORIES = ['source', 'destination', 'preset', 'take', 'clear', 'current', 'panelName', 'instanceName', 'page', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
+export const CATEGORIES = [
+  'source',
+  'destination',
+  'preset',
+  'take',
+  'clear',
+  'undo',
+  'current',
+  'panelName',
+  'instanceName',
+  'page',
+  'pageName',
+  'info',
+  'goToPage',
+  'nextPage',
+  'previousPage',
+];
 // One entry each, placed with nothing chosen: a Go to Page cell gets its Page in the Cell tab.
-const NUMBERLESS = ['take', 'clear', 'current', 'panelName', 'instanceName', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
+const NUMBERLESS = ['take', 'clear', 'undo', 'current', 'panelName', 'instanceName', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
 // The kinds with a list behind them get a chip; the others are one entry each and show under All.
 export const CHIP_CATEGORIES = ['source', 'destination', 'preset', 'page'];
 // What each chip narrows to: Pages also holds every kind that is about Pages, one entry each.
-export const CHIP_KINDS = { page: ['page', 'pageName', 'goToPage', 'nextPage', 'previousPage'] };
+const CHIP_KINDS = { page: ['page', 'pageName', 'goToPage', 'nextPage', 'previousPage'] };
 export const chipKinds = (chip) => (chip ? CHIP_KINDS[chip] || [chip] : []);
 export const CATEGORY_LABEL = {
   source: 'Sources',
@@ -17,6 +33,7 @@ export const CATEGORY_LABEL = {
   preset: 'Presets',
   take: 'Take',
   clear: 'Clear',
+  undo: 'Undo',
   current: 'Current Source',
   panelName: 'Panel Name',
   instanceName: 'Instance Name',
@@ -34,6 +51,7 @@ export const CATEGORY_ICON = {
   preset: 'bookmark',
   take: 'zap',
   clear: 'eraser',
+  undo: 'undo-2',
   current: 'eye',
   panelName: 'panels-top-left',
   instanceName: 'tablet-smartphone',
@@ -83,7 +101,16 @@ export function findEntries(namesReply, presetsReply, rights, { fixed = false } 
 // The panel's Pages as entries. Choosing one places Go to Page cells, so Rights do not apply.
 // alias lets "page 3" match a named Page.
 export const pageEntries = (pages) =>
-  (pages || []).map((p, i) => ({ category: 'page', key: `page:${p.id}`, id: p.id, n: i, label: p.name?.trim() || `Page ${i + 1}`, num: i + 1, alias: `page ${i + 1}`, off: false }));
+  (pages || []).map((p, i) => ({
+    category: 'page',
+    key: `page:${p.id}`,
+    id: p.id,
+    n: i,
+    label: p.name?.trim() || `Page ${i + 1}`,
+    num: i + 1,
+    alias: `page ${i + 1}`,
+    off: false,
+  }));
 
 const OFF_TAG = { rights: 'Outside rights', fixed: 'Fixed destination is on' };
 // Why an entry cannot be placed, '' when it can.

@@ -62,6 +62,7 @@ var retiredWords = []retiredWord{
 	{Terms: []string{"automation"}, Re: wordRe(`(?i)automation`)},
 	{Terms: []string{"operator"}, Re: wordRe(`(?i)operators?`)},
 	{Terms: []string{"account"}, Re: wordRe(`(?i)accounts?`)},
+	{Terms: []string{"PIN-less user"}, Re: wordRe(`(?i)pin-?less users?`)},
 	{Terms: []string{"log in", "log out"}, Re: wordRe(`(?i)log(?:s|ged|ging)? (?:in|out)|log-?(?:in|out)s?`)},
 	{Terms: []string{"unlock"}, Re: wordRe(`(?i)unlock(?:s|ed|ing)?`)},
 	{Terms: []string{"Settings PIN"}, Re: wordRe(`(?i)settings pin`)},
@@ -112,7 +113,6 @@ var vocabAllow = []allowEntry{
 // identAllow exempts web identifiers only, so a UI string or a doc line gets no pass. Wire message
 // types and `sode-*` keys are strings and never reach that scan; these names hold a wire or logged value.
 var identAllow = []allowEntry{
-	{"panel change", "web/panelpage.js", `panelRows`, "the rows of a panel's grid; the avoided phrase means a change made on a hardware panel"},
 	{"Recent", "web/core.js", `m\.recent`, "the `recent` message carries its entries under this field"},
 	{"refresh", "web/logkinds.js", `^\s*refreshNames:`, "`log` command kind, as the server logs it"},
 	{"salvo", "web/log.js", `^\s*salvos?(?:Stage|Go)?:`, "`log` command kinds and the router's own salvo"},
@@ -250,11 +250,15 @@ func scanLines(term, file, text string, re *regexp.Regexp, skip func(string) boo
 func isAvoidLine(line string) bool { return strings.HasPrefix(line, "_Avoid_:") }
 
 // docFiles are the prose files: the root guides and everything under docs/. CHANGELOG.md
-// records history and keeps the old words.
+// records history and keeps the old words; docs/research/ quotes outside sources and
+// current strings word for word.
 func docFiles(t *testing.T) []string {
 	t.Helper()
 	files := []string{"AGENTS.md", "GLOSSARY.md", "README.md", "RELEASING.md"}
 	err := filepath.WalkDir(filepath.Join(repoRoot(), "docs"), func(p string, d fs.DirEntry, err error) error {
+		if err == nil && d.IsDir() && d.Name() == "research" {
+			return filepath.SkipDir
+		}
 		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".md") {
 			rel, _ := filepath.Rel(repoRoot(), p)
 			files = append(files, filepath.ToSlash(rel))

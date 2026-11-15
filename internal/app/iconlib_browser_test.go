@@ -34,8 +34,7 @@ func TestChromeIconLibraryUploadPickAndDraw(t *testing.T) {
 	b.waitFor("the tile picks it, pressed, with Icon B as a badge", sq+`.querySelector('img.sode-panel__art-a') !== null && !!`+sq+`.querySelector('.sode-panel__art-b--badge') && document.querySelector('#ed-lib-icons [data-lib]').getAttribute('aria-pressed') === 'true'`)
 
 	b.eval(`document.getElementById('ed-save').click()`)
-	// Save disables the button at once, before the PUT; only the state slot says Saved once the reply is in and the editor is clean.
-	b.waitFor("saved", `document.getElementById('ed-state').textContent === 'Saved'`)
+	b.waitSaved("saved")
 	if p, _ := a.panels.get(id); p.Pages[0].Cells[0]["art"] != lib {
 		t.Fatalf("stored art %v, want %s", p.Pages[0].Cells[0]["art"], lib)
 	}
@@ -91,10 +90,8 @@ func TestChromeIconLibraryRenameAndDelete(t *testing.T) {
 	b.waitFor("the renamed icon still draws", drawn(sq))
 
 	b.eval(`document.querySelector('#ed-lib-icons [data-lib]').click(); document.getElementById('ed-lib-delete').click(); true`)
-	b.waitFor("the Confirm with the count", `/2 cells on 1 panel use it/.test(document.getElementById('ed-lib-confirm')?.textContent || '')`)
-	if b.eval(`document.getElementById('ed-lib-delete-ok').disabled`) != true {
-		t.Error("the Confirm is not locked out at first")
-	}
+	// One read: a second call after the text shows can land after the 500 ms lockout under load.
+	b.waitFor("the Confirm with the count, locked out at first", `/2 cells on 1 panel use it/.test(document.getElementById('ed-lib-confirm')?.textContent || '') && document.getElementById('ed-lib-delete-ok').disabled`)
 	b.waitFor("the lockout ends", `!document.getElementById('ed-lib-delete-ok').disabled`)
 	b.eval(`(() => { const k = /\((.)\)/.exec(document.getElementById('ed-lib-delete-ok').textContent)[1].toLowerCase(); document.getElementById('ed-lib-confirm').dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); return true; })()`)
 	b.waitFor("deleted", `/Deleted Station/.test(document.querySelector('.sode-side__lib-sec [role=status]').textContent)`)

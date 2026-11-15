@@ -8,8 +8,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
-	"testing"
 	"strings"
+	"testing" // on purpose: testing.Testing() keeps UseTestCosts out of production
 	"unicode/utf8"
 )
 
@@ -26,6 +26,7 @@ func UseTestCosts() {
 
 func CheckPinRules(pin string) error {
 	if n := utf8.RuneCountInString(pin); n < 4 || n > 64 {
+		//lint:ignore ST1005 Settings shows this as is
 		return fmt.Errorf("Advanced Settings PIN must be 4-64 characters")
 	}
 	return nil

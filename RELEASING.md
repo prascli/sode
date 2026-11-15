@@ -32,9 +32,9 @@ Automatic updaters should follow `latest` (or `X.Y`); only `promote.yml` moves t
 ## The workflows
 
 - **`ci.yml`**: on every PR and every push to `main` or `integration/**`. It runs the test groups (AGENTS.md "Test groups") as parallel jobs, and `ci-ok <base>` sums them up; branch protection on `main` requires only `ci-ok main`. On `main` it then builds and pushes `edge` and `sha-*`. A newer push cancels an older build still running, so `edge` can't end up on an older commit. The Docker build does not run tests.
-- **`rc.yml`**: on a tag `vX.Y.Z-rc.N`. In order: the commit must be on `main` or a `release/X.Y` branch; vet and all tests; `TestVersionNoted` for this tag; the image tag must not already exist; build and push (`X.Y.Z-rc.N` and `rc`); Trivy scan (no fixable CRITICAL); build-provenance attestation; **cosign signature last**, so a signed image has passed everything above; then a GitHub pre-release with the CHANGELOG section. Trivy runs from its container image pinned by digest (`ghcr.io/aquasecurity/trivy@sha256:...`), because the trivy-action's installer failed to download the binary on the runners (rc.2 and rc.3). The digest is not tracked by Dependabot: bump it by hand now and then.
+- **`rc.yml`**: on a tag `vX.Y.Z-rc.N`. In order: the commit must be on `main` or a `release/X.Y` branch; vet and all tests; `TestVersionNoted` for this tag; the image tag must not already exist; build and push (`X.Y.Z-rc.N` and `rc`); Trivy scan (no fixable CRITICAL); build-provenance attestation; **cosign signature last**, so a signed image has passed everything above; then a GitHub pre-release with the CHANGELOG section. Trivy runs from its container image pinned by digest (`ghcr.io/aquasecurity/trivy@sha256:...`), because the trivy-action's installer failed to download the binary on the runners (rc.2 and rc.3). The digest is not tracked by Dependabot: bump it by hand now and then. Dependabot doesn't track `go run` pins either, so bump the staticcheck pin in ci.yml's lint job (`go run honnef.co/go/tools/cmd/staticcheck@v0.8.2`) by hand too. 2025.1.1 and 2026.1 fail on Go 1.27.3 with "export data version 5 > max 2"; 2026.2.2 (v0.8.2) is the first that works.
 - **`promote.yml`**: run by hand from `main`, with the rc tag and a *dry run* box. It never rebuilds. It checks the tag is an rc on `main` or a release branch, re-runs `TestVersionNoted` at that commit, finds the rc image's digest and verifies its cosign signature (identity `rc.yml` for exactly that tag and commit), refuses if `X.Y.Z` already points at another image, then (unless dry run) creates the annotated git tag `vX.Y.Z`, gives that digest `X.Y.Z` and the moving tags, signs it again as a release, and publishes the GitHub release from the CHANGELOG. It only moves `latest`, `X.Y` and `X` where the new release is the highest of that line. Re-running after a partial failure is safe. It runs in the `release` environment and refuses to run from any branch but `main`.
-- **Dependabot** (`.github/dependabot.yml`): weekly PRs for Actions (they are pinned by commit SHA with the version in a comment), Go modules and the Docker base image. Nothing merges by itself.
+- **Dependabot** (`.github/dependabot.yml`): weekly PRs for Actions (they are pinned by commit SHA with the version in a comment), Go modules and the Docker base image. It skips releases younger than 3 days (`cooldown`). Nothing merges by itself.
 
 ## Cutting a release
 
@@ -63,16 +63,17 @@ cosign verify ghcr.io/sethdotfm/sode@sha256:<digest> \
 
 A release digest passes with `promote.yml`; a candidate only with `rc.yml@refs/tags/vX.Y.Z-rc.N`; an `edge` or `sha-` image has no signature. For a router you can't afford to surprise, pin `image: ghcr.io/sethdotfm/sode@sha256:...` (the digest is in the release notes) and update by hand.
 
-## Repository settings (checked 2026-11-04)
+## Repository settings (checked 2026-11-14)
 
 | Setting | State |
 | --- | --- |
-| Default workflow token permissions | read-only (done) |
-| Container package visibility | public (done) |
-| Actions pinned by commit SHA | done |
-| Tag ruleset for `v*` (no delete or force-update) | **not set** |
-| `release` environment (reviewers) | **not created**; GitHub makes an empty one the first time promote runs |
-| Branch protection / required checks on `main` | **not set**; merges are by pull request by habit |
-| Merge style | merge commits, squash and rebase all allowed; the history is kept as written |
+| Default workflow token permissions | read-only |
+| Container package visibility | public |
+| Actions pinned by commit SHA | yes, all workflows |
+| Tag ruleset for `v*` | "Protect release tags": blocks deletion and non-fast-forward; creating tags is allowed, so promote can push `vX.Y.Z` |
+| `release` environment | required reviewer: the repo owner; each promote waits for approval |
+| Branch protection on `main` | `ci-ok main` required, branch must be up to date (strict), enforced for admins |
+| Merge settings | auto-merge and the Update branch button on; head branches deleted on merge; merge commits, squash and rebase allowed |
+| Dependabot | version updates (actions, gomod, docker), vulnerability alerts and security update PRs |
 
-Until the tag ruleset exists, a `v*` tag can be moved or deleted by anyone who can push. The workflows don't depend on it, but "tags are immutable" is only true once it is set: Settings > Rules > Rulesets, target tags `v*`, block deletion and non-fast-forward, and allow the `github-actions` app to create them (promote pushes `vX.Y.Z` with `GITHUB_TOKEN`).
+With strict on, a PR behind main must be updated before it merges; turn on auto-merge and use Update branch instead of waiting.

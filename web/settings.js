@@ -2,7 +2,7 @@
 // settings save together and the view stays open; This device choices are per browser and apply
 // at once.
 
-import { $, el, S, on, wsSend, sentence } from './core.js';
+import { $, el, S, on, onMsg, wsSend, sentence } from './core.js';
 import { levelColor, levelLabel, levelInput } from './levelview.js';
 import { fmtTime } from './device.js';
 import { initDeviceSettings } from './devicesettings.js';
@@ -128,7 +128,7 @@ function fillBrandColors() {
 }
 $('cfg-brandborder').addEventListener('change', renderBrandPreview);
 
-export function openSettings() {
+function openSettings() {
   if (!S.cfg) return;
   showPage(-1);
   if (location.hash !== '#settings') history.pushState(null, '', '#settings');
@@ -428,6 +428,13 @@ on('historyCleared', () => {
   clearing = 0;
   showResult('ok', 'History cleared', 'History is empty for everyone.');
 });
+// Only a refusal with nothing to re-ask (Sode shutting down) answers this way.
+onMsg('clearHistoryResult', (m) => {
+  if (m.ok || !clearPending()) return;
+  clearing = 0;
+  $('settings-err').textContent = sentence(m.err);
+  $('settings-err').hidden = false;
+});
 on('wsclose', () => {
   clearing = 0;
 });
@@ -658,9 +665,15 @@ function flash(node, smooth) {
   flashTimer = setTimeout(start, 1000);
 }
 
+// A [data-find] row or button is hidden while it does not apply (Sign in, My API keys), so search skips it.
+const offered = (h) => {
+  const node = h.kind === 'setting' ? targets.get(`${h.sectionId}/${h.id}`) : null;
+  return !(node?.matches('[data-find]') && node.closest('[hidden]'));
+};
+
 function showHits() {
   const q = findBox.value.trim();
-  hits = q ? find(settingsIndex, q) : [];
+  hits = q ? find(settingsIndex, q).filter(offered) : [];
   cur = 0;
   foundList.replaceChildren(
     ...hits.map((h, i) => {
