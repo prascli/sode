@@ -1,0 +1,2 @@
+- Placeholder text in input fields is easier to read: it now meets 4.5:1 contrast (patchbay 2.2.1). In the History filter boxes the placeholder is the only text that says which box filters Source and which filters Destination.
+- The Sode Panels pages no longer scroll sideways in a narrow browser window that has a mouse. The main page and the Communication Log keep their minimum width.
