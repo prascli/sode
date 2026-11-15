@@ -13,16 +13,16 @@ import (
 	"testing"
 )
 
-// Checks the rules of docs/ste.md that a program can check. A scope that is not in
-// steEnforced is still scanned, so allowlist use is counted, but its hits are only logged.
+// Checks the rules of docs/ste.md that a program can check. A scope set false in steEnforced
+// is still scanned, so allowlist use is counted, but its hits are only logged.
 // STE_REPORT=<file> writes every hit, one per line, as the work list for a sweep.
 
 var steEnforced = map[string]bool{
-	"docs":       false,
-	"agentdocs":  false,
-	"ui":         false,
-	"gocomments": false,
-	"jscomments": false,
+	"docs":       true,
+	"agentdocs":  true,
+	"ui":         true,
+	"gocomments": true,
+	"jscomments": true,
 }
 
 type steWord struct {
@@ -51,7 +51,9 @@ var steWords = []steWord{
 }
 
 // steAllow exempts lines from one rule (Term is a steWords ID, or "length"), as vocabAllow does.
-var steAllow = []allowEntry{}
+var steAllow = []allowEntry{
+	{"length", "GLOSSARY.md", `^What a cell does: `, "a list of the cell kinds, not a sentence to split"},
+}
 
 const (
 	steDescriptiveMax = 25
@@ -147,8 +149,46 @@ func steDocFiles(t *testing.T) (docs, agent []string) {
 
 func lineAt(src string, off int) int { return strings.Count(src[:off], "\n") + 1 }
 
-// jsLex returns the string literals and the comments of a script with their lines. Like
-// jsStrings it does not know regex literals, which is good enough for Sode's sources.
+// regexStart reports whether a / at i opens a regex literal. After an operator, an opening
+// bracket or a keyword it does. After a value it divides.
+func regexStart(src string, i int) bool {
+	j := i - 1
+	for j >= 0 && (src[j] == ' ' || src[j] == '\t' || src[j] == '\n' || src[j] == '\r') {
+		j--
+	}
+	if j < 0 || strings.ContainsRune("(,=:[!&|?{};+-*%<>~^", rune(src[j])) {
+		return true
+	}
+	k := j
+	for k >= 0 && (src[k] >= 'a' && src[k] <= 'z') {
+		k--
+	}
+	switch src[k+1 : j+1] {
+	case "return", "typeof", "case", "of", "in", "void", "delete", "throw":
+		return true
+	}
+	return false
+}
+
+// skipRegex returns the index after the end of the regex literal that opens at i.
+func skipRegex(src string, i int) int {
+	class := false
+	for j := i + 1; j < len(src) && src[j] != '\n'; j++ {
+		switch {
+		case src[j] == '\\':
+			j++
+		case src[j] == '[':
+			class = true
+		case src[j] == ']':
+			class = false
+		case src[j] == '/' && !class:
+			return j + 1
+		}
+	}
+	return i + 1
+}
+
+// jsLex returns the string literals and the comments of a script with their lines.
 func jsLex(src string) (strs, comments []steUnit) {
 	for i := 0; i < len(src); {
 		switch c := src[i]; {
@@ -166,6 +206,8 @@ func jsLex(src string) (strs, comments []steUnit) {
 			}
 			comments = append(comments, steUnit{"", lineAt(src, i), src[i+2 : i+2+end]})
 			i += end + 4
+		case c == '/' && regexStart(src, i):
+			i = skipRegex(src, i)
 		case c == '\'' || c == '"' || c == '`':
 			j := i + 1
 			for j < len(src) && src[j] != c && (c == '`' || src[j] != '\n') {
@@ -422,6 +464,10 @@ func TestSTEMechanics(t *testing.T) {
 		if got := len(steCheck("x", steUnit{"a.md", 1, text}, steDescriptiveMax)); got != want {
 			t.Errorf("%q: %d hits, want %d", text, got, want)
 		}
+	}
+	strs, _ := jsLex("const re = /['\"]/g; const n = a / b; x('Late text.');")
+	if len(strs) != 1 || strs[0].Text != "Late text." {
+		t.Errorf("jsLex past a regex literal = %+v", strs)
 	}
 	units := mdUnits("a.md", "# Head\n\nOne line\nwraps here.\n- item one\n- item two\n```\ncode e.g.\n```\n| a | e.g. |\n")
 	if len(units) != 3 || units[0].Text != "One line wraps here." || units[0].Line != 3 {

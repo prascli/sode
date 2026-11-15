@@ -34,52 +34,59 @@ These rules do not apply to:
 1. Use one word for one thing. When the glossary has a term, use that term every time. Do not use a synonym to give variety.
 2. Give each word one meaning. If a word has two meanings, use it with one meaning only, or use a different word. For example, "once" can mean "one time" or "after". Use "one time" or "after".
 3. Use the plain word from the word table, not the word in the "Do not use" column.
-4. Use a verb as a verb. Do not make a verb into a noun when the verb can do the work. Write "Sode checks the name", not "Sode performs a check of the name". Glossary terms such as Take and Route are exceptions.
-5. Do not use "-ing" words as verbs or adjectives, except in a technical name ("routing table", "Pending"). Write "When you send a take", not "When sending a take".
-6. Write the words in full. Do not use contractions ("do not", not "don't"). Do not use Latin abbreviations ("for example", not "e.g.").
-7. Spell out an abbreviation the first time that a page uses it. Protocol names (SW-P-08, TCP, PIN), GLOSSARY.md terms and common units (ms, s, KB) are exceptions. In prose, write "about" for "~" and "compared with" for "vs".
+4. Replace a word only with a word of the same meaning. "take" as an ordinary verb has many senses (get, accept, read, need, last). Pick the verb for that sense. Do not use one default replacement such as "use".
+5. Use a verb as a verb. Do not make a verb into a noun when the verb can do the work. Write "Sode checks the name", not "Sode performs a check of the name". Glossary terms such as Take and Route are exceptions.
+6. Do not use "-ing" words as verbs or adjectives, except in a technical name ("routing table", "Pending"). Write "When you send a take", not "When sending a take".
+7. Write the words in full. Do not use contractions ("do not", not "don't"). Do not use Latin abbreviations ("for example", not "e.g.").
+8. Spell out an abbreviation the first time that a page uses it. Protocol names (SW-P-08, TCP, PIN), GLOSSARY.md terms and common units (ms, s, KB) are exceptions. In prose, write "about" for "~" and "compared with" for "vs".
 
 ## Rules for noun clusters
 
-8. Do not put more than three nouns in a row. Write "the name of the destination on the router", not "router destination name text".
-9. Use the articles "the", "a" and "an". Do not leave them out to make a sentence shorter.
+9. Do not put more than three nouns in a row. Write "the name of the destination on the router", not "router destination name text".
+10. Use the articles "the", "a" and "an". Do not leave them out to make a sentence shorter.
 
 ## Rules for verbs
 
-10. Use the active voice. Name the actor: "Sode refuses the plan", not "the plan is refused". Use the passive voice only when the actor is unknown or not important.
-11. Use simple tenses: the present, the past and the future ("refuses", "refused", "will refuse").
-12. Use "can" for ability and permission. Use "must" for a requirement. Do not use "may" or "might" for possibility. Write "it is possible that" or state the condition.
+11. Use the active voice. Name the actor: "Sode refuses the plan", not "the plan is refused". Use the passive voice only when the actor is unknown or not important.
+12. Use simple tenses: the present, the past and the future ("refuses", "refused", "will refuse").
+13. Keep ability, permission and prohibition apart. They are different facts.
+    - Ability: "can", "cannot" ("the router cannot store more than 1024 names").
+    - Permission given: "can" or "is allowed to".
+    - Prohibition: "must not" or "is not allowed to". Never write "cannot" for a prohibition: "cannot" says that it is not possible, not that it is not allowed.
+    - Requirement: "must".
+    - Possibility: state the condition ("if the link drops, ..."), or write "it is possible that". Do not use "may" or "might".
+    - Before you replace "may", decide which of these it means. If you cannot tell, keep it and flag it.
 
 ## Rules for sentences
 
-13. Write one idea in one sentence.
-14. A descriptive sentence has 25 words or fewer.
-15. An instruction has 20 words or fewer.
-16. A paragraph has six sentences or fewer, and one topic.
-17. Put a condition before the instruction: "If the router is offline, Sode keeps the plan."
+14. Write one idea in one sentence.
+15. A descriptive sentence has 25 words or fewer.
+16. An instruction has 20 words or fewer.
+17. A paragraph has six sentences or fewer, and one topic.
+18. Put a condition before the instruction: "If the router is offline, Sode keeps the plan."
 
 ## Rules for instructions
 
-18. Write an instruction as a command, in the imperative: "Select the destination."
-19. Write one instruction in one sentence. If two actions occur at the same time, you can write them in one sentence.
-20. Write the steps of a procedure as a numbered list, in the order that a person does them. When the steps describe what the code does, use the present tense, not the imperative.
+19. Write an instruction as a command, in the imperative: "Select the destination."
+20. Write one instruction in one sentence. If two actions occur at the same time, you can write them in one sentence.
+21. Write the steps of a procedure as a numbered list, in the order that a person does them. When the steps describe what the code does, use the present tense, not the imperative.
 
 ## Rules for warnings and cautions
 
-21. Start a warning with a short command that tells the person what to do or not to do. Then give the reason or the risk in a different sentence.
-22. Do not soften a warning. Do not write "please" or "you might want to".
+22. Start a warning with a short command that tells the person what to do or not to do. Then give the reason or the risk in a different sentence.
+23. Do not soften a warning. Do not write "please" or "you might want to".
 
 ## Rules for UI text
 
-23. A button or a menu item names the action as a verb, or names the thing it opens: "Send", "Undo", "Settings".
-24. An error message tells the person what occurred and what to do next. Do not blame the person.
-25. Status text always has words, as patchbay requires. The panel pages are the one exception (docs/panels-design.md).
-26. Use the same words for the same action on every page.
+24. A button or a menu item names the action as a verb, or names the thing it opens: "Send", "Undo", "Settings".
+25. An error message tells the person what occurred and what to do next. Do not blame the person.
+26. Status text always has words, as patchbay requires. The panel pages are the one exception (docs/panels-design.md).
+27. Use the same words for the same action on every page.
 
 ## Rules for code comments
 
-27. The comment rules in AGENTS.md also apply. A comment gives context only. It tells why, or it states an invariant, a quirk, a unit, a sentinel value or a link to code that must change with it.
-28. Do not make a comment longer to make it obey a rule. If a rule makes a comment longer, write two short sentences.
+28. The comment rules in AGENTS.md also apply. A comment gives context only. It tells why, or it states an invariant, a quirk, a unit, a sentinel value or a link to code that must change with it.
+29. Do not make a comment longer to make it obey a rule. If a rule makes a comment longer, write two short sentences.
 
 ## Word table
 
@@ -104,7 +111,7 @@ This is Sode's own list. Add a row when review finds a word that has two meaning
 | once (to mean "after") | after, when |
 | in case (to mean "if") | if |
 | whether or not | if |
-| may, might (for possibility) | can, or state the condition |
+| may, might | depends on the sense: see rule 13. "may not" (not allowed) becomes "must not", never "cannot" |
 | don't, can't, won't, isn't, doesn't and other contractions | do not, cannot, will not, is not, does not |
 
 ## Checks
