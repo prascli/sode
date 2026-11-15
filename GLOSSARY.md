@@ -170,7 +170,7 @@ A user whose role is Standard: patching within their Rights, their own Profile a
 A user whose role lets them change advanced settings. There is always at least one, and every Administrator has a PIN.
 
 **User without a PIN**:
-A user who signs in by picking their name. Such a user is never Trusted or Administrator, opens no page lock, and acts with Rights no wider than Guest Rights. They exist to keep people's preferences apart.
+A user who signs in by picking their name. Such a user is never Administrator, takes Guest role when it is Trusted, opens no page lock, and acts with Rights no wider than Guest Rights. They exist to keep people's preferences apart.
 _Avoid_: PIN-less user
 
 **Critical action**:
@@ -184,6 +184,13 @@ A qualified user's name and PIN, typed in someone else's browser, that lets one 
 
 **Request approval**:
 Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
+
+**Guest role**:
+The role a Guest acts with in a browser: Standard or Trusted, never Administrator. An API call with no key never takes it.
+
+**Access preset**:
+A named set of defaults for who may do what without signing in, such as page locks and the keyless API, written once by the setup wizard or from Settings. Nothing remembers which preset was applied, and every setting it writes can be changed afterwards.
+_Avoid_: security preset, access position
 
 **Public panels allowed**:
 The install-wide switch that lets panel owners make a panel Public. On by default.
