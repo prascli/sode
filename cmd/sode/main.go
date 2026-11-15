@@ -63,9 +63,13 @@ func loadConfig(path string) config.Config {
 	return c
 }
 
+// Runs before anything here can save, including the reset commands.
 func backupBeforeRelease(path string) {
 	if err := config.BackupOnce(path, app.Version); err != nil {
 		log.Printf("config: backing up %s: %v", path, err)
+	}
+	if err := config.BackupUnknown(path, time.Now()); err != nil {
+		log.Printf("config: keeping a copy of %s with unknown keys: %v", path, err)
 	}
 }
 
@@ -189,6 +193,6 @@ func main() {
 	// Run writes the stop row and the uptime's off line as it ends.
 	select {
 	case <-ran:
-	case <-time.After(3 * time.Second):
+	case <-time.After(8 * time.Second): // Run waits up to 6s for takes and saves in flight
 	}
 }
