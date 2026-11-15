@@ -250,11 +250,15 @@ func scanLines(term, file, text string, re *regexp.Regexp, skip func(string) boo
 func isAvoidLine(line string) bool { return strings.HasPrefix(line, "_Avoid_:") }
 
 // docFiles are the prose files: the root guides and everything under docs/. CHANGELOG.md
-// records history and keeps the old words.
+// records history and keeps the old words; docs/research/ quotes outside sources and
+// current strings word for word.
 func docFiles(t *testing.T) []string {
 	t.Helper()
 	files := []string{"AGENTS.md", "GLOSSARY.md", "README.md", "RELEASING.md"}
 	err := filepath.WalkDir(filepath.Join(repoRoot(), "docs"), func(p string, d fs.DirEntry, err error) error {
+		if err == nil && d.IsDir() && d.Name() == "research" {
+			return filepath.SkipDir
+		}
 		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".md") {
 			rel, _ := filepath.Rel(repoRoot(), p)
 			files = append(files, filepath.ToSlash(rel))
