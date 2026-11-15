@@ -192,6 +192,9 @@ The role a Guest acts with in a browser: Standard or Trusted, never Administrato
 A named set of defaults for who can do what without sign-in, such as page locks and the keyless API. The setup wizard or Settings writes it one time. Nothing remembers which preset was applied, and every setting it writes can be changed afterwards.
 _Avoid_: security preset, access position
 
+**Open access** / **Standard access** / **Secured access**:
+The three Access presets, from loosest to strictest. Under Open access a Guest is Trusted. Under Standard access a Guest patches as a Standard user. Under Secured access people sign in to patch, and no panel can be Public. Write the full name, since bare Standard is the role. The preset picker may show the short names.
+
 **Public panels allowed**:
 The install-wide switch that lets panel owners make a panel Public. On by default.
 
