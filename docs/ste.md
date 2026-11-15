@@ -37,7 +37,7 @@ These rules do not apply to:
 4. Use a verb as a verb. Do not make a verb into a noun when the verb can do the work. Write "Sode checks the name", not "Sode performs a check of the name". Glossary terms such as Take and Route are exceptions.
 5. Do not use "-ing" words as verbs or adjectives, except in a technical name ("routing table", "Pending"). Write "When you send a take", not "When sending a take".
 6. Write the words in full. Do not use contractions ("do not", not "don't"). Do not use Latin abbreviations ("for example", not "e.g.").
-7. Spell out a unit or an abbreviation the first time that a page uses it. Protocol names (SW-P-08, TCP, PIN) and GLOSSARY.md terms are exceptions.
+7. Spell out an abbreviation the first time that a page uses it. Protocol names (SW-P-08, TCP, PIN), GLOSSARY.md terms and common units (ms, s, KB) are exceptions. In prose, write "about" for "~" and "compared with" for "vs".
 
 ## Rules for noun clusters
 
@@ -62,7 +62,7 @@ These rules do not apply to:
 
 18. Write an instruction as a command, in the imperative: "Select the destination."
 19. Write one instruction in one sentence. If two actions occur at the same time, you can write them in one sentence.
-20. Write the steps of a procedure as a numbered list, in the order that a person does them.
+20. Write the steps of a procedure as a numbered list, in the order that a person does them. When the steps describe what the code does, use the present tense, not the imperative.
 
 ## Rules for warnings and cautions
 
