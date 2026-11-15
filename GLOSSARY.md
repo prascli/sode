@@ -46,7 +46,7 @@ What Sode intends to send but has not yet sent. A plan becomes a take when a per
 _Avoid_: pending take
 
 **Preset**:
-A saved plan that can be fired in one confirm, pinned and shared. It is Sode's own feature.
+A saved plan that can be fired in one confirm and pinned. It is Sode's own feature.
 _Avoid_: salvo
 
 **Salvo**:
@@ -174,7 +174,7 @@ A user who signs in by picking their name. Such a user is never Administrator an
 _Avoid_: PIN-less user
 
 **Critical action**:
-An advanced setting change that cannot be undone or that changes who can do what. Examples are a change to the router connection or to a role, and a destructive import. Each one asks a signed-in Administrator for their PIN again.
+An advanced setting change that cannot be undone or that changes who can do what. Examples are a change to the router connection or to a role, and a Replace import. Each one asks a signed-in Administrator for their PIN again.
 
 **PIN recheck**:
 An Administrator typing their own PIN again before a critical action. It holds for one minute on that connection.
@@ -197,6 +197,29 @@ The three Access presets, from loosest to strictest. Under Open access a Guest i
 
 **Public panels allowed**:
 The install-wide switch that lets panel owners make a panel Public. On by default.
+
+**PIN needed**:
+A user that an import made from a file with no PIN hashes. The user keeps their Role but must set a new PIN at the next sign-in. Until then the user acts as a User without a PIN, so an Administrator in this state cannot act as one.
+
+**Add import**:
+An import that adds and updates the ticked items and deletes nothing. For each item that clashes with one already here, a person picks Use new, Use current, Skip or Rename.
+
+**Replace import**:
+An import that empties each ticked category and then imports it. Only an Administrator can do it, and it is a Critical action.
+_Avoid_: reset import, merge import
+
+**Broken**:
+Describes a preset, filter set or panel that refers to something that is not there. Examples are a user, a preset, artwork or a router name. Sode shows the word Broken beside it.
+
+**Share**:
+To let other users open or use a panel. It is about access and never makes a copy.
+
+**Send a copy**:
+To give a copy of a preset, filter set or panel to another user, who accepts or declines it.
+
+**Item link**:
+A link to one preset or one panel on this install, also shown as a QR code. It works only on the install that made it.
+_Avoid_: share link
 
 ### Panels
 
