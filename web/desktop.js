@@ -4,7 +4,21 @@ import { $, el, S, on, connState, routerTitle, needsLink, renderDown, setDot, se
 import { levelBar, allLevels } from './levelview.js';
 import { fedBy, bySource, currentlyNodes, pickEnd } from './routes.js';
 import { scrollTopPref, flipped, setFlip } from './device.js';
-import { resultNode, showResult, patchPlan, planBlocked, rightsOff, sendTakes, lastTake, nextTake, boxPatch, lastChip, VERBS } from './plans.js';
+import {
+  resultNode,
+  showResult,
+  patchPlan,
+  planBlocked,
+  rightsOff,
+  sendTakes,
+  lastTake,
+  nextTake,
+  boxPatch,
+  lastChip,
+  VERBS,
+  planVerb,
+  planSummary,
+} from './plans.js';
 import { layout } from './layout.js';
 import { presetHost } from './presets.js';
 import { lastFill } from './historyrows.js';
@@ -299,6 +313,9 @@ let confirmKeys = false;
 let confirmFromHist = false; // decided at open: rows get redrawn
 
 const confirm = keyConfirm({
+  verb: planVerb,
+  summary: planSummary,
+  enter: () => !!S.cfg?.confirmEnter,
   spaceHint: true,
   prompt: (key) => ['Press ', key, S.cfg.confirmEnter ? ' or Enter' : '', ' to confirm, or escape to cancel.'],
   onTake: (p, viaKeys) => {
