@@ -54,6 +54,7 @@ After a 429, `guardFetch` (`sessionkeyrules.js`) holds the next call until Retry
 
 - REST: `panelsApp`, `userKey`, `makePanel`, `apiSend` and `apiSendRaw` in `panelsapi_test.go` run the real handlers against a fake router. Use them for any new route test.
 - Web rules modules are pure and tested without a DOM: `panelmodel.js` (view, stage, Take), `panelrules.js`, `panelupdate.js`, `panelwatchrules.js`, `panelkeyrules.js`, `panelsrules.js`, `panelpushrules.js`, `gridmodel.js`, `editorrules.js`, `findrules.js` and `arttoolrules.js`. Put new logic there and keep the DOM modules thin.
+- Panel types (ADR 0011): `panelrun.js` holds keys, sharing, polls, keepalive and live update for both types. After the read it hands a body the adapter `ctx`. The body is `buttonsBody` (`panelbuttons.js`) or `gridBody` (`gridpanelrun.js`), and it answers `render`, `data`, `apply`, `pending`, `renamed` and `stop`. Grid rules are pure `gridpanel*.js` modules, each with its own node test and the fixtures in `web/test/gridpanelfixture.mjs`. Go: `panelgrid.go` and `makeGridPanel` in `panelgrid_test.go`. Browser checks are `TestChromeGridPanel*` (`gridpanel_browser_test.go`, `gridXp`, `gridConfirm`).
 - Browser harness: docs/agents/browser-checks.md. Chrome checks use the real Handler and a built simulator, never `panelsApp`.
 
 ## Undo cell

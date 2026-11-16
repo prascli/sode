@@ -296,7 +296,15 @@ func (a *App) apiPanelUpdate(w http.ResponseWriter, r *http.Request, cl *apiCtx)
 	}
 	want := p.ClientRights
 	p.ID, p.Owner, p.Client, p.Art, p.ClientRights, p.Rev = old.ID, old.Owner, old.Client, old.Art, nil, old.Rev
-	if p.Pages == nil && p.LegacyCells != nil {
+	// ADR 0011: a body with no type is an older client's, so it keeps the stored one.
+	if p.Type == "" {
+		p.Type = old.Type
+	}
+	if p.Type != old.Type {
+		apiFail(w, http.StatusConflict, "conflict", "a panel's type is fixed when the panel is made")
+		return
+	}
+	if p.Type == panelTypeButtons && p.Pages == nil && p.LegacyCells != nil {
 		// A client from before Pages: its cells are Page 1's, and the other Pages stay.
 		p.Pages = slices.Clone(old.Pages)
 		p.Pages[0].Cells, p.LegacyCells = p.LegacyCells, nil

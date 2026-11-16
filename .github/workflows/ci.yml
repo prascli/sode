@@ -112,6 +112,21 @@ jobs:
           go-version-file: go.mod
       - run: .github/scripts/browser-checks.sh ${{ matrix.shard }} 3 '^TestChrome' 'HoldsNoMemory'
 
+  # Grid panels are built on integration/grid-panels. A PR into it otherwise gets only lint and -short, so the
+  # Grid panel browser checks run here on those PRs and on pushes to the branch.
+  grid:
+    if: github.base_ref == 'integration/grid-panels' || github.ref == 'refs/heads/integration/grid-panels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: .github/scripts/browser-checks.sh 0 1 '^TestChromeGridPanel'
+
   leak:
     needs: changes
     if: needs.changes.outputs.full == 'true'
@@ -129,7 +144,7 @@ jobs:
   ci-ok:
     name: ci-ok ${{ github.base_ref || github.ref_name }}
     if: always()
-    needs: [changes, lint, go, browser, leak]
+    needs: [changes, lint, go, browser, leak, grid]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -9,34 +9,13 @@ import { pageUi } from './panelmount.js';
 import { startKeepalive, announceKeyless } from './panelkeepalive.js';
 import { withKey, guardFetch } from './sessionkeyrules.js';
 import { fromPanel } from './panelwatchrules.js';
-import { keyFromHash, kioskOf, openFailText, sessionNote, envFrom, namesFrom, drawnCells, errorText, undoneText, undoMoved, offlineOf } from './panelrules.js';
+import { keyFromHash, kioskOf, openFailText, sessionNote, offlineOf } from './panelrules.js';
 import { setupFromHash, pollFail, publicFetch, withoutKey } from './panelkeyrules.js';
 import { exchangeSetup, storedKey, forgetKey, askPublic, askPublicAtOpen, keepLinkKey, followAssign } from './panelsetup.js';
-import {
-  createState,
-  pressDestination,
-  pressSource,
-  pressPreset,
-  clear,
-  startTake,
-  startInstant,
-  finishTake,
-  failTake,
-  pressUndo,
-  finishUndo,
-  applyTally,
-  carryView,
-  showPage,
-  pressPage,
-  errorOf,
-  undoneOf,
-  guardDown,
-  guardHeld,
-  guardCancel,
-  GUARD_HOLD_MS,
-} from './panelmodel.js';
-import { buildGrid, paintGrid } from './panelview.js';
-import { lookOf, withDefault, defaultsBy } from './panellook.js';
+import { buttonsBody } from './panelbuttons.js';
+import { gridBody } from './gridpanelrun.js';
+import { isGridPanel } from './gridpaneledges.js';
+import { lookOf } from './panellook.js';
 import { createArt } from './panelart.js';
 import { createWake, enterFullscreen, featureNotes, wantsFullscreen } from './panelfeel.js';
 import { watchPanel } from './panellive.js';
@@ -45,13 +24,9 @@ import { instanceFrom } from './panellink.js';
 import { isPublic } from './panelsrules.js';
 import { initChrome } from './panelfull.js';
 import { initName } from './panelname.js';
-import { pagesOf } from './panelpages.js';
-import { NAV_KINDS, landingPage, pageIndex, wrapOf } from './panelnav.js';
-import { savedPage, keepPage } from './pagekeep.js';
 
 const POLL_MS = 2000;
 const NAMES_MS = 30000;
-const UNDO_MOVED = 'What Undo would undo has changed; press it again';
 const ID_BYTES = 8;
 
 const say = (n, text) => {
@@ -77,8 +52,8 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   const timers = [];
   let stopWatch = () => {};
   let ended = false; // the key is gone or refused, or an embedded run was stopped: only a new link or start helps
-  let holdTimer = 0;
   let art = null;
+  let body = null; // panelbuttons.js or gridpanelrun.js, by the panel's type
   let wake = null;
   // While the page has no working key it is a Keyless instance: listed for an Assign, never sent anything else.
   let keyless = null;
@@ -90,7 +65,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     ended = true;
     timers.forEach(clearInterval);
     stopWatch();
-    clearTimeout(holdTimer);
+    body?.stop();
     art?.revoke();
     unannounce();
   };
@@ -232,47 +207,34 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     if (notes.length) say(ui.note, notes.join(' '));
   }
 
-  // The current Page's cells; a live update or a Page change makes them again.
-  const cellsOf = (p, page) => drawnCells(p, pageIndex(pagesOf(p), page)).map((c) => withDefault(c, defaultsBy(p.artDefaults)));
-  // Every Page's cells, so a live update keeps a Destination viewed on another Page.
-  const everyCell = (p) => pagesOf(p).flatMap((_, i) => drawnCells(p, i));
-  const stateOf = (p) => {
-    const set = p.settings || {};
-    return createState({
-      mode: set.mode,
-      multi: set.multi,
-      guard: set.guard,
-      resultText: set.resultText,
-      levels: Array.isArray(set.levels) && set.levels.length ? set.levels : null,
-      fixedDests: set.fixedDests,
-    });
-  };
-  // The Test it live run is no instance, so it neither reads nor writes the browser's saved Page.
-  let st = showPage(stateOf(panel), landingPage(pagesOf(panel), embedded ? page : savedPage(id)));
-  let cells = cellsOf(panel, st.page);
-  const notePage = () => {
-    if (!embedded) keepPage(id, st.page);
-  };
-  notePage();
-  let env = { levels: [], tally: new Map(), protectedDsts: new Set() };
-  let names = namesFrom({});
-  let presets = {};
-  let namesAt = 0;
   let ready = false;
-  // The take this instance's Undo cell would undo (GET /panels/<id>/undo), asked for only while a Page has the cell.
-  let undoNext;
-  const hasUndo = (p) => pagesOf(p).some((_, i) => drawnCells(p, i).some((c) => c.kind === 'undo'));
-  let undoCells = hasUndo(panel);
-
-  const render = () => {
-    const now = Date.now();
-    paintGrid(grid, { st, env, names, now, panelName: panel.name, instance, pages: pagesOf(panel), wrap: wrapOf(panel), undo: undoNext });
-    const err = errorOf(st, now);
-    const undone = err ? null : undoneOf(st, now);
-    say(ui.status, err ? errorText(err, names) : undoneText(undone, names));
-    ui.status.classList.toggle('sode-panel__status--ok', !!undone && !undone.failed.length);
+  // Each confirm sends one POST with one Idempotency-Key.
+  const post = (path, sent) =>
+    callJSON(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': takeKey() },
+      body: JSON.stringify(sent),
+      noWait: true,
+    });
+  // The adapter a body gets from the run. A panel's type never changes, so a live update keeps its body.
+  const ctx = {
+    ui,
+    art,
+    embedded,
+    page,
+    id,
+    call,
+    callJSON,
+    post,
+    poll: () => poll(),
+    ready: () => ready,
+    instance: () => instance,
+    touched() {
+      wake?.retry();
+      if (wantsFullscreen(look) && !embedded) enterFullscreen(document, look.landscape);
+    },
   };
-  let grid = buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
+  body = (isGridPanel(panel) ? gridBody : buttonsBody)(ctx, panel);
 
   // Blur the whole panel and say Offline, so nobody mistakes a stale grid for a working one.
   const showOffline = (o) => {
@@ -281,19 +243,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     if (o) ui.offlineDetail.textContent = o.detail;
   };
 
-  async function askUndo() {
-    if (!undoCells || ended) return;
-    try {
-      undoNext = (await callJSON(`api/v1/panels/${id}/undo`)).undo;
-      // History's own Undo, another tab or a rename moved the target: Take would only get 409.
-      if (st.undoId !== null && !st.busy && undoNext?.id !== st.undoId) st = failTake(st, 'conflict', UNDO_MOVED, Date.now());
-    } catch (e) {
-      // A refusal (a key without the take scope) greys the cell; a lost link keeps what it knew.
-      if (e.status !== undefined) undoNext = undefined;
-    }
-    render();
-  }
-
+  let namesAt = 0;
   let polling = false;
   async function poll() {
     if (polling || ended) return;
@@ -312,18 +262,10 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
           return null;
         }),
       ]);
-      if (nm) {
-        names = namesFrom(nm);
-        presets = pr;
-        namesAt = Date.now();
-      }
-      const was = env;
-      env = envFrom(tally, prot, presets, panel.rights);
-      st = applyTally(st, env);
+      if (nm) namesAt = Date.now();
       const off = offlineOf({ failed: false, routerUp: link ? link.routerUp : true });
       showOffline(off);
-      // Each ask walks History, so none runs on a timer; it is possible that History moved while Sode was out of reach.
-      if (undoMoved(was, env, undoNext) || (!ready && !off)) askUndo();
+      body.data({ tally, prot, nm, pr, first: !ready && !off });
       ready = !off;
       say(ui.note, '');
     } catch (e) {
@@ -342,102 +284,14 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
         // Nothing is allowed to call Sode again: not the polls, the update check or the keepalive.
         timers.forEach(clearInterval);
         stopWatch();
+        body.stop();
         keep?.stop();
         // Only the keyless announcement, which carries no key.
         if (e.status === 401) announce(endedCode(e.code));
       }
     }
     polling = false;
-    render();
-  }
-
-  // A staged undo goes to its own route with the id it was staged from, so the server marks that take undone.
-  const takeOpts = (started) =>
-    started.undoId !== null
-      ? { path: `api/v1/panels/${id}/undo`, body: { id: started.undoId }, finish: finishUndo, word: 'undo', onConflict: UNDO_MOVED }
-      : { path: 'api/v1/takes', body: { routes: started.routes }, finish: finishTake, word: 'take' };
-
-  async function send(started) {
-    if (!started) return;
-    const { path, body, finish, word, onConflict } = takeOpts(started);
-    st = started.state;
-    render();
-    try {
-      const reply = await callJSON(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': takeKey() },
-        body: JSON.stringify(body),
-        noWait: true,
-      });
-      st = finish(st, reply || {}, Date.now());
-    } catch (e) {
-      const why = (e.code === 'conflict' && onConflict) || e.message;
-      st =
-        e.status === undefined
-          ? failTake(st, 'network', `Sode did not answer, so it is possible that the ${word} was not sent`, Date.now())
-          : failTake(st, e.code || String(e.status), why || `The ${word} was refused`, Date.now());
-    }
-    render();
-    poll();
-    askUndo();
-  }
-
-  function holdCancel() {
-    clearTimeout(holdTimer);
-    st = guardCancel(st);
-    render();
-  }
-  function holdDown() {
-    if (!ready || st.guard !== 'hold' || !startTake(st, env)) return;
-    st = guardDown(st, Date.now()).state;
-    clearTimeout(holdTimer);
-    holdTimer = setTimeout(() => {
-      const held = guardHeld(st, Date.now());
-      st = held.state;
-      if (held.go) send(startTake(st, env));
-      render();
-    }, GUARD_HOLD_MS);
-    render();
-  }
-
-  function onPress(cell) {
-    // A Page change sends nothing, so it works while the router or Sode is away.
-    const nav = NAV_KINDS.includes(cell.kind);
-    if (!ready && !nav) return;
-    wake?.retry();
-    if (wantsFullscreen(look) && !embedded) enterFullscreen(document, look.landscape);
-    if (nav) return showNewPage(pressPage(st, cell, pagesOf(panel), wrapOf(panel)));
-    const now = Date.now();
-    if (cell.kind === 'take') {
-      if (st.guard === 'hold' || !startTake(st, env)) return;
-      const down = guardDown(st, now);
-      st = down.state;
-      if (down.go) send(startTake(st, env));
-      return render();
-    }
-    if (cell.kind === 'undo') st = pressUndo(st, undoNext, env, now);
-    else if (cell.kind === 'destination') st = pressDestination(st, cell);
-    else if (cell.kind === 'source') st = pressSource(st, cell, env, now);
-    else if (cell.kind === 'preset') st = pressPreset(st, cell, env, now);
-    else if (cell.kind === 'clear') st = clear(st);
-    else return;
-    // Instant mode: a Source, Preset or Undo press is the Confirm.
-    if (cell.kind === 'source' || cell.kind === 'preset' || cell.kind === 'undo') {
-      const started = startInstant(st, env);
-      if (started) return void send(started);
-    }
-    render();
-  }
-
-  // A Page change keeps the plan and rebuilds the grid from the new Page's cells.
-  function showNewPage(next) {
-    if (next === st) return;
-    clearTimeout(holdTimer);
-    st = next;
-    notePage();
-    cells = cellsOf(panel, st.page);
-    grid = buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
-    render();
+    body.render();
   }
 
   let keep = null;
@@ -455,8 +309,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
         const renamed = name !== instance;
         instance = name;
         if (ask) showName(name, editable);
-        render();
-        if (renamed) askUndo();
+        body.renamed(renamed);
       },
       (msg) => {
         run.stop();
@@ -465,29 +318,24 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       ask,
     );
   }
-  // A newer saved copy: rebuild the grid and the state from it, and keep the viewed destination. The watcher counts down and waits out staged routes first.
+  // A newer saved copy. The watcher counts down and waits out staged routes first.
   stopWatch = watchPanel({
     ui,
     id,
     panel,
     get: callJSON,
-    state: () => ({ staged: st.staged.length > 0, busy: st.busy }),
+    state: () => body.pending(),
     apply(p) {
-      clearTimeout(holdTimer);
       panel = p;
       tellLock(isPublic(p));
-      // The current Page stays unless the edit disabled or deleted it, then the first enabled Page shows.
-      st = showPage(carryView(stateOf(p), st, everyCell(p)), landingPage(pagesOf(p), st.page));
-      notePage();
-      cells = cellsOf(p, st.page);
-      undoCells = hasUndo(p);
-      askUndo();
       look = applyLook(p);
-      grid = buildGrid(ui.grid, p, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
-      render();
+      body.apply(p);
     },
   });
-  // Results and errors fade on their own clocks (RESULT_MS, ERROR_MS), so the grid is redrawn every second.
-  timers.push(setInterval(poll, POLL_MS), setInterval(render, 1000));
+  // Results and errors fade on their own clocks, so the body is redrawn every second.
+  timers.push(
+    setInterval(poll, POLL_MS),
+    setInterval(() => body.render(), 1000),
+  );
   poll();
 }

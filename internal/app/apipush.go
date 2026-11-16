@@ -113,6 +113,13 @@ func (a *App) apiPanelPush(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	if !ok {
 		return
 	}
+	// ADR 0011: a layout of the other type would replace the target's cells or lists with nothing.
+	for _, t := range targets {
+		if t.Type != src.Type {
+			apiFail(w, http.StatusConflict, "conflict", "panel "+t.ID+" is of the other type, and a Push needs a panel of the same type")
+			return
+		}
+	}
 	why := "Push from " + src.ID + " " + src.Name
 	var done []pushedOne
 	for _, t := range targets {

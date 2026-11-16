@@ -1,0 +1,76 @@
+/* A Grid panel's crosspoint field (gridpanelview.js). Sizes in rem, colours from tokens. The rows are display:
+   contents, so every name and crosspoint is a cell of the one CSS grid and the names can be sticky. */
+.sode-panel__grid.sode-gridpanel {
+  display: block;
+  --sode-xp: 3.5rem;
+  --sode-name-w: 11rem;
+  --sode-name-h: 5rem;
+}
+.sode-gridpanel__frame {
+  max-height: calc(100dvh - 12rem);
+}
+.sode-gridpanel__scroll {
+  overscroll-behavior: contain;
+}
+.sode-gridpanel__field {
+  display: grid;
+  grid-auto-rows: var(--sode-xp);
+  grid-template-columns: var(--sode-name-w) repeat(var(--sode-cols), var(--sode-xp));
+  grid-template-rows: var(--sode-name-h);
+  user-select: none;
+  width: max-content;
+}
+.sode-gridpanel__row {
+  display: contents;
+}
+.sode-gridpanel__corner,
+.sode-gridpanel__src {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.sode-gridpanel__corner {
+  background: var(--pb-surface-base);
+  left: 0;
+  z-index: 3;
+}
+.sode-gridpanel__src,
+.sode-gridpanel__dst {
+  align-items: center;
+  border: var(--pb-border-w) solid var(--pb-surface-base);
+  color: var(--pb-text-strong);
+  display: flex;
+  font-size: var(--pb-text-sm);
+  justify-content: center;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: var(--pb-space-1);
+  text-align: center;
+}
+.sode-gridpanel__dst {
+  justify-content: flex-start;
+  left: 0;
+  position: sticky;
+  text-align: start;
+  z-index: 1;
+}
+.sode-gridpanel__xp {
+  background: var(--pb-surface-sunken);
+  border: var(--pb-border-w) solid var(--pb-surface-base);
+  cursor: pointer;
+  display: grid;
+  padding: 0;
+  place-items: center;
+}
+.sode-gridpanel__xp:hover {
+  background: var(--pb-surface-hover);
+}
+.sode-gridpanel__pie {
+  clip-path: circle(50%);
+  height: 70%;
+  width: 70%;
+}
+/* A staged crosspoint: a ring that pulses on the panel clock (panels.css --pulse). */
+.sode-gridpanel__xp[data-s="staged"] {
+  box-shadow: inset 0 0 0 0.25rem color-mix(in oklab, var(--pb-text-strong) calc(40% + var(--pulse) * 60%), transparent);
+}
