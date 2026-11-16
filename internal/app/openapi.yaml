@@ -36,6 +36,10 @@ info:
     so a forgotten page that still sends one does not make its address wait. CORS is off: Sode sends no
     cross-origin headers.
 
+    Conditional reads. `GET /names`, `/tally`, `/protected` and `/panels/{id}` send an `ETag`, a hash of
+    the body that caller gets. Send it back as `If-None-Match` and an unchanged answer is 304 with no
+    body. A change of the caller's Rights or of a Default artwork changes the body, so it changes the tag.
+
     Writes. A take request is its own Confirm: nothing asks a person, so guard the button on
     your side. The request is synchronous. It returns when the router has answered or timed out
     every route. After the take ran, the answer is always 200, with a result per route and the
@@ -104,9 +108,13 @@ paths:
       tags: [reads]
       summary: Source and destination names
       description: Scope `names`.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Names as the router last reported them
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
@@ -122,6 +130,7 @@ paths:
                 sources: [{ n: 0, name: CAM 1 }, { n: 1, name: CAM 2 }]
                 destinations: [{ n: 0, name: MON A }]
                 namesAt: "2026-11-08T09:30:00Z"
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -132,9 +141,13 @@ paths:
       tags: [reads]
       summary: What each destination is routed from, per level
       description: Scope `tally`.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Levels and routes
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
@@ -159,6 +172,7 @@ paths:
                 levelNumbering: "1"
                 defaultLevels: "1-17"
                 routes: [{ dst: 0, level: 1, src: 3 }]
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -169,9 +183,13 @@ paths:
       tags: [reads]
       summary: Protected destinations
       description: Scope `protected`. A take to one is refused before anything is sent.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Protected destination and level pairs
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
@@ -179,6 +197,7 @@ paths:
                 required: [protected]
                 properties:
                   protected: { type: array, items: { $ref: "#/components/schemas/ProtectedRow" } }
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -970,12 +989,16 @@ paths:
         `/panels/{id}/setup`, `/panels/{id}/public` and `/panels/{id}/instances/keyless`. Every
         other route accepts only the id. A panel the caller is not allowed to use is 404
         `not_found`, as if it did not exist. An unknown short name answers the same way.
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: The panel
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Panel" }
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/Error" }
@@ -2081,6 +2104,12 @@ components:
       scheme: bearer
       description: An API key, shown one time when it is made.
   parameters:
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: { type: string }
+      description: An `ETag` from an earlier read of this path. An unchanged answer is 304 with no body.
     Before:
       name: before
       in: query
@@ -2103,7 +2132,15 @@ components:
       required: false
       schema: { type: string, minLength: 1, maxLength: 128 }
       description: A repeat with the same key and request returns the first answer, see Idempotency above
+  headers:
+    ETag:
+      schema: { type: string }
+      description: A hash of the body. Send it back as `If-None-Match`.
   responses:
+    NotModified:
+      description: The body has not changed since the `ETag` the request sent. No body.
+      headers:
+        ETag: { $ref: "#/components/headers/ETag" }
     TakeResult:
       description: The take ran. Each route has its own result.
       headers:
