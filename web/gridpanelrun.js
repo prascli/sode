@@ -9,6 +9,7 @@ import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel } from './gridpanelview.js';
+import { pinsOf } from './gridpanelwindow.js';
 import { levelTextOf } from './levels.js';
 
 const NOTE_MS = 4000;
@@ -62,13 +63,15 @@ export function gridBody(ctx, first) {
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
 
-  // Nodes are made again only when the shown sources or destinations change.
+  // The view moves its nodes to the new items only when the shown sources or destinations change.
   const rebuild = () => {
     const axes = gridAxes(panel, namesReply);
     const key = JSON.stringify(axes);
     if (key === axesKey) return;
     axesKey = key;
-    g = buildGridPanel(ui.grid, axes, onPress);
+    const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
+    if (g) g.setAxes(all);
+    else g = buildGridPanel(ui.grid, all, onPress);
   };
 
   async function send(routes) {
@@ -151,6 +154,7 @@ export function gridBody(ctx, first) {
     renamed: render,
     stop() {
       document.removeEventListener('keydown', onKey, true);
+      g?.stop();
       if (confirm?.isOpen()) confirm.close();
     },
   };

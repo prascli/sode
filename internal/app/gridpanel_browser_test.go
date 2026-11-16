@@ -67,7 +67,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Studio grid'`)
-	b.waitFor("crosspoints for every router source and destination", gridXp(199, 119)+` !== null && document.querySelectorAll('.sode-gridpanel__src').length === 200`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	b.waitFor("a field for every router source and destination", `(() => {
+		const f = document.querySelector('.sode-gridpanel__field');
+		return f?.style.getPropertyValue('--sode-cols') === '200' && f.style.getPropertyValue('--sode-rows') === '120';
+	})()`)
 	b.waitFor("names are the current Router names", `document.querySelector('.sode-gridpanel__dst[data-dst="2"]').textContent === 'DSM1' && document.querySelector('.sode-gridpanel__src[data-src="10"]').textContent === '`+simSrcName+`'`)
 	b.waitFor("the pie shows what the router has", gridXp(2, 2)+`.dataset.on?.startsWith('1,2')`)
 	b.shot("grid")
