@@ -7,14 +7,20 @@ import { pieFill } from './gridpanellevels.js';
 const setText = (n, t) => {
   if (n.textContent !== t) n.textContent = t;
 };
+const pick = (n, on) => {
+  setData(n, 'picked', on ? '' : undefined);
+  const a = on ? 'true' : 'false';
+  if (n.getAttribute('aria-selected') !== a) n.setAttribute('aria-selected', a);
+};
 const setData = (n, k, v) => {
   if (v === undefined) {
     if (k in n.dataset) delete n.dataset[k];
   } else if (n.dataset[k] !== v) n.dataset[k] = v;
 };
 
-// host is the run's grid element; onPress({ src, dst }) is a crosspoint press.
-export function buildGridPanel(host, { srcs, dsts }, onPress) {
+// host is the run's grid element. onPress({ src, dst }) is a crosspoint press. onName(kind, n, e) is a click on a
+// name, kind 'srcs' or 'dsts'. onAt({ src, dst } or null) gives the crosspoint under the pointer.
+export function buildGridPanel(host, { srcs, dsts }, { onPress, onName, onAt }) {
   host.replaceChildren();
   host.removeAttribute('style');
   host.classList.add('sode-gridpanel');
@@ -26,6 +32,7 @@ export function buildGridPanel(host, { srcs, dsts }, onPress) {
   const srcNodes = new Map();
   const dstNodes = new Map();
   const xps = [];
+  const xpAt = new Map();
   const head = el('div', 'sode-gridpanel__row');
   head.setAttribute('role', 'row');
   head.append(corner);
@@ -52,24 +59,66 @@ export function buildGridPanel(host, { srcs, dsts }, onPress) {
       xp.dataset.src = s;
       xp.dataset.dst = d;
       xps.push(xp);
+      xpAt.set(`${s}:${d}`, xp);
       row.append(xp);
     }
     field.append(row);
   }
+  const at = (xp) => ({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
   field.addEventListener('click', (e) => {
     const xp = e.target.closest('.sode-gridpanel__xp');
-    if (xp) onPress({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
+    if (xp) return onPress(at(xp));
+    const name = e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
+    if (name) onName(name.dataset.src ? 'srcs' : 'dsts', Number(name.dataset.src ?? name.dataset.dst), e);
   });
+  // A Shift-click would otherwise extend a text selection on the page.
+  field.addEventListener('mousedown', (e) => {
+    if (e.shiftKey) e.preventDefault();
+  });
+  field.addEventListener('pointerover', (e) => {
+    const xp = e.target.closest('.sode-gridpanel__xp');
+    onAt(xp ? at(xp) : null);
+  });
+  field.addEventListener('pointerleave', () => onAt(null));
   const scroll = el('div', 'pb-grid-body sode-gridpanel__scroll', field);
   host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
-  return { srcNodes, dstNodes, xps };
+  return { field, srcNodes, dstNodes, xps, xpAt, marked: [] };
+}
+
+// The routes a press would stage: each target crosspoint numbered in order and its names outlined. pairs is
+// [{ src, dst }] or empty; over marks a press the 128 cap would refuse. Only the nodes marked last time are touched.
+export function previewGridPanel(g, pairs, over) {
+  for (const n of g.marked) {
+    delete n.dataset.n;
+    delete n.dataset.target;
+  }
+  g.marked = [];
+  pairs.forEach(({ src, dst }, i) => {
+    const xp = g.xpAt.get(`${src}:${dst}`);
+    if (xp) {
+      xp.dataset.n = i + 1;
+      g.marked.push(xp);
+    }
+    for (const name of [g.srcNodes.get(src), g.dstNodes.get(dst)]) {
+      if (!name) continue;
+      name.dataset.target = '';
+      g.marked.push(name);
+    }
+  });
+  setData(g.field, 'over', over && pairs.length ? '' : undefined);
 }
 
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged }.
+// staged(src, dst) -> levels staged, picked(kind, n) }.
 export function paintGridPanel(g, view) {
-  for (const [s, n] of g.srcNodes) setText(n, view.names.source(s));
-  for (const [d, n] of g.dstNodes) setText(n, view.names.destination(d));
+  for (const [s, n] of g.srcNodes) {
+    setText(n, view.names.source(s));
+    pick(n, view.picked('srcs', s));
+  }
+  for (const [d, n] of g.dstNodes) {
+    setText(n, view.names.destination(d));
+    pick(n, view.picked('dsts', d));
+  }
   for (const xp of g.xps) {
     const s = Number(xp.dataset.src);
     const d = Number(xp.dataset.dst);

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { gridKeyAction } from '../gridpanelkeys.js';
 
 const key = (k, over = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...over });
-const ctx = (over = {}) => ({ staged: 1, inControl: false, ...over });
+const ctx = (over = {}) => ({ staged: 1, picks: 0, inControl: false, ...over });
 
 test('Enter with routes staged opens the confirm', () => {
   assert.equal(gridKeyAction(key('Enter'), ctx()), 'confirm');
@@ -18,7 +18,9 @@ test('Enter on a focused control is that control’s', () => {
   assert.equal(gridKeyAction(key('Enter'), ctx({ inControl: true })), null);
 });
 
-test('Esc drops staged routes, and only while some are staged, so Kiosk mode gets Esc otherwise', () => {
+test('Esc drops picks first, then staged routes, and only while either exists, so Kiosk mode gets Esc otherwise', () => {
+  assert.equal(gridKeyAction(key('Escape'), ctx({ picks: 2 })), 'unpick');
+  assert.equal(gridKeyAction(key('Escape'), ctx({ picks: 2, staged: 0 })), 'unpick');
   assert.equal(gridKeyAction(key('Escape'), ctx()), 'drop');
   assert.equal(gridKeyAction(key('Escape'), ctx({ staged: 0 })), null);
 });

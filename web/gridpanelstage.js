@@ -24,28 +24,42 @@ export const stagedCount = (st) => routesOf(st).length;
 const fail = (st, code, message = '') => ({ ...st, error: { code, message } });
 
 // A press on a crosspoint with the levels to stage. send is the routes to send at once (Instant mode), else null.
-export function pressCrosspoint(st, { src, dst }, levels) {
+export const pressCrosspoint = (st, xp, levels) => stageRoutes(st, [xp], levels);
+
+// One press: pairs is [{ src, dst }], a single crosspoint or a Diagonal (gridpanelpick.js), no destination twice.
+// Returns { st, send, confirm }. confirm asks for the take confirm at once: a press of more than one route confirms
+// even in Instant mode. Only a one-route press on a staged crosspoint unstages it.
+export function stageRoutes(st, pairs, levels) {
   const base = st.mode === 'instant' ? [] : st.staged;
-  const isStaged = base.some((x) => x.dst === dst && x.src === src);
-  if (isStaged) return { st: { ...st, staged: base.filter((x) => !(x.dst === dst && x.src === src)), error: null }, send: null };
-  if (!levels.length) return { st: fail(st, 'no-levels'), send: null };
-  const kept = base.filter((x) => !(x.dst === dst && levels.includes(x.level)));
-  const staged = [...kept, ...levels.map((level) => ({ dst, level, src }))];
+  const none = { send: null, confirm: false };
+  if (pairs.length === 1) {
+    const { src, dst } = pairs[0];
+    if (base.some((x) => x.dst === dst && x.src === src))
+      return { st: { ...st, staged: base.filter((x) => !(x.dst === dst && x.src === src)), error: null }, ...none };
+  }
+  if (!levels.length) return { st: fail(st, 'no-levels'), ...none };
+  const dsts = new Set(pairs.map((x) => x.dst));
+  const kept = base.filter((x) => !(dsts.has(x.dst) && levels.includes(x.level)));
+  const staged = [...kept, ...pairs.flatMap(({ src, dst }) => levels.map((level) => ({ dst, level, src })))];
   const next = { ...st, staged, error: null };
-  if (stagedCount(next) > STAGE_MAX) return { st: fail(st, 'cap'), send: null };
-  if (st.mode === 'instant') return { st: { ...st, staged: [], error: null }, send: routesOf(next) };
-  return { st: next, send: null };
+  if (stagedCount(next) > STAGE_MAX) return { st: { ...st, error: { code: 'cap', add: pairs.length, have: stagedCount({ staged: base }) } }, ...none };
+  if (st.mode === 'take') return { st: next, ...none };
+  if (pairs.length > 1) return { st: next, send: null, confirm: true };
+  return { st: { ...st, staged: [], error: null }, send: routesOf(next), confirm: false };
 }
 
-// What Enter confirms in Take mode, or null when nothing is staged.
-export const confirmRoutes = (st) => (st.mode === 'take' && st.staged.length ? routesOf(st) : null);
+// What the take confirm sends, or null when nothing is staged. In Instant mode only a press waiting on its confirm is.
+export const confirmRoutes = (st) => (st.staged.length ? routesOf(st) : null);
+
+// The confirm closed without a take. Instant mode holds nothing staged.
+export const cancelConfirm = (st) => (st.mode === 'instant' ? dropStaged(st) : st);
 
 export const dropStaged = (st) => ({ ...st, staged: [], error: null });
 
 export function stageText(err) {
   switch (err?.code) {
     case 'cap':
-      return `At most ${STAGE_MAX} routes can be staged`;
+      return `At most ${STAGE_MAX} routes can be staged${err.add > 1 ? `. This press adds ${err.add} routes to ${err.have}.` : ''}`;
     case 'no-levels':
       return "No levels to stage: this panel's levels are not on the router or outside its Rights";
     case 'take':
@@ -57,5 +71,9 @@ export function stageText(err) {
 
 export const startSend = (st) => ({ ...st, busy: true, error: null });
 
-// failed is null for a take Sode answered, else the reason. A failed take keeps the stage so it can be sent again.
-export const afterTake = (st, failed) => (failed ? { ...fail(st, 'take', failed), busy: false } : { ...st, staged: [], busy: false, error: null });
+// failed is null for a take Sode answered, else the reason. A failed take keeps the stage so it can be sent again,
+// except in Instant mode, which holds nothing staged.
+export function afterTake(st, failed) {
+  if (!failed) return { ...st, staged: [], busy: false, error: null };
+  return { ...fail(st, 'take', failed), staged: st.mode === 'instant' ? [] : st.staged, busy: false };
+}
