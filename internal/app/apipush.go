@@ -82,6 +82,10 @@ func (a *App) pushFail(w http.ResponseWriter, err error) {
 		apiFail(w, http.StatusNotFound, "not_found", err.Error())
 		return
 	}
+	if errors.Is(err, errLayoutType) {
+		apiFail(w, http.StatusConflict, "conflict", err.Error())
+		return
+	}
 	if errors.Is(err, errBadLayout) {
 		apiFail(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
@@ -415,6 +419,13 @@ func (a *App) apiSetPush(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	}
 	if _, ok := a.editable(w, cl, ids); !ok {
 		return
+	}
+	// Check every entry first, so a refused one leaves all panels as they were.
+	for _, e := range live {
+		if cur, _ := a.panels.get(e.Panel); layoutType(e.Type) != layoutType(cur.Type) {
+			a.pushFail(w, errLayoutType)
+			return
+		}
 	}
 	why := "Checkpoint set " + set.ID + " " + set.Name
 	done := []pushedOne{}

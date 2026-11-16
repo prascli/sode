@@ -1,7 +1,7 @@
 // Rights, protection and other sources on a Grid panel (gridpanelrights.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { otherSources, otherText, pressRefusal, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from '../gridpanelrights.js';
+import { otherSources, otherText, pressRefusal, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from '../gridpanelrights.js';
 import { createStage, pressCrosspoint, routesOf } from '../gridpanelstage.js';
 import { envFrom, namesFrom } from '../panelrules.js';
 import { namesReply, tallyReply } from './gridpanelfixture.mjs';
@@ -50,6 +50,24 @@ test('any protected level makes the whole destination protected, and a press on 
   assert.equal(refusalText(err, names), 'MON B is protected');
   assert.equal(pressRefusal({ src: 0, dst: 0 }, env), null);
   assert.equal(refusalText(null, names), '');
+});
+
+test('a Diagonal skips protected destinations and stages the rest; all protected stages nothing and says why', () => {
+  const env = envOf([], [[1, 1]]);
+  const pairs = [
+    { src: 0, dst: 0 },
+    { src: 1, dst: 1 },
+    { src: 2, dst: 2 },
+  ];
+  assert.deepEqual(stageable(pairs, env), {
+    pairs: [
+      { src: 0, dst: 0 },
+      { src: 2, dst: 2 },
+    ],
+    err: null,
+  });
+  assert.deepEqual(stageable([{ src: 0, dst: 1 }], env), { pairs: [], err: { code: 'protected', dst: 1 } });
+  assert.deepEqual(stageable([], env), { pairs: [], err: null });
 });
 
 // Staged routes against polled state. A world is what the last polls said: env, the viewer's Rights, GET /names.

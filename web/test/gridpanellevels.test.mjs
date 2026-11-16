@@ -1,25 +1,41 @@
 // Levels on a Grid panel (gridpanellevels.js): what a press stages and what a crosspoint's pie shows.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stageLevels, pieOn, pieFill } from '../gridpanellevels.js';
+import { stageLevels, offeredLevels, boxFill, pieOn, pieFill } from '../gridpanellevels.js';
 import { tallyReply } from './gridpanelfixture.mjs';
 import { envFrom } from '../panelrules.js';
 
-test("the panel's levels setting is what a press stages", () => {
-  assert.deepEqual(stageLevels({ levels: [2] }, tallyReply(), null), [2]);
+test('a press stages the levels in the Levels box', () => {
+  assert.deepEqual(stageLevels([2, 3], tallyReply(), null), [2, 3]);
 });
 
-test('with no levels setting a press stages the default levels', () => {
-  assert.deepEqual(stageLevels({}, tallyReply({ levels: [1, 2, 3, 4], defaultLevels: '1-2' }), null), [1, 2]);
-  assert.deepEqual(stageLevels({ levels: [] }, tallyReply({ levels: [1, 2, 3, 4], defaultLevels: '1-2' }), null), [1, 2]);
+test('an invalid or missing box stages nothing', () => {
+  assert.deepEqual(stageLevels(null, tallyReply(), null), []);
+  assert.deepEqual(stageLevels([], tallyReply(), null), []);
 });
 
 test('levels the router does not have or the Rights leave out are not staged', () => {
-  assert.deepEqual(stageLevels({ levels: [1, 3, 9] }, tallyReply(), { levels: [1, 2] }), [1]);
+  assert.deepEqual(stageLevels([1, 3, 9], tallyReply(), { levels: [1, 2] }), [1]);
 });
 
 test('no tally yet stages nothing', () => {
-  assert.deepEqual(stageLevels({ levels: [1] }, null, null), []);
+  assert.deepEqual(stageLevels([1], null, null), []);
+});
+
+test('the box offers only the levels the Rights allow', () => {
+  assert.deepEqual(
+    offeredLevels(tallyReply(), { levels: [2, 3] }).map((l) => l.level),
+    [2, 3],
+  );
+  assert.deepEqual(offeredLevels(tallyReply(), null).length, 3);
+  assert.deepEqual(offeredLevels(tallyReply(), { levels: [] }), []);
+  assert.deepEqual(offeredLevels(null, null), []);
+});
+
+test("the panel's levels setting fills the box, kept to what is offered", () => {
+  assert.deepEqual(boxFill({ levels: [1, 3, 9] }, tallyReply(), { levels: [3, 9] }), [3]);
+  assert.equal(boxFill({}, tallyReply(), null), null);
+  assert.equal(boxFill({ levels: [] }, tallyReply(), null), null);
 });
 
 test("a crosspoint's pie is the levels on which that destination has that source", () => {

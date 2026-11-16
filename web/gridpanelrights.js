@@ -16,6 +16,12 @@ export function otherSources(env, dst, shown) {
 // Any protected level protects the whole destination, as on a Buttons panel. null when the press can stage.
 export const pressRefusal = ({ dst }, env) => (env.protectedDsts.has(dst) ? { code: 'protected', dst } : null);
 
+// The pairs a press can stage: a Diagonal skips protected rows. err only when every target is protected.
+export function stageable(pairs, env) {
+  const kept = pairs.filter((p) => !pressRefusal(p, env));
+  return { pairs: kept, err: pairs.length && !kept.length ? pressRefusal(pairs[0], env) : null };
+}
+
 export const refusalText = (err, names) => (err?.code === 'protected' ? `${names.destination(err.dst)} is protected` : '');
 
 // Why a staged entry { dst, level, src } no longer applies, or ''. world is { env, rights, names (GET /names) }.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
@@ -92,6 +93,14 @@ func (m *GridMembers) UnmarshalYAML(n *yaml.Node) error {
 		return n.Decode(&m.List)
 	}
 	return errGridMembers
+}
+
+// shows is whether router number n is a member that is not hidden.
+func (e *GridEdge) shows(n int) bool {
+	if e.Members.All {
+		return !slices.Contains(e.Hide, n)
+	}
+	return slices.Contains(e.Members.List, n)
 }
 
 func allEdge() *GridEdge { return &GridEdge{Members: GridMembers{All: true}} }

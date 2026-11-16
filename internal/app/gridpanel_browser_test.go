@@ -128,6 +128,78 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.check()
 }
 
+// Picks on the Source bar make a press stage a Diagonal. The targets show numbered before the press. The header
+// counts the staged routes, and one confirm takes them all. In Kiosk mode Esc drops the picks, then the staged
+// routes, and only then leaves Kiosk mode.
+func TestChromeGridPanelDiagonal(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Block grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the grid", gridXp(13, 6)+` !== null && document.querySelector('.sode-gridpanel__src[data-src="13"]').textContent !== ''`)
+
+	src := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__src[data-src="%d"]')`, n)
+	}
+	dst := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]')`, n)
+	}
+	clickName := func(name, mods string) {
+		b.eval(name + `.dispatchEvent(new MouseEvent('click', { bubbles: true, ` + mods + ` })); true`)
+	}
+	clickName(src(11), "")
+	clickName(src(13), "shiftKey: true")
+	b.waitFor("Shift-click picks the range", src(11)+`.dataset.picked === '' && `+src(12)+`.dataset.picked === '' && `+src(13)+`.dataset.picked === '' && !('picked' in `+src(14)+`.dataset)`)
+	if got := b.eval(`getSelection().toString()`); got != "" {
+		t.Errorf("a Shift-click selected text %q", got)
+	}
+
+	b.eval(gridXp(11, 4) + `.dispatchEvent(new PointerEvent('pointerover', { bubbles: true })); true`)
+	b.waitFor("the targets show numbered and their names outlined",
+		gridXp(11, 4)+`.dataset.n === '1' && `+gridXp(12, 5)+`.dataset.n === '2' && `+gridXp(13, 6)+`.dataset.n === '3' && !(`+gridXp(11, 5)+`.dataset.n) && `+
+			dst(5)+`.dataset.target === '' && `+src(13)+`.dataset.target === '' && !('target' in `+dst(7)+`.dataset)`)
+	b.shot("diagonal-preview")
+
+	b.eval(gridXp(11, 4) + `.click()`)
+	staged := func(s, d int) string { return gridXp(s, d) + `.dataset.s === 'staged'` }
+	b.waitFor("the press stages the Diagonal", staged(11, 4)+` && `+staged(12, 5)+` && `+staged(13, 6))
+	b.waitFor("the header counts the staged routes", `document.getElementById('panel-staged')?.textContent === '3 staged' && !document.getElementById('panel-staged').hidden`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm lists all three", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
+	gridConfirm(b)
+	tallyHas(t, a, ana, 4, 11)
+	tallyHas(t, a, ana, 5, 12)
+	tallyHas(t, a, ana, 6, 13)
+	b.waitFor("nothing staged after the take", `document.getElementById('panel-staged').hidden`)
+
+	// Esc steps in Kiosk mode.
+	const kiosk = `document.documentElement.hasAttribute('data-sode-kiosk')`
+	pressEsc := func() {
+		for _, typ := range []string{"keyDown", "keyUp"} {
+			b.call("Input.dispatchKeyEvent", map[string]any{"type": typ, "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+		}
+	}
+	b.eval(`document.getElementById('panel-kiosk').click(); true`)
+	b.waitFor("Kiosk mode", kiosk)
+	b.eval(gridXp(11, 20) + `.click()`)
+	b.waitFor("staged again", staged(13, 22))
+	pressEsc()
+	b.waitFor("the first Esc drops the picks", `!document.querySelector('.sode-gridpanel__src[data-picked]')`)
+	b.waitFor("and keeps the staged routes and Kiosk mode", staged(13, 22)+` && `+kiosk)
+	pressEsc()
+	b.waitFor("the second Esc drops the staged routes", `!document.querySelector('.sode-gridpanel__xp[data-s="staged"]')`)
+	b.waitFor("and keeps Kiosk mode", kiosk)
+	pressEsc()
+	b.waitFor("a third Esc leaves Kiosk mode", `!(`+kiosk+`)`)
+	b.check()
+}
+
 // One Grid panel in Instant mode. It opens as a keyless page that an Assign gives a key, then as Both behind a
 // sign-in, then as Public. Each press sends its one route at once.
 func TestChromeGridPanelSharingModes(t *testing.T) {
@@ -282,5 +354,45 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.waitFor("the confirm leaves it out", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes("outside this panel's Rights")`)
 	gridConfirm(b)
 	tallyHas(t, a, ana, 7, 7)
+	b.check()
+}
+
+// The Levels box on a Grid panel: the panel's levels setting fills it, typing changes what a press stages, and the
+// confirm shows those levels. Rights leave out the levels the box does not offer.
+func TestChromeGridPanelLevels(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Level grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Level grid'`)
+	b.waitFor("crosspoints", gridXp(12, 4)+` !== null`)
+	b.waitFor("the setting fills the box", `document.getElementById('panel-lvl').value === '1-2'`)
+	b.waitFor("a chip for every router level", `document.querySelectorAll('#panel-lvl-pick .sode__pick').length === 17`)
+	b.waitFor("the chips for the setting are on", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2`)
+
+	// f focuses the box, as on the main page, and typing changes the chips.
+	b.waitFor("the lock screen is off", `!document.querySelector('.sode-lock.is-on')`)
+	gridKey(b, "f")
+	b.waitFor("f focuses the box", `document.activeElement.id === 'panel-lvl'`)
+	b.eval(`(() => {
+		const i = document.getElementById('panel-lvl');
+		i.value = '3,5';
+		i.dispatchEvent(new Event('input', { bubbles: true }));
+		i.blur();
+	})()`)
+	b.waitFor("the chips follow the typed text", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2 && document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]').getAttribute('aria-pressed') === 'true'`)
+
+	b.eval(gridXp(12, 4) + `.click()`)
+	b.waitFor("a press stages", gridXp(12, 4)+`.dataset.s === 'staged'`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm shows the typed levels", `!document.getElementById('confirm').hidden && [...document.querySelectorAll('#confirm-body .sode__slot--on')].map((n) => n.textContent).join() === '3,5'`)
+	b.shot("levels-confirm")
+	gridConfirm(b)
 	b.check()
 }

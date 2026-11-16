@@ -5,6 +5,9 @@
   --sode-xp: 3.5rem;
   --sode-name-w: 11rem;
   --sode-name-h: 5rem;
+  /* A drag across names or crosspoints never selects text; Safari still needs the prefix. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .sode-gridpanel__frame {
   max-height: calc(100dvh - 12rem);
@@ -64,8 +67,8 @@
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-1);
 }
-.sode-gridpanel__prot:empty,
-.sode-gridpanel__other:empty {
+.sode-gridpanel__prot[hidden],
+.sode-gridpanel__other[hidden] {
   display: none;
 }
 .sode-gridpanel__xp {
@@ -97,4 +100,69 @@
 .sode-gridpanel__xp[data-s="left-out"] {
   outline: var(--pb-border-w) dashed var(--pb-text-strong);
   outline-offset: -0.25rem;
+}
+/* Picked names (gridpanelpick.js): a wash and a bar, so a pick reads apart from a target outline. */
+.sode-gridpanel__src,
+.sode-gridpanel__dst {
+  cursor: pointer;
+}
+.sode-gridpanel__src[data-picked],
+.sode-gridpanel__dst[data-picked] {
+  background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
+  box-shadow: inset 0 calc(var(--pb-border-w) * -4) 0 var(--pb-accent);
+}
+.sode-gridpanel__dst[data-picked] {
+  box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-accent);
+}
+/* The names and numbered crosspoints that the press under the pointer stages. */
+.sode-gridpanel__src[data-target],
+.sode-gridpanel__dst[data-target] {
+  outline: calc(var(--pb-border-w) * 2) solid var(--pb-text-strong);
+  outline-offset: calc(var(--pb-border-w) * -3);
+}
+.sode-gridpanel__xp[data-n] {
+  outline: calc(var(--pb-border-w) * 2) solid var(--pb-text-strong);
+  outline-offset: calc(var(--pb-border-w) * -3);
+  position: relative;
+}
+.sode-gridpanel__xp[data-n]::after {
+  color: var(--pb-text-strong);
+  content: attr(data-n);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-xs);
+  inset: var(--pb-space-1) auto auto var(--pb-space-1);
+  line-height: 1;
+  position: absolute;
+}
+/* Past the 128 cap the press stages nothing, so its targets show in the error colour. */
+.sode-gridpanel__field[data-over] .sode-gridpanel__xp[data-n],
+.sode-gridpanel__field[data-over] [data-target] {
+  outline-color: var(--pb-status-error);
+}
+.sode-gridpanel__field[data-over] .sode-gridpanel__xp[data-n]::after {
+  color: var(--pb-status-error);
+}
+
+/* The Levels box (levelbox.js): input above, chips in two rows with V double size (base.css), All beside them. */
+.sode-gridpanel__levels {
+  align-items: start;
+  column-gap: var(--pb-space-2);
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  margin-bottom: var(--pb-space-3);
+  row-gap: var(--pb-space-1);
+}
+.sode-gridpanel__levels[hidden] {
+  display: none;
+}
+.sode-gridpanel__levels > .sode__box-head,
+.sode-gridpanel__levels > .sode__input {
+  grid-column: 1 / -1;
+}
+.sode-gridpanel__levels > .sode__input {
+  max-width: 20rem;
+}
+.sode-gridpanel__levels > .sode__picker {
+  display: contents;
 }
