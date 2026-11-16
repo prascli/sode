@@ -208,7 +208,7 @@ Crosspoints use extended commands: 0x82 connect, 0x84 connected and 0x95/0x97 ta
 
 ## Simulator
 
-The simulator (`go run ./cmd/swp08sim`, on :8910) reads `SIM_*` variables to fake misbehaving routers: `SIM_IGNORE_DSTS`, `SIM_SILENT_DSTS`, `SIM_SLOW_DSTS`, `SIM_FOLLOWS`, `SIM_PANEL_SECONDS` and `SIM_PANEL_SILENT`. `SIM_NO_SALVO=1` fakes a router that lacks the group send commands. `SIM_SALVO_ANNOUNCE=1` announces a group Go's routes with Connected, as the Ultrix sometimes does. See `cmd/swp08sim`.
+The simulator (`go run ./cmd/swp08sim`, on :8910) has 200 sources, 120 destinations and 17 levels. `SIM_SOURCES`, `SIM_DESTS` and `SIM_LEVELS` change these sizes, for example `SIM_SOURCES=2500 SIM_DESTS=750` for a large router. It also reads `SIM_*` variables to fake misbehaving routers: `SIM_IGNORE_DSTS`, `SIM_SILENT_DSTS`, `SIM_SLOW_DSTS`, `SIM_FOLLOWS`, `SIM_PANEL_SECONDS` and `SIM_PANEL_SILENT`. `SIM_NO_SALVO=1` fakes a router that lacks the group send commands. `SIM_SALVO_ANNOUNCE=1` announces a group Go's routes with Connected, as the Ultrix sometimes does. See `cmd/swp08sim`.
 
 ## Releases and image tags
 

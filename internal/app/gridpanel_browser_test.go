@@ -26,6 +26,19 @@ func gridConfirm(b *tab) {
 	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 }
 
+// gridShow scrolls crosspoint (src, dst) near the top left and waits for its node. Only crosspoints near the view
+// have nodes. It needs "all" edges and no pins.
+func gridShow(b *tab, src, dst int) {
+	b.eval(fmt.Sprintf(`(() => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		sc.scrollLeft = Math.max(0, %d - 1) * xp;
+		sc.scrollTop = Math.max(0, %d - 1) * xp;
+		return true;
+	})()`, src, dst))
+	b.waitFor(fmt.Sprintf("crosspoint %d, %d drawn", src, dst), gridXp(src, dst)+` !== null && !`+gridXp(src, dst)+`.hidden`)
+}
+
 func gridKey(b *tab, key string) {
 	b.eval(fmt.Sprintf(`document.dispatchEvent(new KeyboardEvent('keydown', { key: %q, bubbles: true, cancelable: true }))`, key))
 }
@@ -67,7 +80,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Studio grid'`)
-	b.waitFor("crosspoints for every router source and destination", gridXp(199, 119)+` !== null && document.querySelectorAll('.sode-gridpanel__src').length === 200`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	b.waitFor("a field for every router source and destination", `(() => {
+		const f = document.querySelector('.sode-gridpanel__field');
+		return f?.style.getPropertyValue('--sode-cols') === '200' && f.style.getPropertyValue('--sode-rows') === '120';
+	})()`)
 	b.waitFor("names are the current Router names", `document.querySelector('.sode-gridpanel__dst[data-dst="2"]').textContent === 'DSM1' && document.querySelector('.sode-gridpanel__src[data-src="10"]').textContent === '`+simSrcName+`'`)
 	b.waitFor("the pie shows what the router has", gridXp(2, 2)+`.dataset.on?.startsWith('1,2')`)
 	b.shot("grid")
@@ -143,6 +160,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(13, 6)+` !== null && document.querySelector('.sode-gridpanel__src[data-src="13"]').textContent !== ''`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
 
 	src := func(n int) string {
 		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__src[data-src="%d"]')`, n)
@@ -187,6 +205,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	}
 	b.eval(`document.getElementById('panel-kiosk').click(); true`)
 	b.waitFor("Kiosk mode", kiosk)
+	gridShow(b, 11, 20)
 	b.eval(gridXp(11, 20) + `.click()`)
 	b.waitFor("staged again", staged(13, 22))
 	pressEsc()
@@ -306,28 +325,41 @@ func TestChromeGridPanelProtected(t *testing.T) {
 
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
-	b.waitFor("only items inside the Rights", `document.querySelectorAll('.sode-gridpanel__src').length === 20 && document.querySelectorAll('.sode-gridpanel__dst').length === 30`)
-	dst := func(n int) string {
-		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]')`, n)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	axes := func(cols, rows int) string {
+		return fmt.Sprintf(`(() => {
+			const f = document.querySelector('.sode-gridpanel__field');
+			return f?.style.getPropertyValue('--sode-cols') === '%d' && f.style.getPropertyValue('--sode-rows') === '%d';
+		})()`, cols, rows)
 	}
-	b.waitFor("Rec B shows the lock and Protected", dst(12)+`.classList.contains('pb-xpt--protected') && `+dst(12)+`.textContent.includes('Protected') && !!`+dst(12)+`.querySelector('use[href$="lock"]')`)
+	b.waitFor("only items inside the Rights", axes(20, 30))
+	dst := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]:not([hidden])')`, n)
+	}
+	protShown := func(n int) string {
+		return dst(n) + `.classList.contains('pb-xpt--protected') && !` + dst(n) + `.querySelector('.sode-gridpanel__prot').hidden && ` + dst(n) + `.textContent.includes('Protected')`
+	}
+	gridShow(b, 1, 12)
+	b.waitFor("Rec B shows the lock and Protected", protShown(12)+` && !!`+dst(12)+`.querySelector('use[href$="lock"]')`)
+	gridShow(b, 1, 25)
 	b.waitFor("another source is named on the Destination bar", dst(25)+`.querySelector('.sode-gridpanel__other')?.textContent === '`+src25+`'`)
 
+	gridShow(b, 1, 12)
 	b.eval(gridXp(1, 12) + `.click()`)
 	b.waitFor("a press on a protected destination says why", `document.getElementById('panel-status').textContent === 'Rec B is protected'`)
-	b.eval(dst(12) + `.scrollIntoView({ block: 'center' }); true`)
 	b.shot("rights")
 	if s := b.eval(gridXp(1, 12) + `.dataset.s || ''`); s != "" {
 		t.Errorf("a protected crosspoint was staged: %v", s)
 	}
 
+	gridShow(b, 1, 1)
 	b.eval(gridXp(3, 5) + `.click()`)
 	b.eval(gridXp(4, 6) + `.click()`)
 	b.waitFor("two routes staged", gridXp(3, 5)+`.dataset.s === 'staged' && `+gridXp(4, 6)+`.dataset.s === 'staged'`)
 	a.mu.Lock()
 	a.router.protect[5] = map[int]int{1: 9}
 	a.mu.Unlock()
-	b.waitFor("the staged route that became protected is marked", gridXp(3, 5)+`.dataset.s === 'left-out' && `+dst(5)+`.textContent.includes('Protected')`)
+	b.waitFor("the staged route that became protected is marked", gridXp(3, 5)+`.dataset.s === 'left-out' && `+protShown(5))
 	gridKey(b, "Enter")
 	b.waitFor("the confirm leaves it out with the reason", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes('is protected')`)
 	b.shot("confirm")
@@ -336,7 +368,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	if strings.Contains(apiDo(a, "GET", "/api/v1/tally", ana, nil).Body.String(), `"dst":5,"level":1,"src":3`) {
 		t.Error("the route left out was sent")
 	}
-	b.waitFor("the left-out route is dropped", `!document.querySelector('.sode-gridpanel__xp[data-s]')`)
+	b.waitFor("the left-out route is dropped", `!document.querySelector('.sode-gridpanel__xp[data-s]:not([hidden])')`)
 
 	// The Rights narrow while routes are staged: the open page reads them with the panel, not only after a reload.
 	b.eval(gridXp(7, 7) + `.click()`)
@@ -348,7 +380,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	b.waitFor("the destination outside the Rights goes", `document.querySelectorAll('.sode-gridpanel__dst').length === 8`)
+	b.waitFor("the destination outside the Rights goes", axes(20, 8))
 	b.waitFor("the status says why the staged route is left out", `document.getElementById('panel-status').textContent.includes("outside this panel's Rights")`)
 	gridKey(b, "Enter")
 	b.waitFor("the confirm leaves it out", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes("outside this panel's Rights")`)
