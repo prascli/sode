@@ -27,6 +27,12 @@ test('a key with Ctrl, Cmd or Alt held is not the grid’s', () => {
   for (const mod of ['ctrlKey', 'metaKey', 'altKey']) assert.equal(gridKeyAction(key('Enter', { [mod]: true }), ctx()), null);
 });
 
+test('f focuses the Levels box, unless a field already has focus', () => {
+  assert.equal(gridKeyAction(key('f'), ctx()), 'levels');
+  assert.equal(gridKeyAction(key('f'), ctx({ inControl: true })), null);
+  assert.equal(gridKeyAction(key('f', { ctrlKey: true }), ctx()), null);
+});
+
 test('other keys do nothing yet', () => {
   assert.equal(gridKeyAction(key('x'), ctx()), null);
 });

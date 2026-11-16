@@ -1,15 +1,24 @@
 // Levels on a Grid panel. Pure; levels and numbering come only from the adapter's GET /tally answer, never from S.
-import { parseLevelsIn, levelStyle } from './levels.js';
+import { levelStyle } from './levels.js';
 
-// What a press stages: the panel's levels setting, else the Default levels, kept to the router's levels and the Rights.
-// The Levels box replaces the setting as the source later; the setting only fills it on load.
-export function stageLevels(settings, tally, rights) {
-  if (!tally?.levels?.length) return [];
-  const have = tally.levels.map((l) => l.level);
-  const set = Array.isArray(settings?.levels) && settings.levels.length ? settings.levels : null;
-  const want = set || parseLevelsIn('', { levels: tally.levels, numbering: tally.levelNumbering, defaultLevels: tally.defaultLevels || '' }) || [];
+// The router's levels the Rights allow; the Levels box offers these only.
+export function offeredLevels(tally, rights) {
   const allowed = Array.isArray(rights?.levels) ? rights.levels : null;
-  return want.filter((l) => have.includes(l) && (!allowed || allowed.includes(l)));
+  return (tally?.levels || []).filter((l) => !allowed || allowed.includes(l.level));
+}
+
+// What a press stages: the list in the Levels box, or null when its text is invalid. Kept to the offered levels.
+// The router's levels and the Rights can change under typed text.
+export function stageLevels(list, tally, rights) {
+  const have = offeredLevels(tally, rights).map((l) => l.level);
+  return (list || []).filter((l) => have.includes(l));
+}
+
+// The panel's levels setting as the box's first content, or null to leave the box empty (the Default levels).
+export function boxFill(settings, tally, rights) {
+  if (!Array.isArray(settings?.levels) || !settings.levels.length) return null;
+  const list = stageLevels(settings.levels, tally, rights);
+  return list.length ? list : null;
 }
 
 // env is envFrom's (panelrules.js). The levels on which dst has src now.

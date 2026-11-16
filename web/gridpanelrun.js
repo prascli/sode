@@ -4,12 +4,13 @@
 import { envFrom, namesFrom } from './panelrules.js';
 import { gridAxes } from './gridpaneledges.js';
 import { createStage, pressCrosspoint, confirmRoutes, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
-import { stageLevels, pieOn } from './gridpanellevels.js';
+import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel } from './gridpanelview.js';
-import { levelTextOf } from './levels.js';
+import { levelTextOf, parseLevelsIn } from './levels.js';
+import { levelBox } from './levelbox.js';
 
 const NOTE_MS = 4000;
 
@@ -89,6 +90,41 @@ export function gridBody(ctx, first) {
     ctx.poll();
   }
 
+  // The Levels box (levelbox.js). An embedded run has none, so the panel's levels setting stands in.
+  const boxNode = document.getElementById('panel-levels');
+  let boxKey = '';
+  let filledKey = null;
+  const boxSource = () =>
+    tally && { levels: tally.levels, offered: offeredLevels(tally, panel.rights), numbering: tally.levelNumbering, defaultLevels: tally.defaultLevels || '' };
+  const lvl = boxNode
+    ? levelBox(document.getElementById('panel-lvl'), document.getElementById('panel-lvl-pick'), document.getElementById('panel-lvl-all'), boxSource, {
+        hold: 'pointerdown',
+      })
+    : null;
+  if (boxNode) boxNode.hidden = false;
+
+  // The picker is made again when the offered levels or the numbering change. The setting fills the box on load,
+  // and again only when a live update changes the setting, so typed text survives other updates.
+  function syncBox() {
+    if (!lvl || !tally) return;
+    const key = JSON.stringify([offeredLevels(tally, panel.rights).map((l) => l.level), tally.levels.length, tally.levelNumbering]);
+    if (key !== boxKey) {
+      boxKey = key;
+      lvl.reset();
+    }
+    const fk = JSON.stringify(panel.settings?.levels ?? null);
+    if (fk === filledKey) return;
+    filledKey = fk;
+    const fill = boxFill(panel.settings, tally, panel.rights);
+    if (fill) lvl.set(fill);
+  }
+
+  const pressLevels = () => {
+    if (lvl) return stageLevels(lvl.levels(), tally, panel.rights);
+    const src = boxSource();
+    return src ? stageLevels(boxFill(panel.settings, tally, panel.rights) || parseLevelsIn('', src) || [], tally, panel.rights) : [];
+  };
+
   const confirm = document.getElementById('confirm')
     ? gridConfirm({
         tally: () => tally,
@@ -106,7 +142,7 @@ export function gridBody(ctx, first) {
   function onPress(xp) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
-    const r = pressCrosspoint(st, xp, stageLevels(panel.settings, tally, panel.rights));
+    const r = pressCrosspoint(st, xp, pressLevels());
     st = r.st;
     if (r.send) send(r.send);
     else render();
@@ -121,7 +157,11 @@ export function gridBody(ctx, first) {
     e.preventDefault();
     e.stopPropagation();
     if (act === 'confirm') openConfirm();
-    else if (act === 'drop') {
+    else if (act === 'levels') {
+      const i = document.getElementById('panel-lvl');
+      i?.focus();
+      i?.select();
+    } else if (act === 'drop') {
       st = dropStaged(st);
       render();
     }
@@ -138,6 +178,7 @@ export function gridBody(ctx, first) {
         namesReply = nm;
         names = namesFrom(nm);
       }
+      syncBox();
       rebuild();
     },
     pending: () => ({ staged: st.staged.length > 0, busy: st.busy }),
@@ -145,12 +186,14 @@ export function gridBody(ctx, first) {
       panel = p;
       st = stateOf(p, st);
       axesKey = '';
+      syncBox();
       rebuild();
       render();
     },
     renamed: render,
     stop() {
       document.removeEventListener('keydown', onKey, true);
+      if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();
     },
   };
