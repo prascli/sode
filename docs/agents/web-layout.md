@@ -9,7 +9,7 @@ main.js wires modules then calls connect(). core.js is state/socket/bus (S, WebS
   - store.js (never-throwing readStr/writeStr/readJSON/writeJSON: use these, no hand-written try/catch)
   - levelview.js, levels.js, routes.js, device.js, filterstore.js, history.js (histRows, quick search, pager, putEntry)
   - plans.js (plans, planBlocked/planSummary, sendTakes, banners)
-  - widgets.js (levelBox, combobox, undo/retry buttons, disclosure, arrivals, feeding, labeled), pin.js
+  - levelbox.js (levelBox, level picker; imports only core.js and levels.js), widgets.js (combobox, undo/retry buttons, disclosure, arrivals, feeding, labeled), pin.js
   - pinprompt.js (askPin/reask: the one prompt for an Advanced Settings PIN needed mid-session, see docs/agents/users-locks.md)
   - banner.js (result banner; plans.js re-exports it)
   - devicesettings.js (Settings' This browser section, my-default buttons, signed-in user block)

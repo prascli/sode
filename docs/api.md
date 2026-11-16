@@ -176,6 +176,8 @@ There are no settings, users, keys or lock endpoints.
 
 ## Errors
 
+`GET /names`, `/tally`, `/protected` and `/panels/{id}` send an `ETag` (a hash of the body that caller gets). Send it as `If-None-Match` and an unchanged answer is 304 with no body.
+
 Every error is `{"error":{"code","message"}}`. A 401 carries `WWW-Authenticate: Bearer`, and a wrong method on a known path is 405 with `Allow`. 429 from the rate limit carries `Retry-After` in seconds. Make no call to Sode before that time has passed.
 
 `key_revoked` and `key_expired` are final. Sode answers them for a key that worked before. A client that gets one must stop sending that key, because a retry cannot help. They do not count toward the ten bad keys per address. As a result, a forgotten tablet or tab that still sends an old key does not make every other page at its address wait. Sode remembers the last 1024 ended keys, in `keys-ended.json` beside the config. It also knows a session key from Sode's own pages by its shape (`sode_ses.` and 43 characters). As a result, those keys read as ended after a restart too. A session key is 256 random bits, so not counting a guess of one weakens nothing. An address that keeps sending ended keys gets 429 `rate_limited` past 120 in a minute.

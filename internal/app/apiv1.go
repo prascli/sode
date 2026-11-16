@@ -1,6 +1,8 @@
 package app
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,6 +91,37 @@ func apiJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	json.NewEncoder(w).Encode(v)
+}
+
+// apiJSONTagged is apiJSON for a read a page repeats. The ETag hashes the body the caller would get, so a Rights or Default artwork
+// change moves it. A match answers 304 with no body.
+func apiJSONTagged(w http.ResponseWriter, r *http.Request, v any) {
+	body, err := json.Marshal(v)
+	if err != nil {
+		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+		return
+	}
+	sum := sha256.Sum256(body)
+	tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+	w.Header().Set("ETag", tag)
+	w.Header().Set("Cache-Control", "no-store")
+	if tagMatches(r.Header.Get("If-None-Match"), tag) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(append(body, '\n'))
+}
+
+// tagMatches: a weak tag compares equal to its strong form, as RFC 9110 says for If-None-Match.
+func tagMatches(header, tag string) bool {
+	for _, t := range strings.Split(header, ",") {
+		t = strings.TrimPrefix(strings.TrimSpace(t), "W/")
+		if t == "*" || t == tag {
+			return true
+		}
+	}
+	return false
 }
 
 // apiCreated is apiJSON with status 201; headers must precede the status line.

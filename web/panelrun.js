@@ -19,6 +19,7 @@ import { lookOf } from './panellook.js';
 import { createArt } from './panelart.js';
 import { createWake, enterFullscreen, featureNotes, wantsFullscreen } from './panelfeel.js';
 import { watchPanel } from './panellive.js';
+import { withEtag } from './etagfetch.js';
 import { instanceFrom } from './panellink.js';
 import { isPublic } from './panelsrules.js';
 import { initChrome } from './panelfull.js';
@@ -118,7 +119,8 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     });
   let keyed = key && keyFetch(key, keyIsPublic);
   const call = given || (key ? (path, init = {}) => keyed(path, init) : (path, init = {}) => sessionFetch(path, tag(init)));
-  const callJSON = jsonCall(call);
+  // Only the reads that carry an ETag are kept and sent with If-None-Match; a 304 gives the same body again.
+  const callJSON = jsonCall(withEtag(call));
 
   if (!key && !embedded) {
     ui.signin.addEventListener('click', signInAgain);
