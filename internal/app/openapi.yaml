@@ -1101,7 +1101,9 @@ paths:
         So a Push cannot make a session panel act as an API client or widen a client. Sode copies
         artwork that the target lacks. It keeps a checkpoint of each target first. The caller must
         be able to change the source and every target (the owner, or a Trusted user for anybody's).
-        If Sode refuses any target, it changes none. Open panels update like a saved edit.
+        If Sode refuses any target, it changes none. A Grid panel's `sources` and `destinations` (lists,
+        `hide` and `items`) go with the layout. A target of the other panel type is 409 `conflict`.
+        Open panels update like a saved edit.
       requestBody:
         required: true
         content:
@@ -1296,6 +1298,7 @@ paths:
         checkpoint of each first, with the same rules as pushing a panel. The caller must be able
         to change every panel pushed to. `targets` narrows it to some of the set's panels. A panel
         that no longer exists is skipped and listed in `skipped`. The body can be empty.
+        A panel whose type differs from its entry is 409 `conflict`, and no panel changes.
       requestBody:
         required: false
         content:
