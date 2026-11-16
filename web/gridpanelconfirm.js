@@ -4,7 +4,7 @@
 // has filled S.cfg, else 500 ms.
 import { el } from './core.js';
 import { keyConfirm } from './keyconfirm.js';
-import { levelColor } from './levelview.js';
+import { levelColor } from './levelbox.js';
 import { levelTextOf } from './levels.js';
 
 // The main page's level bar (levelview.js levelBar) with the levels passed in: a fixed slot per level.
