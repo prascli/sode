@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -14,25 +16,42 @@ const (
 	panelTypeGrid    = "grid"
 )
 
-const gridMembersAll = "all"
+const (
+	gridMembersAll = "all"
+	gridPinsMax    = 8 // per edge
+)
 
-// GridEdge is a Grid panel's sources or destinations. Membership stays apart from per-item settings, so a later
+// GridEdge is a Grid panel's sources or destinations. Membership stays apart from per-item settings, so a
 // pin or artwork never stops an "all" edge from following the router.
 type GridEdge struct {
 	Members GridMembers `yaml:"members" json:"members"`
+	// Hide is only for an "all" edge: router numbers left out of it.
+	Hide []int `yaml:"hide,omitempty" json:"hide,omitempty"`
+	// Items is keyed by the router number in decimal. An entry for a number that is not a member stays, like artwork.
+	Items map[string]GridItem `yaml:"items,omitempty" json:"items,omitempty"`
+}
+
+// GridItem is the settings of one source or destination on a Grid panel. Art has the form of a cell's art.
+type GridItem struct {
+	Pinned bool   `yaml:"pinned,omitempty" json:"pinned,omitempty"`
+	Art    string `yaml:"art,omitempty" json:"art,omitempty"`
 }
 
 // GridMembers is "all" (router order, following the router) or an explicit list of router numbers in panel order.
+// A decoded list is never nil, so a nil List with All false means the members key was missing.
 type GridMembers struct {
 	All  bool
 	List []int
 }
 
-var errGridMembers = errors.New(`members is "all"`)
+var errGridMembers = errors.New(`members is "all" or a list of router numbers`)
 
 func (m GridMembers) MarshalJSON() ([]byte, error) {
 	if m.All {
 		return json.Marshal(gridMembersAll)
+	}
+	if m.List == nil {
+		return []byte("[]"), nil
 	}
 	return json.Marshal(m.List)
 }
@@ -47,7 +66,7 @@ func (m *GridMembers) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 	if bytes.HasPrefix(bytes.TrimSpace(b), []byte("[")) {
-		*m = GridMembers{}
+		*m = GridMembers{List: []int{}}
 		return json.Unmarshal(b, &m.List)
 	}
 	return errGridMembers
@@ -56,6 +75,9 @@ func (m *GridMembers) UnmarshalJSON(b []byte) error {
 func (m GridMembers) MarshalYAML() (any, error) {
 	if m.All {
 		return gridMembersAll, nil
+	}
+	if m.List == nil {
+		return []int{}, nil
 	}
 	return m.List, nil
 }
@@ -66,7 +88,7 @@ func (m *GridMembers) UnmarshalYAML(n *yaml.Node) error {
 		return nil
 	}
 	if n.Kind == yaml.SequenceNode {
-		*m = GridMembers{}
+		*m = GridMembers{List: []int{}}
 		return n.Decode(&m.List)
 	}
 	return errGridMembers
@@ -89,8 +111,7 @@ func (p *Panel) normalGrid() {
 	}
 }
 
-// checkGrid judges the type and the parts that belong to the other type. Explicit member lists come later,
-// so only "all" is taken for now.
+// checkGrid judges the type, the parts that belong to the other type, and each edge.
 func checkGrid(p *Panel) error {
 	switch p.Type {
 	case panelTypeButtons:
@@ -105,10 +126,59 @@ func checkGrid(p *Panel) error {
 	if len(p.Pages) > 0 || len(p.LegacyCells) > 0 {
 		return errors.New("a Grid panel has no cells and no Pages")
 	}
-	for _, e := range []*GridEdge{p.Sources, p.Destinations} {
-		if e != nil && !e.Members.All {
-			return errGridMembers
+	for _, e := range []struct {
+		name string
+		edge *GridEdge
+	}{{"sources", p.Sources}, {"destinations", p.Destinations}} {
+		if e.edge == nil {
+			continue
 		}
+		if err := checkGridEdge(e.edge); err != nil {
+			return fmt.Errorf("%s: %w", e.name, err)
+		}
+	}
+	return nil
+}
+
+func checkGridEdge(e *GridEdge) error {
+	if !e.Members.All && e.Members.List == nil {
+		return errGridMembers
+	}
+	if !e.Members.All && len(e.Hide) > 0 {
+		return errors.New(`hide is only for members "all"`)
+	}
+	if err := checkGridNumbers("members", e.Members.List); err != nil {
+		return err
+	}
+	if err := checkGridNumbers("hide", e.Hide); err != nil {
+		return err
+	}
+	pins := 0
+	for k, it := range e.Items {
+		// One form for each number, so "7" and "007" never name one item twice.
+		if n, err := strconv.Atoi(k); err != nil || n < 0 || n > dstNumberMax || strconv.Itoa(n) != k {
+			return fmt.Errorf("items key %q is not a router number", k)
+		}
+		if it.Pinned {
+			pins++
+		}
+	}
+	if pins > gridPinsMax {
+		return fmt.Errorf("at most %d pinned items", gridPinsMax)
+	}
+	return nil
+}
+
+func checkGridNumbers(what string, ns []int) error {
+	seen := make(map[int]bool, len(ns))
+	for _, n := range ns {
+		if n < 0 || n > dstNumberMax {
+			return fmt.Errorf("%s: %d is not a router number", what, n)
+		}
+		if seen[n] {
+			return fmt.Errorf("%s: %d is there two times", what, n)
+		}
+		seen[n] = true
 	}
 	return nil
 }

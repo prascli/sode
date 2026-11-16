@@ -1,0 +1,125 @@
+package app
+
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/sethdotfm/sode/internal/config"
+)
+
+func gridEdgeJSON(t *testing.T, p map[string]any, edge string) string {
+	t.Helper()
+	b, err := json.Marshal(p[edge])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// A pin or a hidden item never stops an "all" edge from following the router.
+func TestGridPanelPinOnAllEdgeKeepsFollowingTheRouter(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makeGridPanel(t, a, ana, "G")
+	body := `{"name":"G","sources":{"members":"all","hide":[17,18],"items":{"812":{"pinned":true,"art":"camera"}}}}`
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, body); rec.Code != 200 {
+		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
+	}
+	got := gridEdgeJSON(t, readPanel(t, a, ana, id), "sources")
+	if want := `{"hide":[17,18],"items":{"812":{"art":"camera","pinned":true}},"members":"all"}`; got != want {
+		t.Errorf("sources %s, want %s", got, want)
+	}
+}
+
+// The editor sends a reorder as an explicit list. The list keeps its order and its pins.
+func TestGridPanelReorderStoresAList(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makeGridPanel(t, a, ana, "G")
+	body := `{"name":"G","destinations":{"members":[40,41,12],"items":{"41":{"pinned":true}}}}`
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, body); rec.Code != 200 {
+		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
+	}
+	p := readPanel(t, a, ana, id)
+	if got, want := gridEdgeJSON(t, p, "destinations"), `{"items":{"41":{"pinned":true}},"members":[40,41,12]}`; got != want {
+		t.Errorf("destinations %s, want %s", got, want)
+	}
+	if got := gridEdgeJSON(t, p, "sources"); got != `{"members":"all"}` {
+		t.Errorf("sources %s, want all", got)
+	}
+}
+
+func TestGridPanelRefusesBadEdges(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makeGridPanel(t, a, ana, "G")
+	nine := `"1":{"pinned":true},"2":{"pinned":true},"3":{"pinned":true},"4":{"pinned":true},"5":{"pinned":true},"6":{"pinned":true},"7":{"pinned":true},"8":{"pinned":true},"9":{"pinned":true}`
+	for _, edge := range []string{
+		`{"members":"all","items":{` + nine + `}}`,
+		`{"members":[1,2,1]}`,
+		`{"members":"all","hide":[3,3]}`,
+		`{"members":[1,2],"hide":[3]}`,
+		`{"members":"all","items":{"007":{"pinned":true}}}`,
+		`{"members":"all","items":{"cam":{}}}`,
+		`{"members":"all","items":{"-1":{}}}`,
+		`{"items":{"1":{"pinned":true}}}`,
+		`{"members":[-1]}`,
+		`{"members":[65536]}`,
+		`{"members":"all","hide":[70000]}`,
+		`{"members":null}`,
+	} {
+		rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":`+edge+`}`)
+		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "bad_request") {
+			t.Errorf("%s: %d %s", edge, rec.Code, rec.Body.String())
+		}
+	}
+	// Eight pins is the cap, not past it. Pins on items that are not members still count.
+	eight := strings.TrimSuffix(nine, `,"9":{"pinned":true}`)
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":{"members":[1],"items":{`+eight+`}}}`); rec.Code != 200 {
+		t.Errorf("eight pins: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// The editor's Clear stores an empty list. It must load again after a restart and go back unchanged.
+func TestGridPanelEmptyListSurvivesARestart(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makeGridPanel(t, a, ana, "G")
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":{"members":[]}}`); rec.Code != 200 {
+		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
+	}
+	b := fixRestart(t, a, func(*config.Config) {})
+	p, ok := b.panels.get(id)
+	if !ok {
+		t.Fatal("the panel did not load")
+	}
+	if p.Sources == nil || p.Sources.Members.All || p.Sources.Members.List == nil || len(p.Sources.Members.List) != 0 {
+		t.Fatalf("sources after restart %+v", p.Sources)
+	}
+	out, _ := json.Marshal(p.Sources)
+	if string(out) != `{"members":[]}` {
+		t.Errorf("sources JSON %s", out)
+	}
+}
+
+func TestGridPanelCopyKeepsListsHiddenItemsAndPins(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makeGridPanel(t, a, ana, "G")
+	body := `{"name":"G","sources":{"members":"all","hide":[3],"items":{"4":{"pinned":true}}},"destinations":{"members":[9,2]}}`
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, body); rec.Code != 200 {
+		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
+	}
+	rec := apiSend(a, "POST", "/api/v1/panels/"+id+"/copy", ana, `{}`)
+	if rec.Code != 201 {
+		t.Fatalf("copy: %d %s", rec.Code, rec.Body.String())
+	}
+	c := apiBody(t, rec)
+	if got := gridEdgeJSON(t, c, "sources"); got != `{"hide":[3],"items":{"4":{"pinned":true}},"members":"all"}` {
+		t.Errorf("copy sources %s", got)
+	}
+	if got := gridEdgeJSON(t, c, "destinations"); got != `{"members":[9,2]}` {
+		t.Errorf("copy destinations %s", got)
+	}
+}
