@@ -118,3 +118,27 @@
 .sode-gridpanel__field[data-over] .sode-gridpanel__xp[data-n]::after {
   color: var(--pb-status-error);
 }
+
+/* The Levels box (levelbox.js): input above, chips in two rows with V double size (base.css), All beside them. */
+.sode-gridpanel__levels {
+  align-items: start;
+  column-gap: var(--pb-space-2);
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  margin-bottom: var(--pb-space-3);
+  row-gap: var(--pb-space-1);
+}
+.sode-gridpanel__levels[hidden] {
+  display: none;
+}
+.sode-gridpanel__levels > .sode__box-head,
+.sode-gridpanel__levels > .sode__input {
+  grid-column: 1 / -1;
+}
+.sode-gridpanel__levels > .sode__input {
+  max-width: 20rem;
+}
+.sode-gridpanel__levels > .sode__picker {
+  display: contents;
+}
