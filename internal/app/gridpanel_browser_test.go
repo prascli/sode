@@ -26,8 +26,8 @@ func gridConfirm(b *tab) {
 	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 }
 
-// gridShow scrolls a Grid panel with "all" edges and no pins so that crosspoint (src, dst) is near the top left,
-// and waits for its node. Only crosspoints near the view have nodes.
+// gridShow scrolls crosspoint (src, dst) near the top left and waits for its node. Only crosspoints near the view
+// have nodes. It needs "all" edges and no pins.
 func gridShow(b *tab, src, dst int) {
 	b.eval(fmt.Sprintf(`(() => {
 		const sc = document.querySelector('.sode-gridpanel__scroll');
