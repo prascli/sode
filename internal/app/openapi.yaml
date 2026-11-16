@@ -16,7 +16,7 @@ info:
     (from /names) to show the number a person sees; with an offset of 1, send `src: 0` for the
     source a person calls 1. Levels are UI levels from 1, never offset, the same numbers the
     rights lists use. A source of -1 means nothing is routed. If a route omits `levels` or sends `[]`, Sode uses
-    the server's Default levels setting, which no endpoint reports, so always send `levels`.
+    the server's Default levels setting. `GET /tally` reports it as `defaultLevels`, but send `levels` anyway.
 
     `X-Sode-Via`. Any request can carry `X-Sode-Via`, free text (32 printable characters at most).
     Sode records it beside the key name in the Communication Log, marked unverified. The key name is
@@ -139,19 +139,25 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [levels, routes]
+                required: [levels, levelNumbering, defaultLevels, routes]
                 properties:
                   levels:
                     type: array
                     items:
                       type: object
-                      required: [level, label]
+                      required: [level, label, swatch]
                       properties:
                         level: { type: integer, description: "UI level, from 1" }
                         label: { type: string, description: How a person writes the level }
+                        swatch: { type: string, description: "Name of the theme color: `video` or `01` to `16`" }
+                        color: { type: string, description: "A #rrggbb color. When present it replaces the swatch" }
+                  levelNumbering: { type: string, enum: ["1", "0", "va"], description: "Level numbering: `1` is 1 to 17, `0` is 0 to 16, `va` is V, then 1 to 16" }
+                  defaultLevels: { type: string, description: "The Default levels setting, typed in the Level numbering" }
                   routes: { type: array, items: { $ref: "#/components/schemas/Route" } }
               example:
-                levels: [{ level: 1, label: "1" }]
+                levels: [{ level: 1, label: "1", swatch: video, color: "#7ae85a" }]
+                levelNumbering: "1"
+                defaultLevels: "1-17"
                 routes: [{ dst: 0, level: 1, src: 3 }]
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -2040,7 +2046,7 @@ paths:
         Example frames:
 
             {"t":"hello","data":{"v":1,"topics":["tally"],"numberOffset":1}}
-            {"t":"snapshot","topic":"tally","data":{"levels":[{"level":1,"label":"1"}],"routes":[{"dst":0,"level":1,"src":3}]}}
+            {"t":"snapshot","topic":"tally","data":{"levels":[{"level":1,"label":"1","swatch":"video","color":"#7ae85a"}],"levelNumbering":"1","defaultLevels":"1-17","routes":[{"dst":0,"level":1,"src":3}]}}
             {"t":"tally","topic":"tally","data":{"routes":[{"dst":0,"level":1,"src":1}]}}
 
         Visibility. Under hidden rights nothing about an out-of-rights source or destination

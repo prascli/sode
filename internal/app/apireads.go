@@ -94,17 +94,23 @@ func routeRows(m map[int]map[int]int, v apiView) []apiRouteRow {
 }
 
 type apiLevel struct {
-	Level int    `json:"level"`
-	Label string `json:"label"`
+	Level  int    `json:"level"`
+	Label  string `json:"label"`
+	Swatch string `json:"swatch"`
+	Color  string `json:"color,omitempty"` // wins over Swatch
 }
 
 // tallySnapshot is the levels and routes as v shows them. Caller holds mu.
 func (a *App) tallySnapshot(v apiView) map[string]any {
 	levels := []apiLevel{}
 	for _, l := range a.r().levels {
-		levels = append(levels, apiLevel{l.UI, l.Label})
+		levels = append(levels, apiLevel{l.UI, l.Label, l.Swatch, l.Color})
 	}
-	return map[string]any{"levels": levels, "routes": routeRows(a.router.tally, v)}
+	cfg := a.r().cfg
+	return map[string]any{
+		"levels": levels, "levelNumbering": cfg.LevelNumbering, "defaultLevels": cfg.DefaultLevels,
+		"routes": routeRows(a.router.tally, v),
+	}
 }
 
 func (a *App) apiTally(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
