@@ -183,7 +183,7 @@ An Administrator typing their own PIN again before a critical action. It holds f
 A qualified user's name and PIN, typed in someone else's browser. It lets one browser do one action that needs a higher role than its own sign-in has. The browser then goes back to its own sign-in. History names both people.
 
 **Request approval**:
-Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
+Sending an Approval request to the browsers of signed-in users whose Role and Rights let them approve the action. One of them approves or denies it there.
 
 **Guest role**:
 The role a Guest acts with in a browser: Standard or Trusted, never Administrator. An API call with no key never gets it.
