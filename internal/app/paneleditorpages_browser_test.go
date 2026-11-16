@@ -113,5 +113,28 @@ func TestChromeEditorPages(t *testing.T) {
 	b.waitFor("Page 3 focused", `row(3).classList.contains('is-focus')`)
 	b.eval(`document.getElementById('ed-live').click()`)
 	b.waitFor("live on Page 3", `[...document.querySelectorAll('#ed-live-view button')].some((x) => x.textContent.includes('Paged') && x.textContent.includes('Page 3') && x.disabled)`)
+
+	// A drop puts the row at the place of the row under it, in both directions.
+	// Move up and Move down stop at the ends.
+	b.eval(`window.order = () => [...document.querySelectorAll('#ed-pages .sode-pages__row')].map((r) => r.dataset.id);
+		window.first = order();
+		window.drag = (from, to) => {
+			const dt = new DataTransfer();
+			row(from).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+			row(to).dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+			row(to).dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+			row(from)?.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+		};
+		window.ids = (...n) => n.map((i) => first[i - 1]).join();
+		true`)
+	b.eval(`drag(1, 3)`)
+	b.waitFor("Page 1 dragged down onto Page 3", `order().join() === ids(2, 3, 1)`)
+	b.eval(`drag(3, 1)`)
+	b.waitFor("Page 3 dragged up onto Page 1", `order().join() === ids(1, 2, 3)`)
+	b.eval(`row(2).querySelector('[data-act="up"]').click()`)
+	b.waitFor("Move up", `order().join() === ids(2, 1, 3)`)
+	b.eval(`row(2).querySelector('[data-act="down"]').click()`)
+	b.waitFor("Move down", `order().join() === ids(2, 3, 1)`)
+	b.waitFor("no Move up on the first row, no Move down on the last", `row(1).querySelector('[data-act="up"]').disabled && row(3).querySelector('[data-act="down"]').disabled && !row(2).querySelector('[data-act="up"]').disabled && !row(2).querySelector('[data-act="down"]').disabled`)
 	b.check()
 }
