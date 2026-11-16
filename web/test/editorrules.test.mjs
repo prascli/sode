@@ -110,6 +110,8 @@ test('a Grid panel is dirty on a type or edge change, and not on an empty items 
   assert.equal(isDirty(loaded, 'Wall', g, { sources: { members: 'all', items: { 2: { pinned: true } } } }), true);
   assert.equal(isDirty(null, 'New panel', createGrid(), { type: 'grid' }), true);
   assert.equal(isDirty(null, 'New panel', createGrid(), { type: 'buttons' }), false);
+  // A read carries the client's Rights; only an edit of them is a change.
+  assert.equal(isDirty({ ...loaded, clientRights: { levels: [1] } }, 'Wall', g, {}), false);
   // A Grid panel made from a new panel: the editor's Buttons grid is still the new panel's 4 by 8.
   assert.equal(isDirty(loaded, 'Wall', createGrid(), {}), false);
 });

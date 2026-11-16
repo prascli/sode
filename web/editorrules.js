@@ -128,7 +128,7 @@ const shape = (name, g, f, pages) =>
 // A field not edited counts as what was loaded. clientRights has no loaded side here: any edit is a change.
 export function isDirty(loaded, name, grid, fields = {}, pages = pagesOf(loaded || newPanel())) {
   const base = loaded || newPanel();
-  const was = shape(base.name, createGrid(pageView(base)), base, pagesOf(base));
+  const was = shape(base.name, createGrid(pageView(base)), { ...base, clientRights: undefined }, pagesOf(base));
   const now = shape(name, grid, { ...base, ...Object.fromEntries(OWN_FIELDS.map((k) => [k, fields[k] ?? base[k]])), clientRights: fields.clientRights }, pages);
   return was !== now;
 }
