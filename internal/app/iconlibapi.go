@@ -106,6 +106,16 @@ func (a *App) apiIconUses(w http.ResponseWriter, r *http.Request, _ *apiCtx) {
 				n++
 			}
 		}
+		for _, e := range []*GridEdge{p.Sources, p.Destinations} {
+			if e == nil {
+				continue
+			}
+			for _, it := range e.Items {
+				if it.Art == ref {
+					n++
+				}
+			}
+		}
 		cells += n
 		if n > 0 {
 			panels++
