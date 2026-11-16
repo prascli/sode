@@ -1,41 +1,130 @@
-/* A Grid panel's crosspoint field (gridpanelview.js). Sizes in rem, colours from tokens. The rows are display:
-   contents, so every name and crosspoint is a cell of the one CSS grid and the names can be sticky. */
+/* A Grid panel's crosspoint field (gridpanelview.js). Sizes in rem, colours from tokens. Only the items that show
+   have nodes. Each is placed by --sode-i (row) and --sode-j (column), display order indices. The layers share one
+   grid cell: the body scrolls, the top and side bands are sticky and hold the names and pinned crosspoints, and the
+   corner holds what is pinned on both axes. */
 .sode-panel__grid.sode-gridpanel {
   display: block;
   --sode-xp: 3.5rem;
   --sode-name-w: 11rem;
   --sode-name-h: 5rem;
+  --sode-scroll-w: 1rem;
+  /* The patch field: light in a light theme, dark in a dark one, with no per-theme CSS. */
+  --sode-patch-field: var(--pb-surface-sunken);
   /* A drag across names or crosspoints never selects text; Safari still needs the prefix. */
   -webkit-user-select: none;
   user-select: none;
+}
+/* No rubber-band and no swipe-back on a trackpad, at the grid or at the page. */
+html:has(.sode-gridpanel) {
+  overscroll-behavior: none;
 }
 .sode-gridpanel__frame {
   max-height: calc(100dvh - 12rem);
 }
 .sode-gridpanel__scroll {
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
+  position: relative;
+  /* Thick and always shown: auto here lets the ::-webkit-scrollbar rules below apply (Chrome ignores them when
+     either property is set), and a styled scrollbar never hides. */
+  scrollbar-color: auto;
+  scrollbar-width: auto;
+}
+.sode-gridpanel__scroll::-webkit-scrollbar {
+  height: var(--sode-scroll-w);
+  width: var(--sode-scroll-w);
+}
+.sode-gridpanel__scroll::-webkit-scrollbar-track,
+.sode-gridpanel__scroll::-webkit-scrollbar-corner {
+  background: var(--pb-surface-base);
+}
+.sode-gridpanel__scroll::-webkit-scrollbar-thumb {
+  background-color: var(--pb-scroll-thumb);
+  border: 0;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .sode-gridpanel__scroll {
+    scrollbar-color: var(--pb-scroll-thumb) var(--pb-surface-base);
+  }
 }
 .sode-gridpanel__field {
   display: grid;
-  grid-auto-rows: var(--sode-xp);
-  grid-template-columns: var(--sode-name-w) repeat(var(--sode-cols), var(--sode-xp));
-  grid-template-rows: var(--sode-name-h);
-  user-select: none;
-  width: max-content;
+  grid-template: 100% / 100%;
+  height: calc(var(--sode-name-h) + var(--sode-rows) * var(--sode-xp));
+  width: calc(var(--sode-name-w) + var(--sode-cols) * var(--sode-xp));
 }
-.sode-gridpanel__row {
-  display: contents;
+.sode-gridpanel__layer {
+  grid-area: 1 / 1;
 }
-.sode-gridpanel__corner,
-.sode-gridpanel__src {
+.sode-gridpanel__body {
+  background: var(--sode-patch-field);
+  position: relative;
+}
+/* The cursor and line layer of later work: content coordinates, under the sticky bands. */
+.sode-gridpanel__overlay {
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+.sode-gridpanel__top {
+  align-self: start;
+  height: calc(var(--sode-name-h) + var(--sode-row-pins) * var(--sode-xp));
   position: sticky;
   top: 0;
+  z-index: 3;
+}
+.sode-gridpanel__side {
+  justify-self: start;
+  left: 0;
+  position: sticky;
+  width: calc(var(--sode-name-w) + var(--sode-col-pins) * var(--sode-xp));
   z-index: 2;
 }
 .sode-gridpanel__corner {
+  align-self: start;
   background: var(--pb-surface-base);
+  height: calc(var(--sode-name-h) + var(--sode-row-pins) * var(--sode-xp));
+  justify-self: start;
   left: 0;
-  z-index: 3;
+  position: sticky;
+  top: 0;
+  width: calc(var(--sode-name-w) + var(--sode-col-pins) * var(--sode-xp));
+  z-index: 4;
+}
+/* The bands hide what scrolls under them only where they draw: a name bar is opaque, crosspoints are. */
+.sode-gridpanel__top::before,
+.sode-gridpanel__side::before {
+  background: var(--pb-surface-base);
+  content: "";
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+.sode-gridpanel__top::before {
+  height: var(--sode-name-h);
+  width: 100%;
+}
+.sode-gridpanel__side::before {
+  height: 100%;
+  width: var(--sode-name-w);
+}
+.sode-gridpanel__probe {
+  height: var(--sode-name-h);
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+  width: var(--sode-name-w);
+}
+.sode-gridpanel__probe-xp {
+  width: var(--sode-xp);
+}
+.sode-gridpanel__xp,
+.sode-gridpanel__src,
+.sode-gridpanel__dst {
+  left: 0;
+  position: absolute;
+  top: 0;
 }
 .sode-gridpanel__src,
 .sode-gridpanel__dst {
@@ -50,20 +139,28 @@
   padding: var(--pb-space-1);
   text-align: center;
 }
+.sode-gridpanel__src {
+  height: var(--sode-name-h);
+  transform: translateX(calc(var(--sode-name-w) + var(--sode-j) * var(--sode-xp)));
+  width: var(--sode-xp);
+}
 .sode-gridpanel__dst {
+  height: var(--sode-xp);
   justify-content: flex-start;
-  left: 0;
-  position: sticky;
   text-align: start;
-  z-index: 1;
+  transform: translateY(calc(var(--sode-name-h) + var(--sode-i) * var(--sode-xp)));
+  width: var(--sode-name-w);
 }
 .sode-gridpanel__xp {
-  background: var(--pb-surface-sunken);
+  background: var(--sode-patch-field);
   border: var(--pb-border-w) solid var(--pb-surface-base);
   cursor: pointer;
   display: grid;
+  height: var(--sode-xp);
   padding: 0;
   place-items: center;
+  transform: translate(calc(var(--sode-name-w) + var(--sode-j) * var(--sode-xp)), calc(var(--sode-name-h) + var(--sode-i) * var(--sode-xp)));
+  width: var(--sode-xp);
 }
 .sode-gridpanel__xp:hover {
   background: var(--pb-surface-hover);
@@ -90,16 +187,13 @@
 .sode-gridpanel__dst[data-picked] {
   box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-accent);
 }
-/* The names and numbered crosspoints that the press under the pointer stages. */
+/* The names and numbered crosspoints that the press under the pointer stages. A crosspoint is absolute, so its
+   number needs no position of its own. */
 .sode-gridpanel__src[data-target],
-.sode-gridpanel__dst[data-target] {
-  outline: calc(var(--pb-border-w) * 2) solid var(--pb-text-strong);
-  outline-offset: calc(var(--pb-border-w) * -3);
-}
+.sode-gridpanel__dst[data-target],
 .sode-gridpanel__xp[data-n] {
   outline: calc(var(--pb-border-w) * 2) solid var(--pb-text-strong);
   outline-offset: calc(var(--pb-border-w) * -3);
-  position: relative;
 }
 .sode-gridpanel__xp[data-n]::after {
   color: var(--pb-text-strong);

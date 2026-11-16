@@ -10,6 +10,7 @@ import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
+import { pinsOf } from './gridpanelwindow.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
@@ -87,7 +88,7 @@ export function gridBody(ctx, first) {
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
 
-  // Nodes are made again only when the shown sources or destinations change.
+  // The view moves its nodes to the new items only when the shown sources or destinations change.
   const rebuild = () => {
     const next = gridAxes(panel, namesReply);
     const key = JSON.stringify(next);
@@ -97,7 +98,9 @@ export function gridBody(ctx, first) {
     // Picks on names that left the panel go.
     picks = { ...picks, srcs: picks.srcs.filter((n) => next.srcs.includes(n)), dsts: picks.dsts.filter((n) => next.dsts.includes(n)) };
     at = null;
-    g = buildGridPanel(ui.grid, axes, { onPress, onName, onAt });
+    const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
+    if (g) g.setAxes(all);
+    else g = buildGridPanel(ui.grid, all, { onPress, onName, onAt });
   };
 
   async function send(routes) {
@@ -190,7 +193,7 @@ export function gridBody(ctx, first) {
     if (at?.src === xp?.src && at?.dst === xp?.dst) return;
     at = xp;
     // Only the preview: a full paint on each pointer move is too slow on a large grid.
-    if (g && (pickCount(picks) || g.marked.length)) preview();
+    if (g && (pickCount(picks) || g.previewing())) preview();
   }
 
   const onKey = (e) => {
@@ -241,6 +244,7 @@ export function gridBody(ctx, first) {
     renamed: render,
     stop() {
       document.removeEventListener('keydown', onKey, true);
+      g?.stop();
       count.remove();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();

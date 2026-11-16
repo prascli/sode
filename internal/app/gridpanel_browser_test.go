@@ -26,6 +26,19 @@ func gridConfirm(b *tab) {
 	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 }
 
+// gridShow scrolls crosspoint (src, dst) near the top left and waits for its node. Only crosspoints near the view
+// have nodes. It needs "all" edges and no pins.
+func gridShow(b *tab, src, dst int) {
+	b.eval(fmt.Sprintf(`(() => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		sc.scrollLeft = Math.max(0, %d - 1) * xp;
+		sc.scrollTop = Math.max(0, %d - 1) * xp;
+		return true;
+	})()`, src, dst))
+	b.waitFor(fmt.Sprintf("crosspoint %d, %d drawn", src, dst), gridXp(src, dst)+` !== null && !`+gridXp(src, dst)+`.hidden`)
+}
+
 func gridKey(b *tab, key string) {
 	b.eval(fmt.Sprintf(`document.dispatchEvent(new KeyboardEvent('keydown', { key: %q, bubbles: true, cancelable: true }))`, key))
 }
@@ -67,7 +80,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Studio grid'`)
-	b.waitFor("crosspoints for every router source and destination", gridXp(199, 119)+` !== null && document.querySelectorAll('.sode-gridpanel__src').length === 200`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	b.waitFor("a field for every router source and destination", `(() => {
+		const f = document.querySelector('.sode-gridpanel__field');
+		return f?.style.getPropertyValue('--sode-cols') === '200' && f.style.getPropertyValue('--sode-rows') === '120';
+	})()`)
 	b.waitFor("names are the current Router names", `document.querySelector('.sode-gridpanel__dst[data-dst="2"]').textContent === 'DSM1' && document.querySelector('.sode-gridpanel__src[data-src="10"]').textContent === '`+simSrcName+`'`)
 	b.waitFor("the pie shows what the router has", gridXp(2, 2)+`.dataset.on?.startsWith('1,2')`)
 	b.shot("grid")
@@ -143,6 +160,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(13, 6)+` !== null && document.querySelector('.sode-gridpanel__src[data-src="13"]').textContent !== ''`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
 
 	src := func(n int) string {
 		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__src[data-src="%d"]')`, n)
@@ -187,6 +205,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	}
 	b.eval(`document.getElementById('panel-kiosk').click(); true`)
 	b.waitFor("Kiosk mode", kiosk)
+	gridShow(b, 11, 20)
 	b.eval(gridXp(11, 20) + `.click()`)
 	b.waitFor("staged again", staged(13, 22))
 	pressEsc()
