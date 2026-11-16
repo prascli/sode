@@ -224,6 +224,9 @@ Describes a source or destination that a person chose on a Grid panel's Source b
 **Diagonal**:
 The routes that a Grid panel stages when a person presses a crosspoint while names are picked. It pairs the picked sources with the picked destinations in order, from that crosspoint.
 
+**Drawn line**:
+A straight line that a person drags across a Grid panel's crosspoints to stage routes, one for each destination row that it crosses.
+
 **Public panel**:
 A panel that anyone with its URL can use, with no sign-in, PIN or key in the link. It acts as its own API client, with that client's Rights, which a Trusted user sets within their own. History names the client.
 _Avoid_: anonymous panel, open panel (for a Public panel; an open panel page is any panel page that is open)
