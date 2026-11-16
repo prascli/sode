@@ -71,7 +71,10 @@ func TestChromeGridPanelEditor(t *testing.T) {
 	b.waitFor("Test it live runs the Grid panel", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp')`)
 
 	b.open(srv.URL + "/panels/" + id)
-	b.waitFor("the panel opens as a Grid panel", `document.querySelectorAll('.sode-gridpanel__src').length === 199`)
-	b.waitFor("the pinned source is first", `document.querySelector('.sode-gridpanel__src').dataset.src === '5'`)
+	b.waitFor("the panel opens as a Grid panel", `!!document.querySelector('.sode-gridpanel__xp')`)
+	b.waitFor("the pinned sources lead, in list order", `(() => {
+		const x = (n) => document.querySelector('.sode-gridpanel__src[data-src="' + n + '"]')?.getBoundingClientRect().left;
+		return x(5) < x(7) && x(7) < x(1) && x(0) === undefined;
+	})()`)
 	b.check()
 }
