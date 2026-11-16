@@ -1,0 +1,5 @@
+# A panel's type is fixed when the panel is made
+
+A panel is a Buttons panel or a Grid panel. The person who makes it chooses the type, and the panel keeps it. The panel file stores it as `type` (`buttons` or `grid`), and a file with no `type` loads as a Buttons panel, so files from before Grid panels load unchanged. The API returns `type` so that other programs know which body to expect. A Grid panel stores an ordered list of sources and an ordered list of destinations, each entry keyed by router number with optional artwork and a pin. It has no cells and no Pages, and the server refuses a Grid panel body that has `cells` or `pages`.
+
+Considered: a type for each Page, so that one panel mixes buttons and a grid. This puts two plans and two key models on one page, and Push, Templates and the Pages bar would each need a rule for the mix. Also a convert action. Buttons to Grid is easy (collect the Source and Destination cells), but Grid to Buttons has no good answer for 2500 sources and the cell layout, so a convert action would work in one direction only. A copy with the other type can come later if people ask for it.

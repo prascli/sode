@@ -215,6 +215,15 @@ One square of a Grid panel, where one source and one destination meet. It shows 
 **Pinned source** / **Pinned destination**:
 A source or destination that a Grid panel keeps at the edge of the grid while the rest scrolls. Pins are part of the panel, set in the editor.
 
+**Source bar** / **Destination bar**:
+The edges of a Grid panel that show the names. The Source bar is across the top and the Destination bar is down the side. The corner where they meet holds the filters.
+
+**Picked**:
+Describes a source or destination that a person chose on a Grid panel's Source bar or Destination bar. Picking stages nothing. It tells the next crosspoint press which routes to stage.
+
+**Diagonal**:
+The routes that a Grid panel stages when a person presses a crosspoint while names are picked. It pairs the picked sources with the picked destinations in order, from that crosspoint.
+
 **Public panel**:
 A panel that anyone with its URL can use, with no sign-in, PIN or key in the link. It acts as its own API client, with that client's Rights, which a Trusted user sets within their own. History names the client.
 _Avoid_: anonymous panel, open panel (for a Public panel; an open panel page is any panel page that is open)
