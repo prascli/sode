@@ -35,8 +35,14 @@ export function createEdgeTab(ed, { key, rights, what }) {
     removeTip: 'Remove',
   });
 
+  // Every Panel tab keystroke repaints the sidebar, and an edge can hold thousands of rows, so a repaint with the
+  // same inputs draws nothing.
+  let drawn = [];
   function paint() {
     const ro = ed.readOnly();
+    const now = [edge(), router(), myRights(), ro, ed.routerNames()];
+    if (now.every((x, i) => x === drawn[i])) return;
+    drawn = now;
     const off = ed.routerNames()?.numberOffset || 0;
     const v = edgeRows(edge(), router(), myRights(), rights);
     shown = v.rows;

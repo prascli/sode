@@ -52,6 +52,24 @@ func TestChromeGridPanelEditor(t *testing.T) {
 		t.Errorf("sources %v", srcs)
 	}
 
+	// Opened again from a fresh page: no unsaved changes, the type locked, and a second save is a PUT that keeps both.
+	b.open(srv.URL + "/panels/editor?panel=" + id)
+	b.waitFor("the saved Grid panel opens in the editor", tabs+` === 'Sources,Destinations,Panel,Access' && document.getElementById('ed-state').textContent === 'Saved' && document.getElementById('ed-set-type').disabled`)
+	b.waitFor("the pin and the removed source load", src+`?.querySelector('[data-act="pin"]').getAttribute('aria-pressed') === 'true' && !document.querySelector('#ed-sources-list li[data-id="0"]')`)
+	b.eval(`document.querySelector('#ed-sources-list li[data-id="7"] [data-act="pin"]').click(); true`)
+	b.waitFor("a second pin is an unsaved change", `document.getElementById('ed-state').textContent === 'Unsaved changes'`)
+	b.eval(`document.getElementById('ed-save').click(); true`)
+	b.waitFor("saved again", `document.getElementById('ed-state').textContent === 'Saved'`)
+	srcs, _ = readPanel(t, a, ana, id)["sources"].(map[string]any)
+	hide, _ = json.Marshal(srcs["hide"])
+	items, _ = json.Marshal(srcs["items"])
+	if string(hide) != `[0]` || string(items) != `{"5":{"pinned":true},"7":{"pinned":true}}` {
+		t.Errorf("after the PUT, sources %v", srcs)
+	}
+
+	b.eval(`document.getElementById('ed-live').click(); true`)
+	b.waitFor("Test it live runs the Grid panel", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp')`)
+
 	b.open(srv.URL + "/panels/" + id)
 	b.waitFor("the panel opens as a Grid panel", `document.querySelectorAll('.sode-gridpanel__src').length === 199`)
 	b.waitFor("the pinned source is first", `document.querySelector('.sode-gridpanel__src').dataset.src === '5'`)
