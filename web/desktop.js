@@ -1,7 +1,8 @@
 // Desktop layout: three boxes, Tab between them, churning-key confirm.
 
 import { $, el, S, on, connState, routerTitle, needsLink, renderDown, setDot, search, dstLabel, dstItem, srcItem, keepSearch } from './core.js';
-import { levelBar, allLevels } from './levelview.js';
+import { levelBar, allLevels, levelSource } from './levelview.js';
+import { levelBox } from './levelbox.js';
 import { fedBy, bySource, currentlyNodes, pickEnd } from './routes.js';
 import { scrollTopPref, flipped, setFlip } from './device.js';
 import { resultNode, showResult, patchPlan, planBlocked, rightsOff, sendTakes, lastTake, nextTake, boxPatch, lastChip, VERBS } from './plans.js';
@@ -12,7 +13,7 @@ import { boxPicking, addPatch } from './historypick.js';
 import { keyConfirm } from './keyconfirm.js';
 import { showAll } from './showall.js';
 import { shortcutList } from './shortcuts.js';
-import { levelBox, combobox } from './widgets.js';
+import { combobox } from './widgets.js';
 import { desktopHistory } from './desktophistory.js';
 import { desktopKeys } from './desktopkeys.js';
 import { compactCentre } from './compactcentre.js';
@@ -37,7 +38,7 @@ for (const k of ['src', 'dst']) {
   });
 }
 const lvlInput = $('lvl');
-const lvl = levelBox(lvlInput, $('lvl-pick'), $('lvl-all'), { onChange: () => renderTally() });
+const lvl = levelBox(lvlInput, $('lvl-pick'), $('lvl-all'), levelSource, { onChange: () => renderTally() });
 
 const active = () => layout() === 'desktop' && document.documentElement.dataset.view !== 'settings';
 

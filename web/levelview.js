@@ -1,7 +1,13 @@
 // Levels on screen and in boxes (reads S). The pure parts, with levels and numbering as arguments, are in levels.js.
 
 import { el, S } from './core.js';
-import { levelLabelOf, levelStyle, levelInputOf, levelTextOf, parseLevelsIn, relabelLevelsFor } from './levels.js';
+import { levelLabelOf, levelInputOf, levelTextOf, parseLevelsIn, relabelLevelsFor } from './levels.js';
+import { levelColor, levelPicks } from './levelbox.js';
+
+export { levelColor };
+
+// What levelBox reads: null before the hello has the config.
+export const levelSource = () => (S.cfg ? { ...parseCtx(), prev: S.prevNumbering } : null);
 
 export const allLevels = () => S.levels.map((l) => l.ui);
 
@@ -19,14 +25,6 @@ export const levelInput = (list, mode) => levelInputOf(list, S.levels, numbering
 const defaultLevelsText = () => levelInput(parseLevels('') || []);
 export const defaultLevelsWord = () => ((parseLevels('') || []).length === S.levels.length ? 'All' : 'default');
 export const defaultLevelsHint = () => `${defaultLevelsText()} (${defaultLevelsWord()})`;
-
-export function levelColor(node, l) {
-  const st = levelStyle(l);
-  node.style.setProperty('--sode-c', st.color);
-  if (st.ink) node.style.setProperty('--sode-ink', st.ink);
-  else node.style.removeProperty('--sode-ink');
-  return node;
-}
 
 // Fixed row of slots, filled when on, so rows line up and color is never the only signal.
 export function levelBar(on) {
@@ -50,15 +48,4 @@ export function levelBar(on) {
   return row;
 }
 
-export function pickButtons(onToggle) {
-  return S.levels.map((l) => {
-    const b = el('button', 'sode__pick', l.label);
-    b.type = 'button';
-    b.tabIndex = -1;
-    b.dataset.ui = l.ui;
-    levelColor(b, l);
-    b.setAttribute('aria-label', `Level ${l.label}`);
-    b.addEventListener('click', () => onToggle(l.ui));
-    return b;
-  });
-}
+export const pickButtons = (onToggle) => levelPicks(S.levels, onToggle);
