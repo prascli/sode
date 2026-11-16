@@ -201,7 +201,19 @@ The install-wide switch that lets panel owners make a panel Public. On by defaul
 ### Panels
 
 **Panel**:
-A saved grid of tappable cells that patches the router from its own page, made for a wall tablet or a phone. It has an id, a display name and an owner. A panel acts in one of four ways. It acts as a user, with that user's Rights. It acts as an API client of its own, with Rights no wider than its creator's. It acts as both: as the client when the page has a key, and otherwise as the user who opens it. Or it acts as a Public panel.
+A saved page that patches the router, made for a wall tablet, a phone or a desktop. It is a Buttons panel or a Grid panel, chosen when it is made. It has an id, a display name and an owner. A panel acts in one of four ways. It acts as a user, with that user's Rights. It acts as an API client of its own, with Rights no wider than its creator's. It acts as both: as the client when the page has a key, and otherwise as the user who opens it. Or it acts as a Public panel.
+
+**Buttons panel**:
+A panel made of cells on one or more Pages. It is the panel type that existed first, and a panel with no type is a Buttons panel.
+
+**Grid panel**:
+A panel that shows its sources across the top and its destinations down the side, with one crosspoint for each pair. It holds an ordered list of sources and an ordered list of destinations, each from any part of the router. It has no cells and no Pages.
+
+**Crosspoint**:
+One square of a Grid panel, where one source and one destination meet. It shows which levels of that destination now have that source. A Grid panel has crosspoints, not cells.
+
+**Pinned source** / **Pinned destination**:
+A source or destination that a Grid panel keeps at the edge of the grid while the rest scrolls. Pins are part of the panel, set in the editor.
 
 **Public panel**:
 A panel that anyone with its URL can use, with no sign-in, PIN or key in the link. It acts as its own API client, with that client's Rights, which a Trusted user sets within their own. History names the client.
@@ -221,7 +233,7 @@ _Avoid_: screen (for an open panel page)
 A panel setting, on by default, shown as "Ask users to set an instance name". When it is off, the panel's page never asks for a device name and shows none in its header. A link's `?instance=` and a name the browser already stored still apply, and an instance with neither goes by its address.
 
 **Cell**:
-One square of a panel's grid. It has a cell kind and can be a merged cell.
+One square of a Buttons panel. It has a cell kind and can be a merged cell.
 
 **Cell kind**:
 What a cell does: Source, Destination, Preset, Take, Clear, Current Source, Panel Name, Instance Name, Page Name, Info, Go to Page, Next Page or Previous Page. A Source or Destination cell is bound to a router number and shows the Router name.
