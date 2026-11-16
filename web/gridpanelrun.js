@@ -6,6 +6,7 @@ import { gridAxes } from './gridpaneledges.js';
 import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
 import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
+import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
@@ -44,6 +45,8 @@ export function gridBody(ctx, first) {
   let namesReply = {};
   let axesKey = '';
   let axes = { srcs: [], dsts: [] };
+  let shownSrcs = new Set();
+  let out = []; // staged routes left out (gridpanelrights.js), as of the last render
   let g = null;
   let picks = createPicks();
   let at = null; // the crosspoint under the pointer, whose press the preview shows
@@ -54,6 +57,8 @@ export function gridBody(ctx, first) {
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
 
+  // What the last polls said, for the staged routes that no longer apply.
+  const world = () => ({ env, rights: panel.rights, names: namesReply });
   const staged = (s, d) => st.staged.filter((x) => x.src === s && x.dst === d).map((x) => x.level);
   const view = {
     get names() {
@@ -66,9 +71,16 @@ export function gridBody(ctx, first) {
     pie: (s, d) => pieOn(env, s, d),
     staged,
     picked: (kind, n) => picks[kind].includes(n),
+    leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
+    protected: (d) => env.protectedDsts.has(d),
+    other(d) {
+      const o = otherSources(env, d, shownSrcs);
+      return { text: otherText(o, names), tip: o.length ? `Not on this panel: ${o.map((x) => names.source(x)).join(', ')}` : '' };
+    },
   };
 
-  const pairsAt = (xp) => diagonal(picks, xp, axes);
+  // A Diagonal skips protected rows.
+  const pairsAt = (xp) => stageable(diagonal(picks, xp, axes), env).pairs;
 
   // Numbered targets only while names are picked; a press with none is the crosspoint itself.
   const preview = () => {
@@ -77,13 +89,14 @@ export function gridBody(ctx, first) {
   };
 
   const render = () => {
+    out = leftOut(st, world());
     if (g) {
       paintGridPanel(g, view);
       preview();
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
-    const text = stageText(st.error) || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const text = stageText(st.error) || refusalText(st.error, names) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
@@ -95,6 +108,7 @@ export function gridBody(ctx, first) {
     if (key === axesKey) return;
     axesKey = key;
     axes = next;
+    shownSrcs = new Set(next.srcs);
     // Picks on names that left the panel go.
     picks = { ...picks, srcs: picks.srcs.filter((n) => next.srcs.includes(n)), dsts: picks.dsts.filter((n) => next.dsts.includes(n)) };
     at = null;
@@ -167,16 +181,27 @@ export function gridBody(ctx, first) {
       })
     : null;
 
+  // Routes that no longer apply are left out with the reason and dropped here.
   function openConfirm() {
+    if (!confirm || st.busy) return;
+    const was = leftOut(st, world());
+    st = keepLive(st, world());
     const routes = confirmRoutes(st);
-    if (!routes || !confirm || st.busy) return;
-    confirm.open({ ...planOf(routes, names), routes });
+    if (routes) confirm.open({ ...planOf(routes, names), routes, warnings: was.map((r) => leftOutLine(r, names)) });
+    else if (was.length) note = { text: leftOutText(was, names), at: Date.now(), ok: false };
+    render();
   }
 
   function onPress(xp) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
-    const r = stageRoutes(st, pairsAt(xp), pressLevels());
+    st = keepLive(st, world());
+    const { pairs, err } = stageable(diagonal(picks, xp, axes), env);
+    if (err) {
+      st = { ...st, error: err };
+      return render();
+    }
+    const r = stageRoutes(st, pairs, pressLevels());
     st = r.st;
     if (r.send) send(r.send);
     else render();
@@ -242,6 +267,14 @@ export function gridBody(ctx, first) {
       render();
     },
     renamed: render,
+    // From each panel read (panelrun.js), so staged routes that leave the Rights are left out at once.
+    rights(r) {
+      if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
+      panel = { ...panel, rights: r };
+      syncBox();
+      rebuild();
+      render();
+    },
     stop() {
       document.removeEventListener('keydown', onKey, true);
       g?.stop();

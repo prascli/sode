@@ -55,8 +55,19 @@ export function gridSummary(plan, tally) {
     ...(n === 1 ? ['Destination ', strong(plan.items[0].dstName)] : [strong(`${n} destinations`)]),
     '?',
   );
-  if (n === 1) return [question, ...plan.items[0].groups.map((g) => routeRow(tally, g, plan.items[0].dstName))];
+  // As the main page's planSummary (plans.js) shows what a plan leaves out.
+  const left = plan.warnings?.length
+    ? [
+        el(
+          'div',
+          'pb-alert pb-alert--warn',
+          el('div', null, el('div', 'pb-alert__title', `${plan.warnings.length} left out`), ...plan.warnings.map((l) => el('div', null, l))),
+        ),
+      ]
+    : [];
+  if (n === 1) return [...left, question, ...plan.items[0].groups.map((g) => routeRow(tally, g, plan.items[0].dstName))];
   return [
+    ...left,
     question,
     ...plan.items.map((item, i) =>
       el(

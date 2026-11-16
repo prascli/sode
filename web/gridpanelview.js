@@ -2,7 +2,7 @@
 // the top and the Destination bar down the side. Pinned items sit in sticky bands at those edges.
 // A node is moved to another crosspoint or name as the grid scrolls, so nodes hold no state of their own.
 // Everything shown comes from the view that paint is given. docs/agents/panels.md has the layer plan.
-import { el } from './core.js';
+import { el, icon } from './core.js';
 import { pieFill } from './gridpanellevels.js';
 import { axisSpan, spanMax, indexAt, scrollFor } from './gridpanelwindow.js';
 
@@ -36,11 +36,15 @@ function paintXp(xp, s, d, view) {
     pie._fill = fill;
     pie.style.background = fill;
   }
-  // data-s staged is the attribute the panel pulse watches (panels.css).
+  // data-s staged is the attribute the panel pulse watches (panels.css). A route left out does not pulse.
   const staged = view.staged(s, d);
-  setData(xp, 's', staged.length ? 'staged' : undefined);
+  const out = staged.length > 0 && view.leftOut(s, d);
+  const prot = view.protected(d);
+  setData(xp, 's', out ? 'left-out' : staged.length ? 'staged' : undefined);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
-  const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${staged.length ? ', staged' : ''}`;
+  if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
+  const state = out ? ', staged, left out of the take' : staged.length ? ', staged' : '';
+  const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${prot ? ', protected' : ''}${state}`;
   if (xp.getAttribute('aria-label') !== label) xp.setAttribute('aria-label', label);
 }
 
@@ -57,7 +61,29 @@ const makeName = (cls, role) => () => {
   return n;
 };
 const makeSrc = makeName('pb-xpt--source sode-gridpanel__src', 'columnheader');
-const makeDst = makeName('pb-xpt--dest sode-gridpanel__dst', 'rowheader');
+// After the name's Text: the protected mark (the lock never stands alone) and the current sources the grid does not
+// show. Made once, so a paint changes only Text data and hidden.
+const makeDst = () => {
+  const n = makeName('pb-xpt--dest sode-gridpanel__dst', 'rowheader')();
+  const prot = el('small', 'sode-gridpanel__prot', icon('lock'), document.createTextNode(''));
+  const other = el('small', 'sode-gridpanel__other', document.createTextNode(''));
+  prot.hidden = other.hidden = true;
+  n.append(prot, other);
+  return n;
+};
+
+// A mark not shown is hidden and has empty text, so the node's text is the name alone.
+function paintDstMarks(n, d, view) {
+  const [, prot, other] = n.childNodes;
+  const p = view.protected(d);
+  n.classList.toggle('pb-xpt--protected', p);
+  if (prot.hidden === p) prot.hidden = !p;
+  if (prot.lastChild.data !== (p ? ' Protected' : '')) prot.lastChild.data = p ? ' Protected' : '';
+  const o = view.other(d);
+  setText(other, o.text);
+  if (other.hidden !== !o.text) other.hidden = !o.text;
+  setData(other, 'pbTip', o.tip || undefined);
+}
 
 // A pool draws the cells of one layer: a key per cell, nodes reused for cells that come into view.
 // put(node, i, j) points a node at the cell of display indices i (row) and j (column).
@@ -164,6 +190,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
     if (view) {
       setText(n, view.names.destination(d));
       pick(n, view.picked('dsts', d));
+      paintDstMarks(n, d, view);
     }
     markName(n, mark.dsts.has(d));
   };
@@ -358,7 +385,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
 }
 
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged, picked(kind, n) }. Only drawn nodes are painted.
+// staged(src, dst) -> levels staged, picked(kind, n), leftOut(src, dst), protected(dst) }. Only drawn nodes are painted.
+// view.other(dst) is { text, tip } for the current sources that the grid does not show.
 export function paintGridPanel(g, view) {
   g.paint(view);
 }
