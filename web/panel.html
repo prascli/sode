@@ -55,6 +55,15 @@
       <div class="pb-progress sode__banner-time" id="panel-update-bar" hidden></div>
     </div>
   </div>
+  <!-- The main page's Levels box (levelbox.js); only a Grid panel shows it. -->
+  <div class="sode__box sode__box--levels sode-gridpanel__levels" id="panel-levels" hidden>
+    <div class="sode__box-head"><label class="sode__label" for="panel-lvl">Levels</label></div>
+    <input id="panel-lvl" class="pb-input sode__input" spellcheck="false" autocomplete="off" aria-keyshortcuts="f">
+    <div class="sode__picker">
+      <div class="sode__levels" id="panel-lvl-pick" role="group" aria-label="Pick levels"></div>
+      <button type="button" class="pb-btn pb-btn--outline pb-btn--sm sode__all" id="panel-lvl-all" tabindex="-1"><span>Select</span><span>All</span></button>
+    </div>
+  </div>
   <div class="sode-panel__grid" id="panel-grid"></div>
   <button class="pb-btn pb-btn--outline pb-btn--sm" id="panels-signin" type="button" hidden>Sign in</button>
   <div class="sode-panel__offline pb-state-offline" id="panel-offline" role="alert" hidden>

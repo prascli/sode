@@ -26,6 +26,19 @@ func gridConfirm(b *tab) {
 	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 }
 
+// gridShow scrolls crosspoint (src, dst) near the top left and waits for its node. Only crosspoints near the view
+// have nodes. It needs "all" edges and no pins.
+func gridShow(b *tab, src, dst int) {
+	b.eval(fmt.Sprintf(`(() => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		sc.scrollLeft = Math.max(0, %d - 1) * xp;
+		sc.scrollTop = Math.max(0, %d - 1) * xp;
+		return true;
+	})()`, src, dst))
+	b.waitFor(fmt.Sprintf("crosspoint %d, %d drawn", src, dst), gridXp(src, dst)+` !== null && !`+gridXp(src, dst)+`.hidden`)
+}
+
 func gridKey(b *tab, key string) {
 	b.eval(fmt.Sprintf(`document.dispatchEvent(new KeyboardEvent('keydown', { key: %q, bubbles: true, cancelable: true }))`, key))
 }
@@ -67,7 +80,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Studio grid'`)
-	b.waitFor("crosspoints for every router source and destination", gridXp(199, 119)+` !== null && document.querySelectorAll('.sode-gridpanel__src').length === 200`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	b.waitFor("a field for every router source and destination", `(() => {
+		const f = document.querySelector('.sode-gridpanel__field');
+		return f?.style.getPropertyValue('--sode-cols') === '200' && f.style.getPropertyValue('--sode-rows') === '120';
+	})()`)
 	b.waitFor("names are the current Router names", `document.querySelector('.sode-gridpanel__dst[data-dst="2"]').textContent === 'DSM1' && document.querySelector('.sode-gridpanel__src[data-src="10"]').textContent === '`+simSrcName+`'`)
 	b.waitFor("the pie shows what the router has", gridXp(2, 2)+`.dataset.on?.startsWith('1,2')`)
 	b.shot("grid")
@@ -143,6 +160,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(13, 6)+` !== null && document.querySelector('.sode-gridpanel__src[data-src="13"]').textContent !== ''`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
 
 	src := func(n int) string {
 		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__src[data-src="%d"]')`, n)
@@ -187,6 +205,7 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	}
 	b.eval(`document.getElementById('panel-kiosk').click(); true`)
 	b.waitFor("Kiosk mode", kiosk)
+	gridShow(b, 11, 20)
 	b.eval(gridXp(11, 20) + `.click()`)
 	b.waitFor("staged again", staged(13, 22))
 	pressEsc()
@@ -268,4 +287,44 @@ func TestChromeGridPanelSharingModes(t *testing.T) {
 			t.Errorf("page error: %s", e)
 		}
 	}
+}
+
+// The Levels box on a Grid panel: the panel's levels setting fills it, typing changes what a press stages, and the
+// confirm shows those levels. Rights leave out the levels the box does not offer.
+func TestChromeGridPanelLevels(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Level grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Level grid'`)
+	b.waitFor("crosspoints", gridXp(12, 4)+` !== null`)
+	b.waitFor("the setting fills the box", `document.getElementById('panel-lvl').value === '1-2'`)
+	b.waitFor("a chip for every router level", `document.querySelectorAll('#panel-lvl-pick .sode__pick').length === 17`)
+	b.waitFor("the chips for the setting are on", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2`)
+
+	// f focuses the box, as on the main page, and typing changes the chips.
+	b.waitFor("the lock screen is off", `!document.querySelector('.sode-lock.is-on')`)
+	gridKey(b, "f")
+	b.waitFor("f focuses the box", `document.activeElement.id === 'panel-lvl'`)
+	b.eval(`(() => {
+		const i = document.getElementById('panel-lvl');
+		i.value = '3,5';
+		i.dispatchEvent(new Event('input', { bubbles: true }));
+		i.blur();
+	})()`)
+	b.waitFor("the chips follow the typed text", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2 && document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]').getAttribute('aria-pressed') === 'true'`)
+
+	b.eval(gridXp(12, 4) + `.click()`)
+	b.waitFor("a press stages", gridXp(12, 4)+`.dataset.s === 'staged'`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm shows the typed levels", `!document.getElementById('confirm').hidden && [...document.querySelectorAll('#confirm-body .sode__slot--on')].map((n) => n.textContent).join() === '3,5'`)
+	b.shot("levels-confirm")
+	gridConfirm(b)
+	b.check()
 }
