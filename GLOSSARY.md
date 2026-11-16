@@ -199,7 +199,7 @@ The three Access presets, from loosest to strictest. Under Open access a Guest i
 The install-wide switch that lets panel owners make a panel Public. On by default.
 
 **Interruptions**:
-The live panels, streams, sessions and browsers that a Settings save ends or narrows. The review lists them before Save, and the record of the save keeps them, since they do not come back.
+The live panels, streams, sessions and browsers that a Settings save ends or narrows. The review lists them before Save, and the record of the save keeps them, since they do not come back. The exception is a Public panel page, which comes back by itself when its panel is Public again.
 _Avoid_: What this stops
 
 ### Panels
