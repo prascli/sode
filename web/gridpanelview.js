@@ -17,6 +17,11 @@ const setData = (n, k, v) => {
     if (k in n.dataset) delete n.dataset[k];
   } else if (n.dataset[k] !== v) n.dataset[k] = v;
 };
+const pick = (n, on) => {
+  setData(n, 'picked', on ? '' : undefined);
+  const a = on ? 'true' : 'false';
+  if (n.getAttribute('aria-selected') !== a) n.setAttribute('aria-selected', a);
+};
 const setVar = (n, k, v) => {
   const s = String(v);
   if (n.style.getPropertyValue(k) !== s) n.style.setProperty(k, s);
@@ -100,9 +105,10 @@ function pool(host, make, put) {
 const range = (lo, hi) => Array.from({ length: Math.max(0, hi - lo) }, (_, k) => lo + k);
 const cross = (rows, cols) => rows.flatMap((i) => cols.map((j) => [i, j]));
 
-// host is the run's grid element; axes is gridAxes plus srcPins and dstPins; onPress({ src, dst }) is a press.
-// Returns the drawn grid (443.md in the Grid notes and docs/agents/panels.md list what it answers).
-export function buildGridPanel(host, axes, onPress) {
+// host is the run's grid element; axes is gridAxes plus srcPins and dstPins. onPress({ src, dst }) is a crosspoint
+// press. onName(kind, n, e) is a click on a name, kind 'srcs' or 'dsts'. onAt({ src, dst } or null) gives the
+// crosspoint under the pointer. Returns the drawn grid (docs/agents/panels.md).
+export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
   host.replaceChildren();
   host.removeAttribute('style');
   host.classList.add('sode-gridpanel');
@@ -126,6 +132,9 @@ export function buildGridPanel(host, axes, onPress) {
   let srcAt = new Map(); // router number to display index
   let dstAt = new Map();
   let view = null;
+  // The press preview (previewGridPanel): numbered crosspoints by "s:d" and outlined names.
+  let mark = { xps: new Map(), srcs: new Set(), dsts: new Set() };
+  const marked = new Set(); // crosspoint nodes that carry a number
   let px = { xp: 1, w: 1, h: 1 };
   const listeners = new Set();
 
@@ -137,6 +146,27 @@ export function buildGridPanel(host, axes, onPress) {
     setVar(n, '--sode-i', i);
     setVar(n, '--sode-j', j);
   };
+  const markXp = (n, s, d) => {
+    const k = mark.xps.get(`${s}:${d}`);
+    setData(n, 'n', k === undefined ? undefined : String(k));
+    if (k === undefined) marked.delete(n);
+    else marked.add(n);
+  };
+  const markName = (n, on) => setData(n, 'target', on ? '' : undefined);
+  const paintSrc = (n, s) => {
+    if (view) {
+      setText(n, view.names.source(s));
+      pick(n, view.picked('srcs', s));
+    }
+    markName(n, mark.srcs.has(s));
+  };
+  const paintDst = (n, d) => {
+    if (view) {
+      setText(n, view.names.destination(d));
+      pick(n, view.picked('dsts', d));
+    }
+    markName(n, mark.dsts.has(d));
+  };
   const xpPut = (n, i, j) => {
     place(n, i, j);
     const s = ax.srcs[j];
@@ -144,18 +174,19 @@ export function buildGridPanel(host, axes, onPress) {
     n.dataset.src = s;
     n.dataset.dst = d;
     if (view) paintXp(n, s, d, view);
+    markXp(n, s, d);
   };
   const srcPut = (n, i, j) => {
     place(n, 0, j);
     const s = ax.srcs[j];
     n.dataset.src = s;
-    if (view) setText(n, view.names.source(s));
+    paintSrc(n, s);
   };
   const dstPut = (n, i) => {
     place(n, i, 0);
     const d = ax.dsts[i];
     n.dataset.dst = d;
-    if (view) setText(n, view.names.destination(d));
+    paintDst(n, d);
   };
   const pools = {
     body: pool(body, makeXp, xpPut),
@@ -232,14 +263,34 @@ export function buildGridPanel(host, axes, onPress) {
   });
   ro.observe(scroll);
   ro.observe(probe);
+  const xpOf = (xp) => ({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
   field.addEventListener('click', (e) => {
     const xp = e.target.closest('.sode-gridpanel__xp');
-    if (xp) onPress({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
+    if (xp) return onPress(xpOf(xp));
+    const name = e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
+    if (name) onName(name.dataset.src ? 'srcs' : 'dsts', Number(name.dataset.src ?? name.dataset.dst), e);
   });
+  // A Shift-click would otherwise extend a text selection on the page.
+  field.addEventListener('mousedown', (e) => {
+    if (e.shiftKey) e.preventDefault();
+  });
+  field.addEventListener('pointerover', (e) => {
+    const xp = e.target.closest('.sode-gridpanel__xp');
+    onAt(xp ? xpOf(xp) : null);
+  });
+  field.addEventListener('pointerleave', () => onAt(null));
   measure();
   setAxes(axes);
 
   const at = (map, n) => map.get(n) ?? -1;
+  const nodeOf = (src, dst) => {
+    const k = `${at(dstAt, dst)},${at(srcAt, src)}`;
+    for (const p of xpPools) {
+      const n = p.live.get(k);
+      if (n) return n;
+    }
+    return null;
+  };
   return {
     scroll,
     field,
@@ -267,15 +318,7 @@ export function buildGridPanel(host, axes, onPress) {
       if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false));
     },
     // The drawn crosspoint node of src and dst, or null when it is out of view.
-    node(src, dst) {
-      const i = at(dstAt, dst);
-      const j = at(srcAt, src);
-      for (const p of xpPools) {
-        const n = p.live.get(`${i},${j}`);
-        if (n) return n;
-      }
-      return null;
-    },
+    node: (src, dst) => nodeOf(src, dst),
     // f() runs after each draw: a scroll, a resize or new axes.
     onDraw(f) {
       listeners.add(f);
@@ -284,9 +327,28 @@ export function buildGridPanel(host, axes, onPress) {
     paint(v) {
       view = v;
       for (const p of xpPools) for (const n of p.live.values()) paintXp(n, Number(n.dataset.src), Number(n.dataset.dst), v);
-      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) setText(n, v.names.source(Number(n.dataset.src)));
-      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) setText(n, v.names.destination(Number(n.dataset.dst)));
+      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) paintSrc(n, Number(n.dataset.src));
+      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) paintDst(n, Number(n.dataset.dst));
     },
+    // pairs is [{ src, dst }] in press order, or empty; over marks a press past the cap. Only drawn nodes that
+    // carry a mark, or get one, are touched.
+    preview(pairs, over) {
+      mark = {
+        xps: new Map(pairs.map(({ src, dst }, k) => [`${src}:${dst}`, k + 1])),
+        srcs: new Set(pairs.map((p) => p.src)),
+        dsts: new Set(pairs.map((p) => p.dst)),
+      };
+      for (const n of [...marked]) markXp(n, Number(n.dataset.src), Number(n.dataset.dst));
+      for (const { src, dst } of pairs) {
+        const xp = nodeOf(src, dst);
+        if (xp) markXp(xp, src, dst);
+      }
+      // The drawn names are a few dozen, so each is checked.
+      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.has(Number(n.dataset.src)));
+      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.has(Number(n.dataset.dst)));
+      setData(field, 'over', over && pairs.length ? '' : undefined);
+    },
+    previewing: () => mark.xps.size > 0 || mark.srcs.size > 0,
     stop() {
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
@@ -296,7 +358,11 @@ export function buildGridPanel(host, axes, onPress) {
 }
 
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged }. Only drawn nodes are painted.
+// staged(src, dst) -> levels staged, picked(kind, n) }. Only drawn nodes are painted.
 export function paintGridPanel(g, view) {
   g.paint(view);
 }
+
+// The routes a press would stage: each target crosspoint numbered in order and its names outlined. pairs is
+// [{ src, dst }] or empty; over marks a press the 128 cap would refuse.
+export const previewGridPanel = (g, pairs, over) => g.preview(pairs, over);

@@ -1,7 +1,19 @@
 // Staging on a Grid panel (gridpanelstage.js): keyed by destination and level, Take mode and Instant mode.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStage, pressCrosspoint, routesOf, stagedCount, confirmRoutes, dropStaged, afterTake, stageText, STAGE_MAX } from '../gridpanelstage.js';
+import {
+  createStage,
+  pressCrosspoint,
+  stageRoutes,
+  cancelConfirm,
+  routesOf,
+  stagedCount,
+  confirmRoutes,
+  dropStaged,
+  afterTake,
+  stageText,
+  STAGE_MAX,
+} from '../gridpanelstage.js';
 
 const take = () => createStage({ mode: 'take' });
 const press = (st, src, dst, levels = [1, 2]) => pressCrosspoint(st, { src, dst }, levels);
@@ -100,4 +112,87 @@ test('each refusal says why in words', () => {
 test('Esc drops every staged route', () => {
   const { st } = press(take(), 3, 7);
   assert.equal(stagedCount(dropStaged(st)), 0);
+});
+
+// A Diagonal is a list of { src, dst } pairs (gridpanelpick.js) staged by one press.
+const diag = (st, pairs, levels = [1, 2]) => stageRoutes(st, pairs, levels);
+const three = [
+  { src: 1, dst: 10 },
+  { src: 2, dst: 11 },
+  { src: 3, dst: 12 },
+];
+
+test('a Diagonal stages one route per pair, in its order, on the levels given', () => {
+  const r = diag(take(), three);
+  assert.equal(r.send, null);
+  assert.equal(r.confirm, false);
+  assert.deepEqual(routesOf(r.st), [
+    { src: 1, dst: 10, levels: [1, 2] },
+    { src: 2, dst: 11, levels: [1, 2] },
+    { src: 3, dst: 12, levels: [1, 2] },
+  ]);
+});
+
+test('the same Diagonal pressed again stays staged; only a one-route press unstages', () => {
+  const again = diag(diag(take(), three).st, three).st;
+  assert.equal(stagedCount(again), 3);
+  assert.equal(stagedCount(diag(diag(take(), [three[0]]).st, [three[0]]).st), 0);
+});
+
+test('a Diagonal replaces the staged levels on its destinations and leaves other levels', () => {
+  let st = diag(take(), [{ src: 9, dst: 10 }], [1, 2, 3]).st;
+  st = diag(st, three, [2]).st;
+  assert.deepEqual(routesOf(st), [
+    { src: 9, dst: 10, levels: [1, 3] },
+    { src: 1, dst: 10, levels: [2] },
+    { src: 2, dst: 11, levels: [2] },
+    { src: 3, dst: 12, levels: [2] },
+  ]);
+});
+
+test(`a Diagonal that would take the total past ${STAGE_MAX} stages nothing and says why`, () => {
+  let st = take();
+  for (let d = 0; d < STAGE_MAX - 2; d++) st = press(st, 1, d).st;
+  const r = diag(st, [
+    { src: 1, dst: 500 },
+    { src: 1, dst: 501 },
+    { src: 1, dst: 502 },
+  ]);
+  assert.equal(stagedCount(r.st), STAGE_MAX - 2);
+  assert.equal(r.st.error.code, 'cap');
+  assert.equal(stageText(r.st.error), 'At most 128 routes can be staged. This press adds 3 routes to 126.');
+  // Two fit exactly.
+  assert.equal(
+    stagedCount(
+      diag(st, [
+        { src: 1, dst: 500 },
+        { src: 1, dst: 501 },
+      ]).st,
+    ),
+    STAGE_MAX,
+  );
+});
+
+test('Instant mode: a press of more than one route stages it and asks for the confirm', () => {
+  const r = diag(createStage({ mode: 'instant' }), three);
+  assert.equal(r.send, null);
+  assert.equal(r.confirm, true);
+  assert.equal(confirmRoutes(r.st).length, 3);
+});
+
+test('Instant mode: a cancelled confirm drops those routes, so the next press stands alone', () => {
+  const st = cancelConfirm(diag(createStage({ mode: 'instant' }), three).st);
+  assert.equal(stagedCount(st), 0);
+  const { send } = press(st, 5, 20);
+  assert.deepEqual(send, [{ src: 5, dst: 20, levels: [1, 2] }]);
+});
+
+test('Take mode: a cancelled confirm keeps the stage', () => {
+  assert.equal(stagedCount(cancelConfirm(diag(take(), three).st)), 3);
+});
+
+test('Instant mode: a failed take holds nothing staged', () => {
+  const st = afterTake(diag(createStage({ mode: 'instant' }), three).st, 'refused');
+  assert.equal(stagedCount(st), 0);
+  assert.equal(st.error.message, 'refused');
 });

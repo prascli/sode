@@ -26,6 +26,19 @@ func gridConfirm(b *tab) {
 	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 }
 
+// gridShow scrolls a Grid panel with "all" edges and no pins so that crosspoint (src, dst) is near the top left,
+// and waits for its node. Only crosspoints near the view have nodes.
+func gridShow(b *tab, src, dst int) {
+	b.eval(fmt.Sprintf(`(() => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		sc.scrollLeft = Math.max(0, %d - 1) * xp;
+		sc.scrollTop = Math.max(0, %d - 1) * xp;
+		return true;
+	})()`, src, dst))
+	b.waitFor(fmt.Sprintf("crosspoint %d, %d drawn", src, dst), gridXp(src, dst)+` !== null && !`+gridXp(src, dst)+`.hidden`)
+}
+
 func gridKey(b *tab, key string) {
 	b.eval(fmt.Sprintf(`document.dispatchEvent(new KeyboardEvent('keydown', { key: %q, bubbles: true, cancelable: true }))`, key))
 }
@@ -129,6 +142,80 @@ func TestChromeGridPanelTake(t *testing.T) {
 	// The panels list draws with a Grid panel in it.
 	b.open(srv.URL + "/panels")
 	b.waitFor("the panels list names the Grid panel", `document.body.textContent.includes('Studio grid')`)
+	b.check()
+}
+
+// Picks on the Source bar make a press stage a Diagonal. The targets show numbered before the press. The header
+// counts the staged routes, and one confirm takes them all. In Kiosk mode Esc drops the picks, then the staged
+// routes, and only then leaves Kiosk mode.
+func TestChromeGridPanelDiagonal(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Block grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the grid", gridXp(13, 6)+` !== null && document.querySelector('.sode-gridpanel__src[data-src="13"]').textContent !== ''`)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+
+	src := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__src[data-src="%d"]')`, n)
+	}
+	dst := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]')`, n)
+	}
+	clickName := func(name, mods string) {
+		b.eval(name + `.dispatchEvent(new MouseEvent('click', { bubbles: true, ` + mods + ` })); true`)
+	}
+	clickName(src(11), "")
+	clickName(src(13), "shiftKey: true")
+	b.waitFor("Shift-click picks the range", src(11)+`.dataset.picked === '' && `+src(12)+`.dataset.picked === '' && `+src(13)+`.dataset.picked === '' && !('picked' in `+src(14)+`.dataset)`)
+	if got := b.eval(`getSelection().toString()`); got != "" {
+		t.Errorf("a Shift-click selected text %q", got)
+	}
+
+	b.eval(gridXp(11, 4) + `.dispatchEvent(new PointerEvent('pointerover', { bubbles: true })); true`)
+	b.waitFor("the targets show numbered and their names outlined",
+		gridXp(11, 4)+`.dataset.n === '1' && `+gridXp(12, 5)+`.dataset.n === '2' && `+gridXp(13, 6)+`.dataset.n === '3' && !(`+gridXp(11, 5)+`.dataset.n) && `+
+			dst(5)+`.dataset.target === '' && `+src(13)+`.dataset.target === '' && !('target' in `+dst(7)+`.dataset)`)
+	b.shot("diagonal-preview")
+
+	b.eval(gridXp(11, 4) + `.click()`)
+	staged := func(s, d int) string { return gridXp(s, d) + `.dataset.s === 'staged'` }
+	b.waitFor("the press stages the Diagonal", staged(11, 4)+` && `+staged(12, 5)+` && `+staged(13, 6))
+	b.waitFor("the header counts the staged routes", `document.getElementById('panel-staged')?.textContent === '3 staged' && !document.getElementById('panel-staged').hidden`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm lists all three", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
+	gridConfirm(b)
+	tallyHas(t, a, ana, 4, 11)
+	tallyHas(t, a, ana, 5, 12)
+	tallyHas(t, a, ana, 6, 13)
+	b.waitFor("nothing staged after the take", `document.getElementById('panel-staged').hidden`)
+
+	// Esc steps in Kiosk mode.
+	const kiosk = `document.documentElement.hasAttribute('data-sode-kiosk')`
+	pressEsc := func() {
+		for _, typ := range []string{"keyDown", "keyUp"} {
+			b.call("Input.dispatchKeyEvent", map[string]any{"type": typ, "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+		}
+	}
+	b.eval(`document.getElementById('panel-kiosk').click(); true`)
+	b.waitFor("Kiosk mode", kiosk)
+	gridShow(b, 11, 20)
+	b.eval(gridXp(11, 20) + `.click()`)
+	b.waitFor("staged again", staged(13, 22))
+	pressEsc()
+	b.waitFor("the first Esc drops the picks", `!document.querySelector('.sode-gridpanel__src[data-picked]')`)
+	b.waitFor("and keeps the staged routes and Kiosk mode", staged(13, 22)+` && `+kiosk)
+	pressEsc()
+	b.waitFor("the second Esc drops the staged routes", `!document.querySelector('.sode-gridpanel__xp[data-s="staged"]')`)
+	b.waitFor("and keeps Kiosk mode", kiosk)
+	pressEsc()
+	b.waitFor("a third Esc leaves Kiosk mode", `!(`+kiosk+`)`)
 	b.check()
 }
 
