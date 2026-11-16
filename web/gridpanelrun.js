@@ -5,6 +5,7 @@ import { envFrom, namesFrom } from './panelrules.js';
 import { gridAxes } from './gridpaneledges.js';
 import { createStage, pressCrosspoint, confirmRoutes, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
 import { stageLevels, pieOn } from './gridpanellevels.js';
+import { otherSources, otherText, pressRefusal, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
@@ -39,9 +40,13 @@ export function gridBody(ctx, first) {
   let names = namesFrom({});
   let namesReply = {};
   let axesKey = '';
+  let shownSrcs = new Set();
+  let out = []; // staged routes left out (gridpanelrights.js), as of the last render
   let g = null;
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
 
+  // What the last polls said, for the staged routes that no longer apply.
+  const world = () => ({ env, rights: panel.rights, names: namesReply });
   const staged = (s, d) => st.staged.filter((x) => x.src === s && x.dst === d).map((x) => x.level);
   const view = {
     get names() {
@@ -53,11 +58,18 @@ export function gridBody(ctx, first) {
     levelText: (list) => levelTextOf(list, tally?.levels || [], tally?.levelNumbering),
     pie: (s, d) => pieOn(env, s, d),
     staged,
+    leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
+    protected: (d) => env.protectedDsts.has(d),
+    other(d) {
+      const o = otherSources(env, d, shownSrcs);
+      return { text: otherText(o, names), tip: o.length ? `Not on this panel: ${o.map((x) => names.source(x)).join(', ')}` : '' };
+    },
   };
 
   const render = () => {
+    out = leftOut(st, world());
     if (g) paintGridPanel(g, view);
-    const text = stageText(st.error) || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const text = stageText(st.error) || refusalText(st.error, names) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
@@ -65,6 +77,7 @@ export function gridBody(ctx, first) {
   // Nodes are made again only when the shown sources or destinations change.
   const rebuild = () => {
     const axes = gridAxes(panel, namesReply);
+    shownSrcs = new Set(axes.srcs);
     const key = JSON.stringify(axes);
     if (key === axesKey) return;
     axesKey = key;
@@ -97,15 +110,26 @@ export function gridBody(ctx, first) {
       })
     : null;
 
+  // Routes that no longer apply are left out with the reason and dropped here.
   function openConfirm() {
+    if (!confirm || st.busy) return;
+    const was = leftOut(st, world());
+    st = keepLive(st, world());
     const routes = confirmRoutes(st);
-    if (!routes || !confirm || st.busy) return;
-    confirm.open({ ...planOf(routes, names), routes });
+    if (routes) confirm.open({ ...planOf(routes, names), routes, warnings: was.map((r) => leftOutLine(r, names)) });
+    else if (was.length) note = { text: leftOutText(was, names), at: Date.now(), ok: false };
+    render();
   }
 
   function onPress(xp) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
+    st = keepLive(st, world());
+    const refused = pressRefusal(xp, env);
+    if (refused) {
+      st = { ...st, error: refused };
+      return render();
+    }
     const r = pressCrosspoint(st, xp, stageLevels(panel.settings, tally, panel.rights));
     st = r.st;
     if (r.send) send(r.send);

@@ -1,7 +1,7 @@
 // Draws a Grid panel. The Source bar is across the top and the Destination bar down the side, with a crosspoint and
 // level pie for each pair. build makes the nodes when the shown items change. paint changes only what moved, so the
 // one-second redraw mutates nothing on an idle grid. Every crosspoint is a node until the grid is virtualised.
-import { el } from './core.js';
+import { el, icon } from './core.js';
 import { pieFill } from './gridpanellevels.js';
 
 const setText = (n, t) => {
@@ -40,7 +40,8 @@ export function buildGridPanel(host, { srcs, dsts }, onPress) {
   for (const d of dsts) {
     const row = el('div', 'sode-gridpanel__row');
     row.setAttribute('role', 'row');
-    const name = el('div', 'pb-xpt pb-xpt--dest sode-gridpanel__dst');
+    // Empty smalls add no text, so the node's text is the name until a protection or other source shows.
+    const name = el('div', 'pb-xpt pb-xpt--dest sode-gridpanel__dst', el('span'), el('small', 'sode-gridpanel__prot'), el('small', 'sode-gridpanel__other'));
     name.setAttribute('role', 'rowheader');
     name.dataset.dst = d;
     dstNodes.set(d, name);
@@ -65,11 +66,24 @@ export function buildGridPanel(host, { srcs, dsts }, onPress) {
   return { srcNodes, dstNodes, xps };
 }
 
+function paintDestination(n, d, view) {
+  const [name, prot, other] = n.children;
+  setText(name, view.names.destination(d));
+  const p = view.protected(d);
+  n.classList.toggle('pb-xpt--protected', p);
+  // Status always with text: the lock icon never stands alone.
+  if (prot.childElementCount !== (p ? 1 : 0)) prot.replaceChildren(...(p ? [icon('lock'), ' Protected'] : []));
+  const o = view.other(d);
+  setText(other, o.text);
+  setData(other, 'pbTip', o.tip || undefined);
+}
+
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged }.
+// staged(src, dst) -> levels staged, leftOut(src, dst), protected(dst) }.
+// view.other(dst) is { text, tip } for the current sources that the grid does not show.
 export function paintGridPanel(g, view) {
   for (const [s, n] of g.srcNodes) setText(n, view.names.source(s));
-  for (const [d, n] of g.dstNodes) setText(n, view.names.destination(d));
+  for (const [d, n] of g.dstNodes) paintDestination(n, d, view);
   for (const xp of g.xps) {
     const s = Number(xp.dataset.src);
     const d = Number(xp.dataset.dst);
@@ -81,11 +95,15 @@ export function paintGridPanel(g, view) {
       pie._fill = fill;
       pie.style.background = fill;
     }
-    // data-s staged is the attribute the panel pulse watches (panels.css).
+    // data-s staged is the attribute the panel pulse watches (panels.css). A route left out does not pulse.
     const staged = view.staged(s, d);
-    setData(xp, 's', staged.length ? 'staged' : undefined);
+    const out = staged.length > 0 && view.leftOut(s, d);
+    const prot = view.protected(d);
+    setData(xp, 's', out ? 'left-out' : staged.length ? 'staged' : undefined);
     setData(xp, 'on', on.length ? on.join(',') : undefined);
-    const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${staged.length ? ', staged' : ''}`;
+    if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
+    const state = out ? ', staged, left out of the take' : staged.length ? ', staged' : '';
+    const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${prot ? ', protected' : ''}${state}`;
     if (xp.getAttribute('aria-label') !== label) xp.setAttribute('aria-label', label);
   }
 }

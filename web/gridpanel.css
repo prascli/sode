@@ -48,11 +48,25 @@
   text-align: center;
 }
 .sode-gridpanel__dst {
-  justify-content: flex-start;
+  align-items: flex-start;
+  flex-direction: column;
   left: 0;
   position: sticky;
   text-align: start;
   z-index: 1;
+}
+/* Protected, or the current sources the grid does not show (gridpanelview.js paintDestination). */
+.sode-gridpanel__prot,
+.sode-gridpanel__other {
+  align-items: center;
+  color: var(--pb-text);
+  display: flex;
+  font-size: var(--pb-text-xs);
+  gap: var(--pb-space-1);
+}
+.sode-gridpanel__prot:empty,
+.sode-gridpanel__other:empty {
+  display: none;
 }
 .sode-gridpanel__xp {
   background: var(--pb-surface-sunken);
@@ -73,4 +87,14 @@
 /* A staged crosspoint: a ring that pulses on the panel clock (panels.css --pulse). */
 .sode-gridpanel__xp[data-s="staged"] {
   box-shadow: inset 0 0 0 0.25rem color-mix(in oklab, var(--pb-text-strong) calc(40% + var(--pulse) * 60%), transparent);
+}
+/* A protected destination's crosspoints refuse a press. */
+.sode-gridpanel__xp[aria-disabled="true"] {
+  background: var(--pb-surface-base);
+  cursor: not-allowed;
+}
+/* A staged route left out of the take (gridpanelrights.js): a still dashed ring, no pulse. */
+.sode-gridpanel__xp[data-s="left-out"] {
+  outline: var(--pb-border-w) dashed var(--pb-text-strong);
+  outline-offset: -0.25rem;
 }

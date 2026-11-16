@@ -50,3 +50,12 @@ test('an "all" edge follows the router: an item the router adds shows, one it dr
 test('no names yet shows no items', () => {
   assert.deepEqual(gridAxes(gridPanel(), {}), { srcs: [], dsts: [] });
 });
+
+test('"all" is resolved against the viewer\'s Rights: items outside them are left out', () => {
+  const p = gridPanel({ rights: { sources: [0, 2], dsts: [1] } });
+  assert.deepEqual(gridAxes(p, namesReply()), { srcs: [0, 2], dsts: [1] });
+});
+
+test('an unset Rights list allows every item, an empty one none', () => {
+  assert.deepEqual(gridAxes(gridPanel({ rights: { dsts: [] } }), namesReply()), { srcs: [0, 1, 2], dsts: [] });
+});
