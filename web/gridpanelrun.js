@@ -3,13 +3,15 @@
 // The rules are pure modules (gridpanel*.js); this file joins them to the DOM.
 import { envFrom, namesFrom } from './panelrules.js';
 import { gridAxes } from './gridpaneledges.js';
-import { createStage, pressCrosspoint, confirmRoutes, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
+import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
+import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpanelpick.js';
 import { stageLevels, pieOn } from './gridpanellevels.js';
 import { gridKeyAction } from './gridpanelkeys.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
-import { buildGridPanel, paintGridPanel } from './gridpanelview.js';
+import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { levelTextOf } from './levels.js';
+import { el } from './core.js';
 
 const NOTE_MS = 4000;
 
@@ -39,7 +41,15 @@ export function gridBody(ctx, first) {
   let names = namesFrom({});
   let namesReply = {};
   let axesKey = '';
+  let axes = { srcs: [], dsts: [] };
   let g = null;
+  let picks = createPicks();
+  let at = null; // the crosspoint under the pointer, whose press the preview shows
+  // "N staged" in the header: staged routes can be scrolled out of view.
+  const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
+  count.id = 'panel-staged';
+  count.hidden = true;
+  ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
 
   const staged = (s, d) => st.staged.filter((x) => x.src === s && x.dst === d).map((x) => x.level);
@@ -53,10 +63,25 @@ export function gridBody(ctx, first) {
     levelText: (list) => levelTextOf(list, tally?.levels || [], tally?.levelNumbering),
     pie: (s, d) => pieOn(env, s, d),
     staged,
+    picked: (kind, n) => picks[kind].includes(n),
+  };
+
+  const levelsNow = () => stageLevels(panel.settings, tally, panel.rights);
+  const pairsAt = (xp) => diagonal(picks, xp, axes);
+
+  // Numbered targets only while names are picked; a press with none is the crosspoint itself.
+  const preview = () => {
+    const pairs = at && pickCount(picks) ? pairsAt(at) : [];
+    previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, levelsNow()).st.error?.code === 'cap');
   };
 
   const render = () => {
-    if (g) paintGridPanel(g, view);
+    if (g) {
+      paintGridPanel(g, view);
+      preview();
+    }
+    const n = stagedCount(st);
+    say(count, n ? `${n} staged` : '');
     const text = stageText(st.error) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
@@ -64,11 +89,15 @@ export function gridBody(ctx, first) {
 
   // Nodes are made again only when the shown sources or destinations change.
   const rebuild = () => {
-    const axes = gridAxes(panel, namesReply);
-    const key = JSON.stringify(axes);
+    const next = gridAxes(panel, namesReply);
+    const key = JSON.stringify(next);
     if (key === axesKey) return;
     axesKey = key;
-    g = buildGridPanel(ui.grid, axes, onPress);
+    axes = next;
+    // Picks on names that left the panel go.
+    picks = { ...picks, srcs: picks.srcs.filter((n) => next.srcs.includes(n)), dsts: picks.dsts.filter((n) => next.dsts.includes(n)) };
+    at = null;
+    g = buildGridPanel(ui.grid, axes, { onPress, onName, onAt });
   };
 
   async function send(routes) {
@@ -93,7 +122,10 @@ export function gridBody(ctx, first) {
     ? gridConfirm({
         tally: () => tally,
         onTake: (plan) => send(plan.routes),
-        onClose: () => {},
+        onClose: () => {
+          st = cancelConfirm(st);
+          render();
+        },
       })
     : null;
 
@@ -106,22 +138,39 @@ export function gridBody(ctx, first) {
   function onPress(xp) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
-    const r = pressCrosspoint(st, xp, stageLevels(panel.settings, tally, panel.rights));
+    const r = stageRoutes(st, pairsAt(xp), levelsNow());
     st = r.st;
     if (r.send) send(r.send);
     else render();
+    if (r.confirm) openConfirm();
+  }
+
+  function onName(kind, n, e) {
+    if (!ctx.ready()) return;
+    picks = pickName(picks, kind, n, { range: e.shiftKey, toggle: e.metaKey || e.ctrlKey }, axes[kind]);
+    render();
+  }
+
+  function onAt(xp) {
+    if (at?.src === xp?.src && at?.dst === xp?.dst) return;
+    at = xp;
+    // Only the preview: a full paint on each pointer move is too slow on a large grid.
+    if (g && (pickCount(picks) || g.marked.length)) preview();
   }
 
   const onKey = (e) => {
     if (confirm?.isOpen()) return confirm.key(e);
     // The page lock's sign-in and dialogs take their keys first.
     if (e.defaultPrevented) return;
-    const act = gridKeyAction(e, { staged: st.staged.length, inControl: inControl(ui.grid) });
+    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
     if (!act) return;
     e.preventDefault();
     e.stopPropagation();
     if (act === 'confirm') openConfirm();
-    else if (act === 'drop') {
+    else if (act === 'unpick') {
+      picks = dropPicks(picks);
+      render();
+    } else if (act === 'drop') {
       st = dropStaged(st);
       render();
     }
@@ -151,6 +200,7 @@ export function gridBody(ctx, first) {
     renamed: render,
     stop() {
       document.removeEventListener('keydown', onKey, true);
+      count.remove();
       if (confirm?.isOpen()) confirm.close();
     },
   };
