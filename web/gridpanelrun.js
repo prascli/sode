@@ -173,6 +173,13 @@ export function gridBody(ctx, first) {
       render();
     },
     renamed: render,
+    // From each panel read (panelrun.js), so staged routes that leave the Rights are left out at once.
+    rights(r) {
+      if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
+      panel = { ...panel, rights: r };
+      rebuild();
+      render();
+    },
     stop() {
       document.removeEventListener('keydown', onKey, true);
       if (confirm?.isOpen()) confirm.close();

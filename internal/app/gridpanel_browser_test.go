@@ -265,5 +265,22 @@ func TestChromeGridPanelProtected(t *testing.T) {
 		t.Error("the route left out was sent")
 	}
 	b.waitFor("the left-out route is dropped", `!document.querySelector('.sode-gridpanel__xp[data-s]')`)
+
+	// The Rights narrow while routes are staged: the open page reads them with the panel, not only after a reload.
+	b.eval(gridXp(7, 7) + `.click()`)
+	b.eval(gridXp(8, 8) + `.click()`)
+	b.waitFor("two more routes staged", gridXp(8, 8)+`.dataset.s === 'staged'`)
+	if err := a.applyConfig(func(c *config.Config) error {
+		c.Users[0].Rights = config.Rights{Sources: span(20), Dsts: span(8)}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	b.waitFor("the destination outside the Rights goes", `document.querySelectorAll('.sode-gridpanel__dst').length === 8`)
+	b.waitFor("the status says why the staged route is left out", `document.getElementById('panel-status').textContent.includes("outside this panel's Rights")`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm leaves it out", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes("outside this panel's Rights")`)
+	gridConfirm(b)
+	tallyHas(t, a, ana, 7, 7)
 	b.check()
 }
