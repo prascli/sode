@@ -288,3 +288,43 @@ func TestChromeGridPanelSharingModes(t *testing.T) {
 		}
 	}
 }
+
+// The Levels box on a Grid panel: the panel's levels setting fills it, typing changes what a press stages, and the
+// confirm shows those levels. Rights leave out the levels the box does not offer.
+func TestChromeGridPanelLevels(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Level grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the panel title", `document.getElementById('panel-title').textContent === 'Level grid'`)
+	b.waitFor("crosspoints", gridXp(12, 4)+` !== null`)
+	b.waitFor("the setting fills the box", `document.getElementById('panel-lvl').value === '1-2'`)
+	b.waitFor("a chip for every router level", `document.querySelectorAll('#panel-lvl-pick .sode__pick').length === 17`)
+	b.waitFor("the chips for the setting are on", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2`)
+
+	// f focuses the box, as on the main page, and typing changes the chips.
+	b.waitFor("the lock screen is off", `!document.querySelector('.sode-lock.is-on')`)
+	gridKey(b, "f")
+	b.waitFor("f focuses the box", `document.activeElement.id === 'panel-lvl'`)
+	b.eval(`(() => {
+		const i = document.getElementById('panel-lvl');
+		i.value = '3,5';
+		i.dispatchEvent(new Event('input', { bubbles: true }));
+		i.blur();
+	})()`)
+	b.waitFor("the chips follow the typed text", `document.querySelectorAll('#panel-lvl-pick .sode__pick[aria-pressed="true"]').length === 2 && document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]').getAttribute('aria-pressed') === 'true'`)
+
+	b.eval(gridXp(12, 4) + `.click()`)
+	b.waitFor("a press stages", gridXp(12, 4)+`.dataset.s === 'staged'`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm shows the typed levels", `!document.getElementById('confirm').hidden && [...document.querySelectorAll('#confirm-body .sode__slot--on')].map((n) => n.textContent).join() === '3,5'`)
+	b.shot("levels-confirm")
+	gridConfirm(b)
+	b.check()
+}

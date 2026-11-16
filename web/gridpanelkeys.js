@@ -4,6 +4,7 @@
 
 const ACTIONS = {
   Enter: (c) => (c.staged && !c.inControl ? 'confirm' : null),
+  f: (c) => (c.inControl ? null : 'levels'),
   // Picks go first, then staged routes. With neither, Kiosk mode's own Esc works.
   Escape: (c) => (c.picks ? 'unpick' : c.staged ? 'drop' : null),
 };
