@@ -18,6 +18,7 @@ import {
   typeLabel,
 } from '../editorrules.js';
 import { createGrid, merge, select } from '../gridmodel.js';
+import { pageView } from '../panelpages.js';
 
 test('the editor opens the panel in ?panel=, and anything else starts a new one', () => {
   assert.deepEqual(editorTarget('?panel=p-1a2b'), { id: 'p-1a2b' });
@@ -82,6 +83,35 @@ test('dirty means the name or the grid differs from what was loaded', () => {
   assert.equal(isDirty(loaded, 'B', g), true);
   assert.equal(isDirty(loaded, 'A', merge(select(select(g, 1, 1), 2, 2, true))), true);
   assert.equal(isDirty(null, 'New panel', createGrid()), false);
+});
+
+test('a new Grid panel follows the router on both edges and has no Pages', () => {
+  const p = newPanel('grid');
+  assert.deepEqual([p.type, p.sources, p.destinations, p.pages, p.acts], ['grid', { members: 'all' }, { members: 'all' }, [], 'session']);
+  assert.equal(newPanel().type, undefined);
+});
+
+test('a Grid panel saves its type and edges with no size and no Pages, whatever the Buttons grid holds', () => {
+  const g = merge(select(select(createGrid({ rows: 2, cols: 2 }), 1, 1), 2, 2, true));
+  const sources = { members: [3, 1], items: { 1: { pinned: true } } };
+  const fresh = saveBody(newPanel(), 'Wall', g, { type: 'grid', sources });
+  assert.deepEqual([fresh.type, fresh.sources, fresh.destinations, fresh.pages], ['grid', sources, { members: 'all' }, []]);
+  assert.ok(!('rows' in fresh) && !('cols' in fresh));
+  const loaded = { ...newPanel('grid'), id: 'p-1', name: 'Wall', canEdit: true, rows: 0, cols: 0, future: 1 };
+  const b = saveBody(loaded, 'Wall', g, { destinations: { members: [2] } });
+  assert.deepEqual([b.type, b.sources, b.destinations, b.pages, b.future], ['grid', { members: 'all' }, { members: [2] }, [], 1]);
+});
+
+test('a Grid panel is dirty on a type or edge change, and not on an empty items or hide left by an undone edit', () => {
+  const loaded = { ...newPanel('grid'), id: 'p-1', name: 'Wall', rows: 0, cols: 0 };
+  const g = createGrid(pageView(loaded));
+  assert.equal(isDirty(loaded, 'Wall', g, {}), false);
+  assert.equal(isDirty(loaded, 'Wall', g, { sources: { members: 'all', items: {}, hide: [] } }), false);
+  assert.equal(isDirty(loaded, 'Wall', g, { sources: { members: 'all', items: { 2: { pinned: true } } } }), true);
+  assert.equal(isDirty(null, 'New panel', createGrid(), { type: 'grid' }), true);
+  assert.equal(isDirty(null, 'New panel', createGrid(), { type: 'buttons' }), false);
+  // A Grid panel made from a new panel: the editor's Buttons grid is still the new panel's 4 by 8.
+  assert.equal(isDirty(loaded, 'Wall', createGrid(), {}), false);
 });
 
 test('the menu goes right of the selection, else left, else below, and stays inside its area', () => {
