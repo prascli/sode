@@ -3,6 +3,7 @@
 import { el } from './core.js';
 import { btn } from './formbits.js';
 import { createOrderedList } from './orderedlist.js';
+import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, PINS_MAX } from './editorgridrules.js';
 
@@ -40,6 +41,11 @@ export function createEdgeTab(ed, { key, rights, what }) {
   let drawn = [];
   function paint() {
     const ro = ed.readOnly();
+    // A Buttons panel never shows the tab, so it holds no rows.
+    if (!isGridPanel(ed.fields())) {
+      drawn = [];
+      return list.replaceChildren();
+    }
     const now = [edge(), router(), myRights(), ro, ed.routerNames()];
     if (now.every((x, i) => x === drawn[i])) return;
     drawn = now;
