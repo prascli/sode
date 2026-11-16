@@ -54,11 +54,11 @@ func (a *App) namesSnapshot(v apiView) apiNames {
 	}
 }
 
-func (a *App) apiNames(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+func (a *App) apiNames(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	a.mu.Lock()
 	res := a.namesSnapshot(cl.view())
 	a.mu.Unlock()
-	apiJSON(w, res)
+	apiJSONTagged(w, r, res)
 }
 
 type apiRouteRow struct {
@@ -107,14 +107,14 @@ func (a *App) tallySnapshot(v apiView) map[string]any {
 	return map[string]any{"levels": levels, "routes": routeRows(a.router.tally, v)}
 }
 
-func (a *App) apiTally(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+func (a *App) apiTally(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	a.mu.Lock()
 	res := a.tallySnapshot(cl.view())
 	a.mu.Unlock()
-	apiJSON(w, res)
+	apiJSONTagged(w, r, res)
 }
 
-func (a *App) apiProtected(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+func (a *App) apiProtected(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	a.mu.Lock()
 	v := cl.view()
 	rows := []apiProtectedRow{}
@@ -133,7 +133,7 @@ func (a *App) apiProtected(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
 		}
 		return rows[i].Level < rows[j].Level
 	})
-	apiJSON(w, map[string]any{"protected": rows})
+	apiJSONTagged(w, r, map[string]any{"protected": rows})
 }
 
 // linkStatus is the Router link as any caller with the status scope sees it. The router

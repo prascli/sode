@@ -213,7 +213,7 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	// The page mirrors these before arming a take; the server still enforces them.
 	out["rights"] = cl.Rights.Clone()
 	out["artDefaults"] = a.panelArtDefaults(cl, p)
-	apiJSON(w, out)
+	apiJSONTagged(w, r, out)
 }
 
 // panelIDOf turns a short name into its panel's id. Anything else comes back as given, so an unknown
