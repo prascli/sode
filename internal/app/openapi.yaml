@@ -2303,9 +2303,31 @@ components:
       required: [members]
       properties:
         members:
-          type: string
-          enum: [all]
-          description: "`all`: every item the router reports, in router order, following the router as it changes"
+          description: |
+            `all`: every item the router reports, in router order, less `hide`, following the router as it changes.
+            A list: these router numbers in this order, without repeats. A pin or artwork in `items` never changes `all` into a list.
+          oneOf:
+            - { type: string, enum: [all] }
+            - type: array
+              uniqueItems: true
+              items: { type: integer, minimum: 0, maximum: 65535 }
+        hide:
+          type: array
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 65535 }
+          description: Router numbers that an `all` edge leaves out. With a list, it is 400 `bad_request`.
+        items:
+          type: object
+          propertyNames: { pattern: "^(0|[1-9][0-9]*)$" }
+          additionalProperties: { $ref: "#/components/schemas/GridItem" }
+          description: |
+            Settings for each item, keyed by router number. An entry for an item that is not shown stays.
+            More than 8 pinned items on one edge is 400 `bad_request`.
+    GridItem:
+      type: object
+      properties:
+        pinned: { type: boolean, description: "The item shows first, at the edge of the grid, before the items that are not pinned" }
+        art: { type: string, description: "Artwork in the form of a cell's `art`" }
     PanelIn:
       type: object
       description: |
