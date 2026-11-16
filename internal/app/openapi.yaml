@@ -2259,6 +2259,16 @@ components:
             without repeats of what it shows. For `pageName`, that is `number` and `name` (absent
             means `name`). For `info`, it is `panel`, `number`, `page` and `instance` (absent means
             all but `number`). Anything else is 400 `bad_request`.
+    GridEdge:
+      type: object
+      description: |
+        A Grid panel's sources or destinations. Left out, it is `"all"`. Sent on a Buttons panel, it is 400 `bad_request`.
+      required: [members]
+      properties:
+        members:
+          type: string
+          enum: [all]
+          description: "`all`: every item the router reports, in router order, following the router as it changes"
     PanelIn:
       type: object
       description: |
@@ -2278,18 +2288,28 @@ components:
             `GET /panels/<slug>`. Unique across panels (409 `conflict`), never `editor` or shaped
             like an id. Leaving it out of a save clears it. A change or a clear stops every link
             that used the old one; links by id keep working. A copy starts without one.
+        type:
+          type: string
+          enum: [buttons, grid]
+          default: buttons
+          description: |
+            Fixed when the panel is made (ADR 0011). A Buttons panel has Pages of cells; a Grid panel has
+            `sources` and `destinations`. A read always has it. A save with a different type is 409
+            `conflict`, and a save with no type keeps the stored one.
+        sources: { $ref: "#/components/schemas/GridEdge" }
+        destinations: { $ref: "#/components/schemas/GridEdge" }
         acts: { type: string, enum: [session, api, both, public], default: session }
         share: { $ref: "#/components/schemas/PanelShare" }
-        rows: { type: integer, minimum: 1, maximum: 24, default: 4 }
-        cols: { type: integer, minimum: 1, maximum: 24, default: 8 }
+        rows: { type: integer, minimum: 0, maximum: 24, default: 4, description: "1 to 24 on a Buttons panel; a Grid panel reads 0 and ignores it" }
+        cols: { type: integer, minimum: 0, maximum: 24, default: 8, description: "1 to 24 on a Buttons panel; a Grid panel reads 0 and ignores it" }
         pages:
           type: array
-          minItems: 1
           maxItems: 16
           items: { $ref: "#/components/schemas/PanelPage" }
           description: |
             The Pages in order; the number of a Page is its place. Cells that no longer fit `rows`
             by `cols` are dropped from every Page on a save. Left out, the panel has one empty Page.
+            A Buttons panel has at least one. A Grid panel reads `[]`, and a non-empty list is 400 `bad_request`.
         cells:
           type: array
           writeOnly: true

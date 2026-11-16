@@ -78,8 +78,10 @@ type PanelArt struct {
 // the panel page and editor. Extra keeps any field this version does not know, so an
 // older Sode never drops what a newer one wrote.
 type Panel struct {
-	ID     string `yaml:"id" json:"id"`
-	Name   string `yaml:"name" json:"name"`
+	ID   string `yaml:"id" json:"id"`
+	Name string `yaml:"name" json:"name"`
+	// Type is panelTypeButtons or panelTypeGrid, fixed when the panel is made (ADR 0011).
+	Type   string `yaml:"type,omitempty" json:"type"`
 	Owner  string `yaml:"owner" json:"owner"`
 	Acts   string `yaml:"acts" json:"acts"`
 	Client string `yaml:"client,omitempty" json:"client,omitempty"` // the API client of an api panel
@@ -96,6 +98,9 @@ type Panel struct {
 	LegacyCells []map[string]any `yaml:"cells,omitempty" json:"cells,omitempty"`
 	Settings    map[string]any   `yaml:"settings" json:"settings"`
 	Art         []PanelArt       `yaml:"art,omitempty" json:"art,omitempty"`
+	// Sources and Destinations are a Grid panel's edges, nil on a Buttons panel.
+	Sources      *GridEdge `yaml:"sources,omitempty" json:"sources,omitempty"`
+	Destinations *GridEdge `yaml:"destinations,omitempty" json:"destinations,omitempty"`
 	// Rev is the server's: it counts stored changes, and an open panel updates when it moves.
 	Rev int `yaml:"rev,omitempty" json:"rev"`
 
@@ -104,7 +109,7 @@ type Panel struct {
 
 // panelKnown are the JSON names the struct owns plus every output-only field a read adds (panelOut, monFields,
 // apiPanelRead). So a client that echoes a read back does not plant one in Extra. Keep in step with those.
-var panelKnown = []string{"id", "name", "owner", "acts", "client", "slug", "share", "rows", "cols", "pages", "cells", "settings", "art", "rev", "canEdit", "clientRights", "hasKey", "clientNetworks", "online", "watching", "instances", "artDefaults", "keyless", "instancesOnline", "instancesKnown", "hiddenInstances", "watchingInstances", "rights", "artSkipped"}
+var panelKnown = []string{"id", "name", "type", "sources", "destinations", "owner", "acts", "client", "slug", "share", "rows", "cols", "pages", "cells", "settings", "art", "rev", "canEdit", "clientRights", "hasKey", "clientNetworks", "online", "watching", "instances", "artDefaults", "keyless", "instancesOnline", "instancesKnown", "hiddenInstances", "watchingInstances", "rights", "artSkipped"}
 
 // extraOwnFields is extra without panelKnown names. It is possible that files, checkpoints and sets saved
 // before panelKnown listed every output-only field hold one. A copy, since it is possible that extra is shared with a
@@ -159,11 +164,8 @@ func (p *Panel) UnmarshalJSON(b []byte) error {
 
 // normalize fills defaults; it never fails, validatePanel judges the result.
 func (p *Panel) normalize() {
-	if p.Rows == 0 {
-		p.Rows = 4
-	}
-	if p.Cols == 0 {
-		p.Cols = 8
+	if p.Type == "" {
+		p.Type = panelTypeButtons
 	}
 	if p.Acts == "" {
 		p.Acts = panelActsSession
@@ -171,11 +173,21 @@ func (p *Panel) normalize() {
 	if p.Share.Mode == "" {
 		p.Share.Mode = panelShareMe
 	}
-	p.Pages = normalPages(p.Pages, p.LegacyCells, p.ID)
-	p.LegacyCells = nil
 	if p.Settings == nil {
 		p.Settings = map[string]any{}
 	}
+	if p.Type == panelTypeGrid {
+		p.normalGrid()
+		return
+	}
+	if p.Rows == 0 {
+		p.Rows = 4
+	}
+	if p.Cols == 0 {
+		p.Cols = 8
+	}
+	p.Pages = normalPages(p.Pages, p.LegacyCells, p.ID)
+	p.LegacyCells = nil
 }
 
 func validatePanel(p *Panel) error {
@@ -185,7 +197,7 @@ func validatePanel(p *Panel) error {
 		return errors.New("a panel needs a name")
 	case p.Slug != "" && !validPanelSlug(p.Slug):
 		return errors.New("a short name has 1 to 32 lowercase letters, digits and dashes. It starts and ends with a letter or digit")
-	case p.Rows < 1 || p.Rows > panelRowsMax || p.Cols < 1 || p.Cols > panelColsMax:
+	case p.Type != panelTypeGrid && (p.Rows < 1 || p.Rows > panelRowsMax || p.Cols < 1 || p.Cols > panelColsMax):
 		return fmt.Errorf("rows and columns are 1 to %d and 1 to %d", panelRowsMax, panelColsMax)
 	case p.Acts != panelActsSession && !actsHasClient(p.Acts):
 		return fmt.Errorf("acts is %q, %q, %q or %q", panelActsSession, panelActsAPI, panelActsBoth, panelActsPublic)
@@ -194,11 +206,16 @@ func validatePanel(p *Panel) error {
 	case len(p.Share.Users) > config.MaxUsers:
 		return errors.New("too many named users")
 	}
-	pages, err := checkPages(p.Pages, p.Rows, p.Cols)
-	if err != nil {
+	if err := checkGrid(p); err != nil {
 		return err
 	}
-	p.Pages = pages
+	if p.Type != panelTypeGrid {
+		pages, err := checkPages(p.Pages, p.Rows, p.Cols)
+		if err != nil {
+			return err
+		}
+		p.Pages = pages
+	}
 	settings, err := cleanSettings(p.Settings)
 	if err != nil {
 		return err
