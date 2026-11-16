@@ -83,7 +83,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.eval(gridXp(11, 3) + `.click()`)
 	b.waitFor("two routes staged", staged(11, 3))
 
-	gridKey(b, "Enter")
+	// A real Enter with focus on the last crosspoint pressed, as a mouse leaves it.
+	b.eval(gridXp(11, 3) + `.focus(); true`)
+	for _, typ := range []string{"keyDown", "keyUp"} {
+		b.call("Input.dispatchKeyEvent", map[string]any{"type": typ, "key": "Enter", "code": "Enter", "windowsVirtualKeyCode": 13})
+	}
 	b.waitFor("the confirm lists both destinations", `document.getElementById('confirm-body').textContent.includes('2 destinations')`)
 	b.shot("confirm")
 	gridConfirm(b)
@@ -111,6 +115,16 @@ func TestChromeGridPanelTake(t *testing.T) {
 	if len(hist.Entries) != 2 || groups[2] == "" || groups[2] != groups[3] {
 		t.Errorf("history %+v, want one Group of two routes", hist.Entries)
 	}
+
+	// Esc drops staged routes.
+	b.eval(gridXp(12, 4) + `.click()`)
+	b.waitFor("staged again", staged(12, 4))
+	gridKey(b, "Escape")
+	b.waitFor("Esc drops it", `!document.querySelector('.sode-gridpanel__xp[data-s="staged"]')`)
+
+	// The panels list draws with a Grid panel in it.
+	b.open(srv.URL + "/panels")
+	b.waitFor("the panels list names the Grid panel", `document.body.textContent.includes('Studio grid')`)
 	b.check()
 }
 

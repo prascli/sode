@@ -156,6 +156,24 @@ func TestPanelBodyRefusesBadTypeAndEdges(t *testing.T) {
 	}
 }
 
+// A Push between a Grid panel and a Buttons panel changes neither.
+func TestPushRefusesTheOtherType(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	grid := makeGridPanel(t, a, ana, "G")
+	buttons := makePanel(t, a, ana, `{"name":"B","cells":[{"r":1,"c":1,"kind":"take"}]}`)
+	before := cellCount(readPanel(t, a, ana, buttons))
+	for _, c := range [][2]string{{grid, buttons}, {buttons, grid}} {
+		rec := apiSend(a, "POST", "/api/v1/panels/"+c[0]+"/push", ana, `{"targets":["`+c[1]+`"]}`)
+		if rec.Code != 409 {
+			t.Errorf("push %s to %s: %d %s", c[0], c[1], rec.Code, rec.Body.String())
+		}
+	}
+	if got := cellCount(readPanel(t, a, ana, buttons)); got != before {
+		t.Errorf("the Buttons target has %d cells, want %d", got, before)
+	}
+}
+
 // Copy keeps the type and the edges.
 func TestGridPanelCopyIsAGridPanel(t *testing.T) {
 	a := panelsApp(t)

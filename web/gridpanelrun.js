@@ -114,6 +114,8 @@ export function gridBody(ctx, first) {
 
   const onKey = (e) => {
     if (confirm?.isOpen()) return confirm.key(e);
+    // The page lock's sign-in and dialogs take their keys first.
+    if (e.defaultPrevented) return;
     const act = gridKeyAction(e, { staged: st.staged.length, inControl: inControl(ui.grid) });
     if (!act) return;
     e.preventDefault();

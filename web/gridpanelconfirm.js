@@ -2,7 +2,7 @@
 // in panel.html, with a summary in the main page's plan look. Levels and labels come from the adapter's GET /tally,
 // since the panel page has no S.levels. Its lockout is lockout.js's: the configured value once the socket's hello
 // has filled S.cfg, else 500 ms.
-import { el } from './core.js';
+import { el, S } from './core.js';
 import { keyConfirm } from './keyconfirm.js';
 import { levelColor } from './levelbox.js';
 import { levelTextOf } from './levels.js';
@@ -74,7 +74,9 @@ export function gridConfirm({ tally, onTake, onClose }) {
   return keyConfirm({
     verb: () => 'take',
     summary: (plan) => gridSummary(plan, tally()),
-    prompt: (key) => ['Press ', key, ' to confirm, or escape to cancel.'],
+    // As on the main page (desktop.js): Enter also confirms when the setting says so.
+    enter: () => !!S.cfg?.confirmEnter,
+    prompt: (key) => ['Press ', key, S.cfg?.confirmEnter ? ' or Enter' : '', ' to confirm, or escape to cancel.'],
     onTake: (plan) => onTake(plan),
     onClose: (plan) => onClose(plan),
   });
