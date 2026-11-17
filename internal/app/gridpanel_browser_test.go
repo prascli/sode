@@ -375,8 +375,14 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.waitFor("another source is named on the Destination bar", dst(25)+`.querySelector('.sode-gridpanel__other')?.textContent === '`+src25+`'`)
 
 	gridShow(b, 1, 12)
+	// The status line has fixed room in the band: the grid's top stays put as a message shows and clears.
+	b.eval(`window.__top = () => [document.querySelector('.sode-gridpanel__scroll'), document.querySelector('.sode-gridpanel__deck')].map((n) => Math.round(n.getBoundingClientRect().top) + ':' + Math.round(n.getBoundingClientRect().height)).join('|'); window.__was = window.__top(); true`)
 	b.eval(gridXp(1, 12) + `.click()`)
 	b.waitFor("a press on a protected destination says why", `document.getElementById('panel-status').textContent === 'Rec B is protected'`)
+	b.waitFor("the status shows in the band, over the search boxes, and the grid did not move", `(() => {
+		const s = document.getElementById('panel-status'), r = s.getBoundingClientRect(), f = document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').getBoundingClientRect();
+		return s.parentNode.classList.contains('sode-gridpanel__deck') && r.height > 0 && r.bottom <= f.top + 1 && Math.abs(r.left - f.left) < 1 && window.__top() === window.__was;
+	})()`)
 	b.shot("rights")
 	if s := b.eval(gridXp(1, 12) + `.dataset.s || ''`); s != "" {
 		t.Errorf("a protected crosspoint was staged: %v", s)
@@ -386,6 +392,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.eval(gridXp(3, 5) + `.click()`)
 	b.eval(gridXp(4, 6) + `.click()`)
 	b.waitFor("two routes staged", gridXp(3, 5)+`.dataset.s === 'staged' && `+gridXp(4, 6)+`.dataset.s === 'staged'`)
+	b.waitFor("a press elsewhere clears the status, and the grid did not move", `document.getElementById('panel-status').textContent === '' && window.__top() === window.__was`)
 	a.mu.Lock()
 	a.router.protect[5] = map[int]int{1: 9}
 	a.mu.Unlock()

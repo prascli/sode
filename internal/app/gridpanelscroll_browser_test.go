@@ -27,7 +27,7 @@ func TestChromeGridPanelScrollBars(t *testing.T) {
 	corner := `document.querySelector('.sode-gridpanel__frame > .sode-bigscroll__corner')`
 	b.waitFor("both scroll bars and the corner show", `!!`+xb+` && !`+xb+`.hidden && !!`+yb+` && !`+yb+`.hidden && !`+corner+`.hidden`)
 	b.waitFor("the native bars take no room", sc+`.offsetHeight === `+sc+`.clientHeight && `+sc+`.offsetWidth === `+sc+`.clientWidth`)
-	b.waitFor("both scroll bars are 28 px thick", xb+`.offsetHeight === 28 && `+yb+`.offsetWidth === 28`)
+	b.waitFor("both scroll bars are 25 px thick (1.4rem at the Grid page's 18 px root)", xb+`.offsetHeight === 25 && `+yb+`.offsetWidth === 25`)
 	b.waitFor("they sit on the scroller's bottom and right edges and meet at the corner", `(() => {
 		const s = `+sc+`.getBoundingClientRect(), x = `+xb+`.getBoundingClientRect(), y = `+yb+`.getBoundingClientRect();
 		const c = `+corner+`.getBoundingClientRect();
