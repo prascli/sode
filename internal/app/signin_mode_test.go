@@ -334,11 +334,7 @@ func TestUserUnlockMessageCarriesUsername(t *testing.T) {
 func TestUnknownUsernameCostsAsMuchAsAKnownOne(t *testing.T) {
 	a := usernameApp(t)
 	try := func(user string) time.Duration {
-		start := time.Now()
-		if err := a.UserUnlockAs(&client{ip: "10.0.0.9"}, user, "9999"); err == nil {
-			t.Fatalf("%s: a wrong PIN was accepted", user)
-		}
-		return time.Since(start)
+		return fastestOf(t, func() error { return a.UserUnlockAs(&client{ip: "10.0.0.9"}, user, "9999") })
 	}
 	known, unknown := try("ana.k"), try("nobody")
 	if unknown < known/2 {
@@ -351,16 +347,27 @@ func TestUnknownUsernameCostsAsMuchAsAKnownOne(t *testing.T) {
 func TestWrongLengthPinCostsAsMuchAsARightLengthOne(t *testing.T) {
 	a := usernameApp(t)
 	try := func(user, pin string) time.Duration {
-		start := time.Now()
-		if err := a.UserUnlockAs(&client{ip: "10.0.0.9"}, user, pin); err == nil {
-			t.Fatalf("%s: a wrong PIN was accepted", user)
-		}
-		return time.Since(start)
+		return fastestOf(t, func() error { return a.UserUnlockAs(&client{ip: "10.0.0.9"}, user, pin) })
 	}
 	short, unknown := try("ana.k", "99"), try("nobody", "9999")
 	if short < unknown/2 {
 		t.Fatalf("a wrong-length PIN answered in %v, an unknown username in %v", short, unknown)
 	}
+}
+
+// fastestOf times a refused sign-in several times and keeps the fastest try. Test hash
+// costs make one try well under a millisecond, so one slow schedule would decide a single try.
+func fastestOf(t *testing.T, signIn func() error) time.Duration {
+	t.Helper()
+	best := time.Duration(1<<63 - 1)
+	for range 15 {
+		start := time.Now()
+		if signIn() == nil {
+			t.Fatal("a wrong PIN was accepted")
+		}
+		best = min(best, time.Since(start))
+	}
+	return best
 }
 
 func TestEmptySignInModeKeepsTheCurrent(t *testing.T) {

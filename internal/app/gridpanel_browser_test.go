@@ -294,6 +294,106 @@ func TestChromeGridPanelSharingModes(t *testing.T) {
 	}
 }
 
+// A Grid panel for a user whose Rights cover sources 0-19 and destinations 0-29. Items outside them are left out.
+// Rec B (12) is protected in the simulator, so it shows the lock and refuses a press. A destination whose current
+// source is outside the grid names it. A staged destination that becomes protected is left out of the confirm.
+func TestChromeGridPanelProtected(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	span := func(n int) *[]int {
+		v := make([]int, n)
+		for i := range v {
+			v[i] = i
+		}
+		return &v
+	}
+	a := simApp(t, sim, func(c *config.Config) { c.Users[0].Rights = config.Rights{Sources: span(20), Dsts: span(30)} })
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Rights grid","type":"grid","settings":{"mode":"take","levels":[1,2]}}`)
+	waitNamesAndTally(t, a, ana)
+	var names struct {
+		Sources []struct {
+			N    int    `json:"n"`
+			Name string `json:"name"`
+		} `json:"sources"`
+	}
+	if err := json.Unmarshal(apiDo(a, "GET", "/api/v1/names", ana, nil).Body.Bytes(), &names); err != nil {
+		t.Fatal(err)
+	}
+	src25 := ""
+	for _, s := range names.Sources {
+		if s.N == 25 {
+			src25 = s.Name
+		}
+	}
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on')`)
+	axes := func(cols, rows int) string {
+		return fmt.Sprintf(`(() => {
+			const f = document.querySelector('.sode-gridpanel__field');
+			return f?.style.getPropertyValue('--sode-cols') === '%d' && f.style.getPropertyValue('--sode-rows') === '%d';
+		})()`, cols, rows)
+	}
+	b.waitFor("only items inside the Rights", axes(20, 30))
+	dst := func(n int) string {
+		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]:not([hidden])')`, n)
+	}
+	protShown := func(n int) string {
+		return dst(n) + `.classList.contains('pb-xpt--protected') && !` + dst(n) + `.querySelector('.sode-gridpanel__prot').hidden && ` + dst(n) + `.textContent.includes('Protected')`
+	}
+	gridShow(b, 1, 12)
+	b.waitFor("Rec B shows the lock and Protected", protShown(12)+` && !!`+dst(12)+`.querySelector('use[href$="lock"]')`)
+	gridShow(b, 1, 25)
+	b.waitFor("another source is named on the Destination bar", dst(25)+`.querySelector('.sode-gridpanel__other')?.textContent === '`+src25+`'`)
+
+	gridShow(b, 1, 12)
+	b.eval(gridXp(1, 12) + `.click()`)
+	b.waitFor("a press on a protected destination says why", `document.getElementById('panel-status').textContent === 'Rec B is protected'`)
+	b.shot("rights")
+	if s := b.eval(gridXp(1, 12) + `.dataset.s || ''`); s != "" {
+		t.Errorf("a protected crosspoint was staged: %v", s)
+	}
+
+	gridShow(b, 1, 1)
+	b.eval(gridXp(3, 5) + `.click()`)
+	b.eval(gridXp(4, 6) + `.click()`)
+	b.waitFor("two routes staged", gridXp(3, 5)+`.dataset.s === 'staged' && `+gridXp(4, 6)+`.dataset.s === 'staged'`)
+	a.mu.Lock()
+	a.router.protect[5] = map[int]int{1: 9}
+	a.mu.Unlock()
+	b.waitFor("the staged route that became protected is marked", gridXp(3, 5)+`.dataset.s === 'left-out' && `+protShown(5))
+	gridKey(b, "Enter")
+	b.waitFor("the confirm leaves it out with the reason", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes('is protected')`)
+	b.shot("confirm")
+	gridConfirm(b)
+	tallyHas(t, a, ana, 6, 4)
+	if strings.Contains(apiDo(a, "GET", "/api/v1/tally", ana, nil).Body.String(), `"dst":5,"level":1,"src":3`) {
+		t.Error("the route left out was sent")
+	}
+	b.waitFor("the left-out route is dropped", `!document.querySelector('.sode-gridpanel__xp[data-s]:not([hidden])')`)
+
+	// The Rights narrow while routes are staged: the open page reads them with the panel, not only after a reload.
+	b.eval(gridXp(7, 7) + `.click()`)
+	b.eval(gridXp(8, 8) + `.click()`)
+	b.waitFor("two more routes staged", gridXp(8, 8)+`.dataset.s === 'staged'`)
+	if err := a.applyConfig(func(c *config.Config) error {
+		c.Users[0].Rights = config.Rights{Sources: span(20), Dsts: span(8)}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	b.waitFor("the destination outside the Rights goes", axes(20, 8))
+	b.waitFor("the status says why the staged route is left out", `document.getElementById('panel-status').textContent.includes("outside this panel's Rights")`)
+	gridKey(b, "Enter")
+	b.waitFor("the confirm leaves it out", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes("outside this panel's Rights")`)
+	gridConfirm(b)
+	tallyHas(t, a, ana, 7, 7)
+	b.check()
+}
+
 // The Levels box on a Grid panel: the panel's levels setting fills it, typing changes what a press stages, and the
 // confirm shows those levels. Rights leave out the levels the box does not offer.
 func TestChromeGridPanelLevels(t *testing.T) {

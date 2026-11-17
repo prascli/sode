@@ -84,15 +84,20 @@ export function buttonsBody(ctx, first) {
   const build = () => buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
   let grid = build();
 
+  // A poll and a finished take can both ask; only the newest ask's answer counts, since an older one can come back last.
+  let undoAsk = 0;
   async function askUndo() {
     if (!undoCells || stopped) return;
+    const ask = ++undoAsk;
     try {
-      undoNext = (await ctx.callJSON(`api/v1/panels/${id}/undo`)).undo;
+      const next = (await ctx.callJSON(`api/v1/panels/${id}/undo`)).undo;
+      if (ask !== undoAsk) return;
+      undoNext = next;
       // History's own Undo, another tab or a rename moved the target: Take would only get 409.
       if (st.undoId !== null && !st.busy && undoNext?.id !== st.undoId) st = failTake(st, 'conflict', UNDO_MOVED, Date.now());
     } catch (e) {
       // A refusal (a key without the take scope) greys the cell; a lost link keeps what it knew.
-      if (e.status !== undefined) undoNext = undefined;
+      if (ask === undoAsk && e.status !== undefined) undoNext = undefined;
     }
     render();
   }
@@ -109,7 +114,11 @@ export function buttonsBody(ctx, first) {
     st = started.state;
     render();
     try {
-      st = finish(st, (await ctx.post(path, body)) || {}, Date.now());
+      // Read st after the await: presses made while the POST is out change it.
+      const reply = await ctx.post(path, body);
+      st = finish(st, reply || {}, Date.now());
+      // History moved, so the old answer names an older take; Undo greys until askUndo answers.
+      undoNext = undefined;
     } catch (e) {
       const why = (e.code === 'conflict' && onConflict) || e.message;
       st =
