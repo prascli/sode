@@ -1,8 +1,10 @@
 // A Grid panel's Sources or Destinations tab in the editor: the panel's list in panel order, with Pin, Move, Remove,
-// Clear and All (follow router). Rules are editorgridrules.js; each edit is one ed.setFields of the edge.
+// Clear and All (follow router). The router list (editorrouterlist.js) is beside it. Rules are editorgridrules.js;
+// each edit is one ed.setFields of the edge.
 import { el } from './core.js';
 import { btn } from './formbits.js';
 import { createOrderedList } from './orderedlist.js';
+import { createRouterList } from './editorrouterlist.js';
 import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, PINS_MAX } from './editorgridrules.js';
@@ -25,7 +27,18 @@ export function createEdgeTab(ed, { key, rights, what }) {
   all.dataset.pbTip = `Shows every ${what} the router has, in router order, and the ones the router adds later.`;
   const list = el('ol', 'sode-pages__list sode-edge__list');
   list.id = `ed-${key}-list`;
-  node.append(state, el('div', 'sode-edge__acts', clear, all), outside, list);
+  const routerList = createRouterList({
+    key,
+    what,
+    kind: rights,
+    edge,
+    router,
+    rights: myRights,
+    off: () => ed.routerNames()?.numberOffset || 0,
+    readOnly: () => ed.readOnly(),
+    set,
+  });
+  node.append(el('div', 'sode-edge', routerList.node, el('div', 'sode-edge__panel', state, el('div', 'sode-edge__acts', clear, all), outside, list)));
 
   let shown = [];
   const rows = createOrderedList({
@@ -46,6 +59,7 @@ export function createEdgeTab(ed, { key, rights, what }) {
       drawn = [];
       return list.replaceChildren();
     }
+    routerList.paint();
     const now = [edge(), router(), myRights(), ro, ed.routerNames()];
     if (now.every((x, i) => x === drawn[i])) return;
     drawn = now;

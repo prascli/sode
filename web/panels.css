@@ -967,7 +967,62 @@ body {
 }
 /* A Grid panel has no cells, size or Pages (paneleditor.js sets data-type); its lists fill the sidebar. */
 .sode-ed[data-type="grid"] .sode-ed__body {
-  grid-template-columns: minmax(0, 40rem);
+  grid-template-columns: minmax(0, 64rem);
+}
+/* A list tab: the router list (editorrouterlist.js) beside the panel's list. */
+.sode-edge {
+  align-items: start;
+  display: grid;
+  gap: var(--pb-space-5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 48rem) {
+  .sode-edge {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sode-rlist__wrap,
+.sode-edge__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-2);
+  min-width: 0;
+}
+.sode-rlist,
+.sode-edge__list {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+.sode-rlist {
+  background: var(--pb-surface-raised);
+  border: var(--pb-border-w) solid var(--pb-edge-soft);
+  height: 28rem;
+}
+.sode-rlist__field {
+  height: calc(var(--sode-rows, 0) * 2rem);
+  position: relative;
+}
+/* Rows are placed by --sode-i; 2rem is ROW_REM in editorrouterlist.js. */
+.sode-rlist__row {
+  align-items: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  gap: var(--pb-space-2);
+  height: 2rem;
+  left: 0;
+  padding-inline: var(--pb-space-2);
+  position: absolute;
+  right: 0;
+  top: calc(var(--sode-i, 0) * 2rem);
+  user-select: none;
+}
+.sode-rlist__row[aria-selected="true"] {
+  background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
+  box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-accent);
+}
+.sode-rlist__row .sode-pages__name {
+  flex: 1;
 }
 .sode-ed[data-type="grid"] .sode-ed__main,
 .sode-ed[data-type="grid"] #ed-templates {
