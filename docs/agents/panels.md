@@ -54,9 +54,96 @@ After a 429, `guardFetch` (`sessionkeyrules.js`) holds the next call until Retry
 
 - REST: `panelsApp`, `userKey`, `makePanel`, `apiSend` and `apiSendRaw` in `panelsapi_test.go` run the real handlers against a fake router. Use them for any new route test.
 - Web rules modules are pure and tested without a DOM: `panelmodel.js` (view, stage, Take), `panelrules.js`, `panelupdate.js`, `panelwatchrules.js`, `panelkeyrules.js`, `panelsrules.js`, `panelpushrules.js`, `gridmodel.js`, `editorrules.js`, `findrules.js` and `arttoolrules.js`. Put new logic there and keep the DOM modules thin.
-- Panel types (ADR 0011): `panelrun.js` holds keys, sharing, polls, keepalive and live update for both types. After the read it hands a body the adapter `ctx`. The body is `buttonsBody` (`panelbuttons.js`) or `gridBody` (`gridpanelrun.js`), and it answers `render`, `data`, `apply`, `pending`, `renamed` and `stop`. Grid rules are pure `gridpanel*.js` modules, each with its own node test and the fixtures in `web/test/gridpanelfixture.mjs`. Go: `panelgrid.go` and `makeGridPanel` in `panelgrid_test.go`. Browser checks are `TestChromeGridPanel*` (`gridpanel_browser_test.go`, `gridXp`, `gridConfirm`). The Grid view (`gridpanelview.js`) draws only what shows, on both axes, and moves nodes as the grid scrolls (window maths in `gridpanelwindow.js`). A node holds no state of its own, so new crosspoint or name state is painted from the `view` that `paintGridPanel` gets. The layers share one CSS grid cell. The body scrolls. The top and side bands are sticky and hold the names and pinned crosspoints. The corner holds what is pinned on both axes. `TestChromeGridPanelScale` runs it at 2500 by 750 (`startSim(t, "SIM_SOURCES=2500", "SIM_DESTS=750")`). Only crosspoints near the view have nodes, so a check scrolls `.sode-gridpanel__scroll` before it uses `gridXp` on a far one. The cursor (`gridpanelcursor.js`) holds display indices, with -1 on a bar. Its node `.sode-gridpanel__cursor` is a child of the field, not of the overlay. So on a bar or a pinned item it can draw above the sticky bands. The view moves it by transform on `g.cursor(c)` and on each draw. A pointer move changes nothing else on the page (`TestChromeGridPanelCursor`). After sign-in, a check that sends real mouse events waits for `.sode-lock` to be `hidden`. The overlay stays over the page for a moment after `is-on` goes. Drawn lines: the geometry and staging are pure in `gridpanelline.js`. With no picks, `snapLine` snaps a line to evenly spaced targets, and the preview draws the snapped line (`lineShown`). The input is `gridpanelgesture.js`. A mouse or pen drag sets pointer capture only past half a crosspoint, since with capture a plain press loses its click. After a line, the gesture eats the next click. Touch uses Touch Events and a long-press, as the prototype on `prototype/panels` (`grid/touch.html`) chose. `TestChromeGridPanelLine` drives it with real mouse events. The same touch path holds the name gestures: a long-press on a name adds a range (`on.name(kind, n, 'long')`) and a double-tap jumps. Both taps of a double-tap still click, so the picks come back as they were. A touch `pointermove` does not move the cursor, and a touch `contextmenu` is ignored. A touch tap adds or removes a pick on any layout, as does a click on the phone layout (`data-layout="phone"`, read at each event). On the phone layout `restPoint` (`gridpanelphone.js`) gives the numbered targets a press point with no hover. The Take button `#panel-take` sits at the end of the Levels box on every layout in Take mode. `TestChromeGridPanelPhone` drives it with CDP touch input (`touch`, `tap`).
-- Grid Find and Filter: the rules are `gridpanelfind.js`, the boxes `gridpanelfindbox.js` in the view's corner node `g.head`. The run keeps two sets of axes. `full` is `gridAxes`, used for picks, other sources and the Diagonal's `srcs` and `dsts`. `axes` is `full` less what a Filter hides, and the view, the cursor and `shownDsts` use it. A Filter never hides pinned items. A box's own keys (`findBoxAction`) are handled in the run's `onKey` before `gridKeyAction`, so Esc there clears the box and does not drop picks. Matching is `fuzzyScore` (`web/fuzzy.js`, which core.js `search` also uses) as a yes or no, in panel order (`TestChromeGridPanelFind`).
+- Panel types (ADR 0011): `panelrun.js` hands a body the adapter `ctx`. The body is `buttonsBody` (`panelbuttons.js`) or `gridBody` (`gridpanelrun.js`). Grid notes are in Grid panels below.
 - Browser harness: docs/agents/browser-checks.md. Chrome checks use the real Handler and a built simulator, never `panelsApp`.
+
+## Grid panels
+
+ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid panel does. This section holds the seams and what bites. Grid modules are `web/gridpanel*.js`, and each pure one has a node test of the same name.
+
+### Server
+
+- `panelgrid.go` holds `GridEdge{Members, Hide, Items}`, `GridItem{Pinned, Art, ArtB}` and `GridMembers` (`"all"` or a list of integers, in JSON and YAML). A decoded list is never nil, so `!All && List == nil` means `members` was missing, which is 400. An empty list `[]` round-trips.
+- `checkGridEdge`: `hide` only with `all`, numbers from 0 to `dstNumberMax`, no repeats in members or `hide`, at most `gridPinsMax` (8) pinned. Item keys are plain decimal ("007" is refused). Items for non-members stay, and no Rights filter runs on save.
+- `Panel.Type`, `Sources` and `Destinations` are in `panelKnown`. `normalize` returns early for a Grid panel (`Pages` is `[]`). `validatePanel` calls `checkGrid` and skips `checkPages`. A Grid panel has no `rows` or `cols`, so openapi allows 0.
+- `apiPanelUpdate`: an empty body type keeps the stored one, and a different one is 409 `conflict`. The legacy `cells` to Page 1 branch runs for a Buttons panel only, since a Grid panel has no Page to take it.
+- Push and Checkpoint layouts carry `type`, `sources` and `destinations`. `apiPanelPush` refuses the other type before its loop, and `applyLocked` refuses it for sets and restores (Push, Rev and live update below).
+- The panel read's ETag moves when an edge's Default artwork changes (`panelArtDefaults` reads the edges). `TestGridDefaultArtworkChangeMovesTheETag` covers it.
+- Tests: `panelgrid_test.go`, `panelgridedge_test.go`, `panelgridart_test.go`, `panelgridpush_test.go` and `panelgridpushart_test.go`. `makeGridPanel(t, a, key, name)` makes the fixture.
+
+### Page structure
+
+- `panelrun.js` keeps keys, sharing, polls, keepalive and live update for both types. After the read it builds `ctx` and calls `(isGridPanel(panel) ? gridBody : buttonsBody)(ctx, panel)`.
+  - `ctx` is `{ ui, art, embedded, page, id, call, callJSON, post(path, body), poll, ready(), instance(), touched() }`. `post` adds one Idempotency-Key for each call.
+  - A body answers `render`, `data({ tally, prot, nm, pr, first })`, `apply(p)`, `pending`, `renamed(changed)` and `stop`. `nm` is null when the names were not read again. The watcher calls `body.rights?.(p.rights)` on every panel read, since a Rights change does not move `rev`. The Buttons body has no `rights`.
+- Fixtures for node tests are in `web/test/gridpanelfixture.mjs` (`namesReply`, `tallyReply` with routes as `[dst, level, src]`, `gridPanel`).
+- `gridpaneledges.js`: `gridAxes(panel, namesReply)` is `edgeOrder` (pins first, then members, less `hide`) followed by `shown` (items in `GET /names` and inside `panel.rights`). Keep that wrapper when you change `edgeOrder`, since an explicit list with a gone item relies on it. Never apply a Filter inside `gridAxes`, or a filtered-out panel source reads as an "other" source.
+- The run keeps two sets of axes. `full` is `gridAxes`, used for picks, other sources and the Diagonal's `srcs` and `dsts`. `axes` is `full` less what a Filter hides, and the view, the cursor and `shownDsts` use it. `arrange(panel, namesReply, { find, picks, cur, axes })` (`gridpanelarrange.js`) is the one step behind `rebuild()`, which a live update, a names poll, a Rights change and the search keys all call. State that must live through a live update goes through it. Test it in `gridpanellive.test.mjs`.
+- `rebuild` skips work when `JSON.stringify([full, axes])` is unchanged. `apply` clears that key, so a live update always rebuilds, and the rebuild ends a Drawn line in progress.
+
+### The view
+
+- `gridpanelview.js` draws only what shows, on both axes, and moves nodes from item to item as the grid scrolls. The window maths is in `gridpanelwindow.js`. Its indices are display order, never router numbers. A node holds no state of its own. Paint picks, gone items, Find matches, the cursor and marks from the `view` that `paintGridPanel` gets, in `paintXp` (crosspoints) or `paintSrc` and `paintDst` (names). Both a move and a paint call those.
+- A name node keeps one Text child that `setText` changes, and a destination name is `[Text, prot, other, art]`. Do not use `textContent =` or append children on a scroll, or the no-rebuild MutationObserver check sees a childList change. Keep the art row last.
+- Spare nodes stay in the DOM with `hidden`, and keep their old `data-picked` and `data-s`. A check that counts nodes counts them, and a "none left" selector needs `:not([hidden])`.
+- The layers share one CSS grid cell. The body scrolls. The top and side bands are sticky and hold the names and pinned crosspoints. The corner holds what is pinned on both axes, and `g.head` in the corner holds the search boxes. A pointer move over `g.head` does not move the cursor.
+- CSS places nodes with `--sode-i` and `--sode-j`. Sizes are `--sode-xp`, `--sode-name-w` and `--sode-name-h` in rem, and the view measures them in px on each resize. `--sode-patch-field` is the field colour token. `scrollbar-width: auto` on `.sode-gridpanel__scroll` lets the `::-webkit-scrollbar` rules apply. There is no `border-radius` (rules.test), so the pie is round through `clip-path`.
+- Look sizes come from the prototype at the 125% root (72 px crosspoints, a 208 by 112 px corner). A staged crosspoint carries `data-s="staged"`. Each one runs `sode-panel-pulse` itself, because a Grid panel turns the grid's animation off (Gotchas below).
+- The cursor (`gridpanelcursor.js`) holds display indices, with -1 on a bar. Its node `.sode-gridpanel__cursor` is a child of the field, not of the overlay. So on a bar or a pinned item it can draw above the sticky bands. `data-band` lifts it. The view moves it by transform. `TestChromeGridPanelCursor` checks that a pointer move changes nothing else on the page.
+- `g.hit`, `g.reveal`, `g.node`, `g.onDraw`, `g.cellAt`, `g.page` and `g.revealCell` are the view's seams for keys, jumps and Find. A pointer move calls `onPoint`, and a key clears the run's `ptr`, so a scroll re-places the cursor only after a pointer move.
+
+### Staging, confirm and Undo
+
+- `gridpanelstage.js` is pure. State is `{ mode, staged: [{dst, level, src}], busy, error, undoId }`. Every press path calls `stageRoutes(st, pairs, levels)`, which gives `{ st, send, confirm }`. Only a one-pair press toggles off. The cap error is `{ code: 'cap', add, have }` (`STAGE_MAX` is 128). `restage(st, panel)` is what an apply does to the stage.
+- A new press path calls `leaveUndo` before it stages, and skips `keepLive` while `st.undoId` is set (`onPress` does both). A press runs `keepLive` first, and `openConfirm` runs it again.
+- `gridConfirm` wraps `keyConfirm` and `gridSummary`. The verb comes from `plan.verb` (`take` or `undo`). An Undo plan has `undoId`, and the replace ask has `replace: n` and `next`. `send({ routes, undoId? })` posts to `/panels/{id}/undo` when `undoId` is set, else to `api/v1/takes`.
+- The confirm's markup ids are fixed (`#confirm` and its parts in `panel.html`, the same as `keyconfirm.js`). The editor page has none, so Enter does nothing in Test it live. `lockout.js` reads `S.cfg`, so the configured lockout applies only after the panel socket's hello (500 ms before it). Instant mode holds nothing staged for a one-pair press, and a multi-route press waits on its confirm (`confirmRoutes`, `cancelConfirm`).
+- `.sode__plan-item`, its parts and `.sode__keys` are in `base.css`, since the panel page needs them.
+- The Take button `#panel-take` is made by the run and appended to `#panel-levels`. It shows on every layout in Take mode and never in an embedded run. It has no animation of its own while it is not armed.
+- Rights and protection (`gridpanelrights.js`): `otherSources`, `pressRefusal`, `leftOut(st, world)` with `why` of `rights`, `gone` or `protected`, and `keepLive`. A Diagonal and a Drawn line pass their pairs through `stageable`, which gives `err` only when every target is protected.
+
+### Input
+
+- `gridpanelkeys.js` is an exact `chord(e)` map (`keys.js`). h, j, k and l are physical keys. A move and Space return null while `inControl`. A Ctrl or Cmd chord needs its own entry by exact name. `gridKeyAction(e, ctx)` takes `{ staged, picks, inControl, bar, finding, line }`. Shift with a move gives a range pick on a bar only.
+- Order in the run's `onKey`: the key list, the confirm, a search box's own keys (`findBoxAction`), then `gridKeyAction`. A box's Esc clears the box and never drops picks. The grid's keydown returns when `e.defaultPrevented`, so the page lock and dialogs keep their keys. The key handler calls `preventDefault` on every action, which also stops a focused crosspoint button's own Space click.
+- Esc runs in a capture listener on `document` that `stop()` removes. It beats Kiosk mode's own (`panelfull.js`). The order is the line, the picks, then the staged routes.
+- Add a row to the key list in `panel.html` (`#keys`) for each new key. `shortcutList` builds it, and only when `#keys` exists. "screen" is an `_Avoid_` word in UI strings.
+- `gridpanelgesture.js`: a mouse or pen drag sets pointer capture only past half a crosspoint, since with capture a plain press loses its click. After a line, the gesture eats the next click. Touch uses Touch Events and a 450 ms long-press, as the prototype's `grid/touch.html` chose. A touch `pointermove` does not move the cursor and a touch `contextmenu` is ignored.
+- Name gestures: a long-press on a name calls `on.name(kind, n, 'long')` and its touchend is `preventDefault`ed. A double-tap calls `on.name(kind, n, 'double')` after both taps clicked. A right-click gives `onJump` with `('xp', {src,dst})` or `('srcs'|'dsts', n)`.
+- The phone layout is `data-layout="phone"`. The run reads it at each event, and `onLayout` re-renders. A tap toggles a pick there, and `restPoint` (`gridpanelphone.js`) gives the numbered targets a press point with no hover. A tap picks on any layout, as does a click on the phone layout.
+- Drawn lines: geometry and staging are pure in `gridpanelline.js`. `lineStage` wraps `stageable` and `stageRoutes`, and always confirms more than one route. `snapLine` snaps a no-pick line, and the preview draws `lineShown`. A line with picks uses `lineCells`.
+- Picks and Diagonals (`gridpanelpick.js`): picks are `{ srcs, dsts, anchor }` in router numbers. `pickName`, `extendPick`, `diagonal(p, xp, { srcs, dsts, shownDsts })`. The run builds a Diagonal in one place, `diagonalAt`.
+- Find and Filter: rules in `gridpanelfind.js`, boxes in `gridpanelfindbox.js`. A Filter never hides a pinned item. `fuzzyScore` (`web/fuzzy.js`, which `core.js` `search` also uses) gives a yes or no, in panel order. `rebuild` recomputes `matches` every time, so a live update keeps the search with no extra code. Jumps are pure in `gridpaneljump.js` and `gridpanelundo.js`.
+
+### Editor
+
+- `editorgridrules.js` is pure. `removeItemFrom` hides on `all` and unpins. `moveRow` turns `all` into a list. `clearEdge` keeps the members outside the Rights. The rest are `edgeRows`, `pinItem`, `followRouter`, `setItemArt`, `routerRows`, `findRows`, `selectRows` and `addItems`. Selection is keyed by router number, and Shift adds the shown span.
+- `editorgridlist.js` is `createEdgeTab(ed, { key, rights, what })`. The list shows list order. The list is `ed-<key>-list`, and a `li` has `data-id` (the router number). Its buttons have `data-act` of pin, up, down, delete or art. The other ids are `-clear`, `-all`, `-state` and `-outside`. It draws only the rows in view and keeps a memo on (edge, names, rights, readOnly). `editorrouterlist.js` is the router list, windowed the same way (`ROW_REM`, in step with `.sode-rlist__row`).
+- `paneleditor.js`: `ed.fields()` has `type`, `sources` and `destinations`, and edges default to `{members:'all'}`. `refresh()` sets `.sode-ed[data-type]`, and `panels.css` hides the Buttons main area for a Grid panel. `saveBody` sends no rows or cols and `pages: []`. `isDirty` compares edges, with empty `items` and `hide` as no change, and ignores cells.
+- `editorside.js` rebuilds the tab strip when the type changes. `editorpanel.js` has the type select `#ed-set-type`, disabled once saved, and a `buttonsOnly` list of the fields that a Grid panel hides.
+- A row's Artwork button opens one shared `createArtControl` on that row.
+- The shared list widget is `orderedlist.js` (rules in `orderedlistrules.js`). A drop calls `move(from, dropTo(from, i))`. Pages must keep that onto rule.
+- `paneleditor.html` links `gridpanel.css`, so Test it live draws a Grid panel.
+
+### Browser checks
+
+- Names: `TestChromeGridPanel` plus `Take`, `Diagonal`, `SharingModes`, `Protected`, `Levels` (`gridpanel_browser_test.go`), `Scale`, `Cursor`, `Keys`, `Find`, `Undo`, `Line`, `Phone`, `LiveUpdate`, `Art`, `Editor` and `EditorChunk`. Each is in its own `gridpanel<area>_browser_test.go`, except the first five. CI selects them with `^TestChromeGridPanel`. The `grid` job in ci.yml runs them on PRs into `integration/grid-panels` and on pushes to it, and `ci-ok` needs it. That job does not run the Buttons panel checks, so run `^TestChrome(GridPanel|Panel|Editor)` before a push.
+- Helpers:
+  - `gridXp(src, dst)` is a JS selector. `gridShow` scrolls a far crosspoint near the top left, on an `all` edge with no pins.
+  - `gridConfirm` waits out the lockout and types the letter.
+  - `realKey` and `realKeyMods` send CDP key events, with `modShift`, `modCtrl`, `modAlt` and `modMeta`. Enter goes with text "\r", or Chrome runs no default action.
+  - `touch` and `tap` send CDP touch input.
+  - `gridKey`, `gridCursor`, `gridMenu`, `gridFindBox`, `tallyHas` and `signInOnPad` are small readers and drivers.
+  - `startSim(t, env...)` passes `SIM_*` settings.
+- After `signInOnPad`, wait for `document.querySelector('.sode-lock').hidden` before real mouse events. The overlay stays over the page for a moment and takes the pointer.
+- The default simulator has 200 sources, 120 destinations and 17 levels, and router numbers start at 0. At 1280 by 800 about 13 columns and 5 rows show. Name nodes are pooled, so sort by number before you compare.
+- `TestChromeGridPanelScale` runs 2500 by 750 (`SIM_SOURCES`, `SIM_DESTS`), with `gridNodesMax` 4000. It does not assert the open time or the scroll time.
+- A live update check waits for the banner first. The countdown is 10 s plus a 5 s check. Set a Default artwork change with `a.artDefaults.set`, since the REST PUT needs a Trusted user.
+- Two taps on one name inside 350 ms are a double-tap, so a check that taps a name twice to unpick must wait.
+
+### Open items
+
+- The panels page draws a Grid panel from no `rows` or `cols` (`thumb` and the `rows by cols` line in `panelslist.js`).
 
 ## Undo cell
 

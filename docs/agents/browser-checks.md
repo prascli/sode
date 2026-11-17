@@ -54,6 +54,16 @@ Files, all in `internal/app`:
 - `panelundo_browser_test.go`: `TestChromePanelUndoStepsBackThisInstance`, two takes from the page and a take by another instance over REST. Then two Undo presses restore both destinations newest first (the tally over REST), and the status line says Undone. The other instance's route stays and the cell greys.
 - `seams_browser_test.go`: `TestChromeSeamKeylessAssignRunsFixedDestsThenKeyEnds`, a keyless page of a panel with a Fixed destination, assigned over REST to a panel with two. It opens the target by its short name on `sode-panel-key-<slug>`, and a Source press and Take patch both. When that key is revoked, the page shows the ended-key note and announces itself keyless again. `TestChromeSeamIconBBadgeAfterPushAndCopy`: an Icon library cell and a Default artwork image cell each have Icon B. Both draw the corner badge on a Copy and on a Push target.
 - `gridpanel_browser_test.go`: `TestChromeGridPanelTake` and `TestChromeGridPanelSharingModes`, a Grid panel staged and taken through the confirm, and in Instant mode under each sharing mode. `gridpanelscale_browser_test.go`: `TestChromeGridPanelScale`, a Grid panel on a 2500 by 750 simulator with a pinned source and destination. The page holds at most `gridNodesMax` nodes, and a MutationObserver sees no element added or removed while it scrolls corner to corner. Pinned names stay at the edges. It reports the open time and the time for each scroll step, and does not assert them. With three routes staged, only those crosspoints run an animation, and they run in step. 3 s then cost less than 600 ms of style recalc (CDP `Performance.getMetrics`, read by `b.metrics()`). `gridpaneleditorchunk_browser_test.go`: In `TestChromeGridPanelEditorChunk`, the editor's own list of 2500 sources draws at most 60 rows. The page holds at most 8000 elements, and a Pin reaches the next frame in under 300 ms. `startSim(t, env...)` passes `SIM_*` settings to the simulator.
+- Other Grid panel checks, one file each (`gridpanel<area>_browser_test.go`):
+  - `TestChromeGridPanelDiagonal`, `Protected` and `Levels` (in `gridpanel_browser_test.go`): picks and Diagonals, protected destinations and Rights, and the Levels box.
+  - `Cursor` and `Keys`: the one cursor, the moves, the bar picks and the key list. They send real key events (`realKey`, `realKeyMods`).
+  - `Find`: the search boxes, Find and Filter, with text by CDP `Input.insertText`.
+  - `Undo`: the `g` and `G` jumps, the right-click jumps and the staged Undo.
+  - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends.
+  - `Phone`: touch on the phone layout with CDP touch input. Emulate before `b.open`.
+  - `LiveUpdate`: a saved change and a Default artwork change reach an open page, which keeps the search, picks and cursor.
+  - `Art`: artwork on names, in the editor's row Artwork button, and no stale artwork after a scroll.
+  - `Editor`: make, edit and save a Grid panel, a reopen, Test it live. `EditorChunk` is the router list and the windowed lists.
 
 Add a check:
 1. Name the test `TestChrome...` so one `-run` pattern finds it. Call `startBrowser(t)` first, then `startSim(t)`.
