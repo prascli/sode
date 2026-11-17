@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -54,9 +55,7 @@ func TestGridPanelRefusesBadEdges(t *testing.T) {
 	a := panelsApp(t)
 	ana := userKey(t, a, "Ana")
 	id := makeGridPanel(t, a, ana, "G")
-	nine := `"1":{"pinned":true},"2":{"pinned":true},"3":{"pinned":true},"4":{"pinned":true},"5":{"pinned":true},"6":{"pinned":true},"7":{"pinned":true},"8":{"pinned":true},"9":{"pinned":true}`
 	for _, edge := range []string{
-		`{"members":"all","items":{` + nine + `}}`,
 		`{"members":[1,2,1]}`,
 		`{"members":"all","hide":[3,3]}`,
 		`{"members":[1,2],"hide":[3]}`,
@@ -74,10 +73,13 @@ func TestGridPanelRefusesBadEdges(t *testing.T) {
 			t.Errorf("%s: %d %s", edge, rec.Code, rec.Body.String())
 		}
 	}
-	// Eight pins is the cap, not past it. Pins on items that are not members still count.
-	eight := strings.TrimSuffix(nine, `,"9":{"pinned":true}`)
-	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":{"members":[1],"items":{`+eight+`}}}`); rec.Code != 200 {
-		t.Errorf("eight pins: %d %s", rec.Code, rec.Body.String())
+	// An edge pins as many items as it likes (owner, 2026-11-17), members or not.
+	pins := make([]string, 50)
+	for i := range pins {
+		pins[i] = fmt.Sprintf(`"%d":{"pinned":true}`, i+1)
+	}
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":{"members":[1],"items":{`+strings.Join(pins, ",")+`}}}`); rec.Code != 200 {
+		t.Errorf("50 pins: %d %s", rec.Code, rec.Body.String())
 	}
 }
 

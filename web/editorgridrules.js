@@ -6,8 +6,6 @@ import { filterFn } from './filter.js';
 import { chord } from './keys.js';
 import { artRun } from './arttoolrules.js';
 
-export const PINS_MAX = 8; // per edge; keep in step with gridPinsMax in internal/app/panelgrid.go
-
 const isAll = (edge) => !Array.isArray(edge?.members);
 const pinnedIn = (edge, n) => edge?.items?.[n]?.pinned === true;
 const pinCount = (edge) => Object.values(edge?.items || {}).filter((it) => it?.pinned === true).length;
@@ -196,16 +194,14 @@ function patchItem(items, n, patch) {
   else delete items[n];
 }
 
-// Pins the selected rows in drawn order until PINS_MAX, or unpins them all. On a list edge the pinned members go
+// Pins the selected rows in drawn order, or unpins them all. On a list edge the pinned members go
 // first; an "all" edge stays "all", since its order is the router's.
 export function pinItems(edge, router, rights, kind, ns, on) {
   const e = edge || { members: 'all' };
-  let room = PINS_MAX - pinCount(e);
   const items = { ...(e.items || {}) };
   let changed = false;
   for (const n of selectedShown(e, router, rights, kind, ns).block) {
     if (pinnedIn(e, n) === on) continue;
-    if (on && room-- <= 0) break;
     patchItem(items, n, { pinned: on });
     changed = true;
   }
@@ -214,8 +210,8 @@ export function pinItems(edge, router, rights, kind, ns, on) {
   return isAll(out) ? out : { ...out, members: pinsFirst(out, out.members) };
 }
 
-// Each selected entry goes out of a list, or is hidden on "all". Its pin goes, since the server counts every pin toward
-// PINS_MAX; its art stays.
+// Each selected entry goes out of a list, or is hidden on "all". Its pin goes, so a removed item does not come back
+// pinned; its art stays.
 export function removeItems(edge, ns) {
   if (!ns.size) return edge;
   const e = edge || { members: 'all' };

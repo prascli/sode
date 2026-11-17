@@ -2325,7 +2325,7 @@ components:
           additionalProperties: { $ref: "#/components/schemas/GridItem" }
           description: |
             Settings for each item, keyed by router number. An entry for an item that is not shown stays.
-            More than 8 pinned items on one edge is 400 `bad_request`.
+            Any number of items can be pinned.
     GridItem:
       type: object
       properties:
