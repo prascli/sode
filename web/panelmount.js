@@ -31,7 +31,9 @@ export function pageUi() {
 // Fills host with a live panel. onBack is the way out to editing. A Grid panel runs as on its own page. So it also
 // gets panel.html's instance name, Levels box and take confirm. They are made
 // again for each run, since keyconfirm.js adds listeners it never removes.
-export function liveUi(host, onBack) {
+// edit is a Grid panel's { bar, aside } (editorlive.js). Back to editing goes in the bar over the panel. aside sits in
+// the panel's box and keeps its own keys.
+export function liveUi(host, onBack, edit = null) {
   const back = el('button', 'pb-btn pb-btn--outline pb-btn--sm', 'Back to editing');
   back.id = 'ed-live-back';
   back.type = 'button';
@@ -39,7 +41,9 @@ export function liveUi(host, onBack) {
   const title = el('h2', 'sode-panels__title');
   const name = el('span');
   name.hidden = true;
-  const head = el('div', 'sode-panels__head', title, name, el('span', 'sode-panels__spacer'), back);
+  const head = el('div', 'sode-panels__head', title, name, el('span', 'sode-panels__spacer'));
+  if (edit) edit.bar.append(back);
+  else head.append(back);
   const note = el('p', 'sode__hint');
   const status = el('p', 'sode-panel__status');
   status.setAttribute('role', 'status');
@@ -64,9 +68,29 @@ export function liveUi(host, onBack) {
   note.hidden = true;
   const levels = levelsBox();
   const main = el('div', 'sode-live', head, note, el('div', 'sode-panel__foot', status, update), levels, grid, offline, takeConfirm());
-  host.replaceChildren(main);
+  if (edit) main.append(edit.aside);
+  host.replaceChildren(...(edit ? [edit.bar] : []), main);
   // home: the run puts it with the header buttons, where the panel page has its Panels link.
-  return { main, head, title, name, home: back, note, status, update, updateText, snooze, applyNow, bar, grid, offline, offlineDetail, back, levels };
+  return {
+    main,
+    head,
+    title,
+    name,
+    home: edit ? null : back,
+    note,
+    status,
+    update,
+    updateText,
+    snooze,
+    applyNow,
+    bar,
+    grid,
+    offline,
+    offlineDetail,
+    back,
+    levels,
+    aside: edit?.aside,
+  };
 }
 
 // Keep in step with #panel-levels in panel.html. Only a Grid panel shows it (gridpanelrun.js).

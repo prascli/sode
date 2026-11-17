@@ -75,10 +75,16 @@ func TestChromeGridPanelEditor(t *testing.T) {
 	}
 
 	b.eval(`document.getElementById('ed-live').click(); true`)
-	b.waitFor("Test it live runs the Grid panel as its own page does: the header band, the Levels box and Take, with the editor's bars hidden", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp') && !!document.querySelector('#ed-live-view .sode-gridpanel__deck #ed-live-back') && !document.getElementById('panel-levels').hidden && !!document.getElementById('panel-take') && !!document.getElementById('confirm') && !document.querySelector('.sode-ed__bar').offsetParent`)
+	b.waitFor("Test it live runs the Grid panel as its own page does: the header band, the Levels box and Take, with the editor's bars hidden", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp') && !!document.querySelector('#ed-live-view .sode-gridpanel__deck') && !document.getElementById('panel-levels').hidden && !!document.getElementById('panel-take') && !!document.getElementById('confirm') && !document.querySelector('.sode-ed__bar').offsetParent`)
+	b.waitFor("a bar over it says Preview and holds Back to editing and Edit lists, with no Save while nothing is unsaved", `(() => {
+		const bar = document.getElementById('ed-live-bar');
+		return !!bar?.offsetParent && /Preview/.test(bar.textContent) && bar.contains(document.getElementById('ed-live-back'))
+			&& !document.querySelector('.sode-gridpanel__deck #ed-live-back') && !!document.getElementById('ed-live-lists').offsetParent && document.getElementById('ed-live-save').hidden;
+	})()`)
 	b.shot("live")
 	b.eval(`document.getElementById('ed-live-back').click(); true`)
-	b.waitFor("Back to editing puts the editor back", `!!document.querySelector('.sode-ed__bar').offsetParent && !document.getElementById('confirm') && !document.getElementById('panel-levels')`)
+	b.waitFor("Back to editing puts the editor back, with both lists in their place", `!!document.querySelector('.sode-ed__bar').offsetParent && !document.getElementById('confirm') && !document.getElementById('panel-levels')
+		&& [...document.getElementById('ed-lists').children].map((x) => x.id).join() === 'ed-sources-col,ed-destinations-col' && !!document.getElementById('ed-sources-list').offsetParent`)
 
 	b.open(srv.URL + "/panels/" + id)
 	b.waitFor("the panel opens as a Grid panel", `!!document.querySelector('.sode-gridpanel__xp')`)
