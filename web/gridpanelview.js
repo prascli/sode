@@ -257,7 +257,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
-  let cur = { i: -1, j: -1 }; // the cursor's display position, -1 on a bar
+  let cur = { i: -1, j: -1 }; // The cursor's display position, -1 on a bar.
   // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
   // animations. Thus a new glide restarts the pulse on a node that still has the last one.
   let hit = null;
