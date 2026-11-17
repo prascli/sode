@@ -108,7 +108,7 @@ func TestChromeEditorFailuresSaySomething(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 	bens := makePanel(t, a, userKey(t, a, "Ben"), `{"name":"Bens"}`)
 	note := `(document.getElementById('panels-note') || {})`
 	signin := `document.getElementById('panels-signin')`

@@ -60,7 +60,7 @@ func newShutdownRig(t *testing.T, hold time.Duration) *shutdownRig {
 	run, r.cancel = context.WithCancel(context.Background())
 	go func() { a.Run(run); close(r.ran) }()
 	srv := httptest.NewServer(a.Handler(fstest.MapFS{}))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 	var done context.CancelFunc
 	r.ctx, done = context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(done)
