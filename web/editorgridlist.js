@@ -94,8 +94,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     el('h2', 'sode-edge__h', Whats, count),
     el('span', 'sode__hint', side),
     el('span', 'sode-panels__spacer'),
-    all,
-    clear,
+    el('span', 'sode-edge__group', all, clear),
   );
   const acts = el(
     'div',
@@ -105,7 +104,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     el('span', 'sode-edge__sep'),
     selPin,
     selUnpin,
-    el('span', 'sode-edge__moves', ...moves),
+    el('span', 'sode-edge__group', ...moves),
     selRemove,
   );
   const add = el('section', 'sode-edge__add', el('h3', 'sode-side__h', 'Add from the router'), routerList.node);
@@ -259,9 +258,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
         },
       ],
     });
-    const pin = li.querySelector('[data-act="pin"]');
-    pin.setAttribute('aria-pressed', String(r.pinned));
-    pin.classList.toggle('is-on', r.pinned);
+    li.querySelector('[data-act="pin"]').setAttribute('aria-pressed', String(r.pinned));
     markRow(li);
     return li;
   }

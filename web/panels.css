@@ -1013,7 +1013,7 @@ body {
   font-size: var(--pb-text-md);
   font-weight: normal;
 }
-.sode-edge__moves {
+.sode-edge__group {
   display: inline-flex;
   gap: var(--pb-space-1);
 }
@@ -1101,9 +1101,6 @@ body {
 }
 .sode-edge__row .sode-pages__name {
   flex: 1 1 auto;
-}
-.sode-edge__row .pb-btn--icon.is-on {
-  color: var(--pb-accent);
 }
 /* A row's artwork is the cell's artwork row (panelview.js artNode) in a small box, at full strength. */
 .sode-edge__art {
