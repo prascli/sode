@@ -39,3 +39,20 @@ export function pinsOf(edge, order) {
   while (k < order.length && edge?.items?.[order[k]]?.pinned === true) k++;
   return k;
 }
+
+// As indexAt, but null past the last item or before the view, so a caller can tell that from the name bar (-1).
+export function slotAt(px, a) {
+  if (px < 0) return null;
+  if (px < a.head) return -1;
+  const i = indexAt(px, a);
+  return i < 0 ? null : i;
+}
+
+// The whole scrolling items one screen shows, at least one: a PageUp or PageDown moves this many.
+export const pageOf = ({ pins, size, head, view }) => Math.max(1, Math.floor((view - head - pins * size) / size));
+
+// The start of item i in content px; -1 is the name bar. The bar and pinned items are sticky, so they follow offset.
+export function placeAt(i, { pins, size, head, offset }) {
+  if (i < 0) return offset;
+  return i < pins ? offset + head + i * size : head + i * size;
+}
