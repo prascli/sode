@@ -85,6 +85,7 @@ func TestChromeGridPanelPhone(t *testing.T) {
 
 	b.waitFor("the numbered targets show with no hover",
 		gridXp(11, 0)+`?.dataset.n === '1' && `+gridXp(12, 1)+`?.dataset.n === '2' && `+gridXp(13, 2)+`?.dataset.n === '3'`)
+	b.waitFor("the Levels box fits the phone", `(() => { const l = document.getElementById('panel-levels'); return l.scrollWidth <= l.clientWidth; })()`)
 	b.shot("phone-preview")
 
 	tap(b, gridXp(11, 0))

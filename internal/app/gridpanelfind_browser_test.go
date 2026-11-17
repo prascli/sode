@@ -62,6 +62,15 @@ func TestChromeGridPanelFind(t *testing.T) {
 	shownSrcs := `[...document.querySelectorAll('.sode-gridpanel__src:not([hidden])')].map((n) => n.dataset.src).sort((a, b) => a - b).join(',')`
 	b.waitFor("Ctrl+/ switches to Filter, which shows only the matches, unmarked", cols+` === '4' && `+
 		shownSrcs+` === '12,21,22,23' && `+gridFound("srcs")+` === ''`)
+	b.waitFor("both boxes name the mode", `[...document.querySelectorAll('.sode-gridpanel__find-input')].map((n) => n.placeholder).join('|') === 'Filter sources|Filter destinations'`)
+	b.waitFor("the placeholder fits its box", `(() => {
+		const i = `+gridFindBox("dsts")+`;
+		const cs = getComputedStyle(i);
+		const x = document.createElement('canvas').getContext('2d');
+		x.font = cs.font;
+		return x.measureText(i.placeholder).width <= i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+	})()`)
+	b.waitFor("one mode button says Filter", `[...document.querySelectorAll('.sode-gridpanel__find-mode')].map((n) => n.textContent).join() === 'Filter'`)
 	b.waitFor("the box stays focused and keeps its text", `document.activeElement === `+gridFindBox("srcs")+` && document.activeElement.value === 'cam 1'`)
 	gridCursorOn(b, "the cursor stays on its source", -1, 0)
 	b.shot("filter")

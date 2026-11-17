@@ -100,14 +100,15 @@ const makeSrc = () => {
   n.append(makeArt());
   return n;
 };
-// After the name's Text: the protected mark (the lock never stands alone), the current sources the grid does not
-// show, then the artwork. Made once, so a paint changes only Text data and hidden.
+// After the name's Text: the protected mark (the lock never stands alone) and the staged word. Then the current
+// sources the grid does not show, then the artwork. Made once, so a paint changes only Text data and hidden.
 const makeDst = () => {
   const n = makeName('pb-xpt--dest sode-gridpanel__dst', 'rowheader')();
   const prot = el('small', 'sode-gridpanel__prot', icon('lock'), document.createTextNode(''));
+  const held = el('small', 'sode-gridpanel__held', document.createTextNode(''));
   const other = el('small', 'sode-gridpanel__other', document.createTextNode(''));
-  prot.hidden = other.hidden = true;
-  n.append(prot, other, makeArt());
+  prot.hidden = held.hidden = other.hidden = true;
+  n.append(prot, held, other, makeArt());
   return n;
 };
 
@@ -137,11 +138,15 @@ function paintArt(row, art) {
 
 // A mark not shown is hidden and has empty text, so the node's text is the name alone.
 function paintDstMarks(n, d, view) {
-  const [, prot, other] = n.childNodes;
+  const [, prot, held, other] = n.childNodes;
   const p = view.protected(d);
   n.classList.toggle('pb-xpt--protected', p);
   if (prot.hidden === p) prot.hidden = !p;
   if (prot.lastChild.data !== (p ? ' Protected' : '')) prot.lastChild.data = p ? ' Protected' : '';
+  // Protected wins: a protected destination has nothing staged.
+  const h = !p && view.held(d);
+  setText(held, h ? 'staged' : '');
+  if (held.hidden === h) held.hidden = !h;
   const o = view.other(d);
   setText(other, o.text);
   if (other.hidden !== !o.text) other.hidden = !o.text;
@@ -554,6 +559,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     },
     // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
     // staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }.
+    // view.held(dst) is true when a route to dst is staged.
     // view.other(dst) is { text, tip }, and view.art(kind, n) is { icon, url, mask, b } or null.
     // kind is 'srcs' or 'dsts'. Only drawn nodes are painted.
     paint(v) {
