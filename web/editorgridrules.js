@@ -3,6 +3,7 @@
 // same edge when nothing changed.
 import { allowed } from './rightsrules.js';
 import { filterFn } from './filter.js';
+import { chord } from './keys.js';
 
 export const PINS_MAX = 8; // per edge; keep in step with gridPinsMax in internal/app/panelgrid.go
 
@@ -134,4 +135,121 @@ export function addItems(edge, router, selected) {
   const add = [...selected].filter((n) => !has.has(n)).sort((a, b) => a - b);
   if (!add.length) return edge;
   return { ...withoutHide(edge), members: [...list, ...add] };
+}
+
+// The panel's list keys, by chord (keys.js), while the list itself has focus. go moves the cursor (extend: Shift
+// selects from the anchor), move moves the selected rows. Ctrl+A is also Cmd+A, as in a text field.
+const EDGE_KEYS = {
+  up: { go: 'up' },
+  down: { go: 'down' },
+  home: { go: 'home' },
+  end: { go: 'end' },
+  pageup: { go: 'pageUp' },
+  pagedown: { go: 'pageDown' },
+  'alt+up': { move: 'up' },
+  'alt+down': { move: 'down' },
+  'alt+home': { move: 'top' },
+  'alt+end': { move: 'end' },
+  'ctrl+a': { all: true },
+  'meta+a': { all: true },
+  ' ': { toggle: true },
+  escape: { none: true },
+};
+export function edgeListKey(e) {
+  const c = chord(e);
+  const plain = EDGE_KEYS[c];
+  if (plain) return plain;
+  const go = c.startsWith('shift+') && EDGE_KEYS[c.slice(6)]?.go;
+  return go ? { go, extend: true } : null;
+}
+
+// Edits of several selected entries at once. ns is a Set of router numbers. Each edit copies the edge one time, since
+// a selection can hold thousands.
+
+const selectedShown = (edge, router, rights, kind, ns) => {
+  const shown = edgeRows(edge, router, rights, kind).rows.map((r) => r.n);
+  return { shown, block: shown.filter((n) => ns.has(n)) };
+};
+
+// Moves the selected rows, in list order, to before the row before (a router number), or to the end when before is
+// null. A selected row is not a place, so the block lands before the next row that is not selected. Entries outside
+// the Rights stay in the list. A move is a reorder, so an "all" edge becomes a list.
+export function moveRows(edge, router, rights, kind, ns, before) {
+  const { shown, block } = selectedShown(edge, router, rights, kind, ns);
+  if (!block.length) return edge;
+  let at = before === null ? -1 : shown.indexOf(before);
+  while (at >= 0 && ns.has(shown[at])) at = at + 1 < shown.length ? at + 1 : -1;
+  const was = membersOf(edge, router);
+  const moved = new Set(block);
+  const rest = was.filter((n) => !moved.has(n));
+  const i = at < 0 ? rest.length : rest.indexOf(shown[at]);
+  const next = [...rest.slice(0, i), ...block, ...rest.slice(i)];
+  if (next.every((n, k) => n === was[k])) return edge;
+  return { ...withoutHide(edge), members: next };
+}
+
+// The keyboard's move. dir is 'up' or 'down' (past the row next to the block), 'top' or 'end'.
+export function stepRows(edge, router, rights, kind, ns, dir) {
+  const { shown, block } = selectedShown(edge, router, rights, kind, ns);
+  if (!block.length) return edge;
+  const first = shown.indexOf(block[0]);
+  const last = shown.indexOf(block.at(-1));
+  if (dir === 'top') return moveRows(edge, router, rights, kind, ns, shown[0]);
+  if (dir === 'end') return moveRows(edge, router, rights, kind, ns, null);
+  if (dir === 'up') return first > 0 ? moveRows(edge, router, rights, kind, ns, shown[first - 1]) : edge;
+  if (last >= shown.length - 1) return edge;
+  return moveRows(edge, router, rights, kind, ns, last + 2 < shown.length ? shown[last + 2] : null);
+}
+
+// Sets or clears keys of one item in items (a copy the caller owns). An item with nothing left goes.
+function patchItem(items, n, patch) {
+  const it = { ...(items[n] || {}) };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined || v === false || v === '') delete it[k];
+    else it[k] = v;
+  }
+  if (Object.keys(it).length) items[n] = it;
+  else delete items[n];
+}
+
+// Pins the selected rows in list order until PINS_MAX, or unpins them all.
+export function pinItems(edge, router, rights, kind, ns, on) {
+  const e = edge || { members: 'all' };
+  let room = PINS_MAX - pinCount(e);
+  const items = { ...(e.items || {}) };
+  let changed = false;
+  for (const n of selectedShown(e, router, rights, kind, ns).block) {
+    if (pinnedIn(e, n) === on) continue;
+    if (on && room-- <= 0) break;
+    patchItem(items, n, { pinned: on });
+    changed = true;
+  }
+  return changed ? { ...e, items } : edge;
+}
+
+// removeItemFrom for each selected entry: out of a list or hidden on "all", unpinned, art kept.
+export function removeItems(edge, ns) {
+  if (!ns.size) return edge;
+  const e = edge || { members: 'all' };
+  const items = { ...(e.items || {}) };
+  for (const n of ns) if (items[n]?.pinned) patchItem(items, n, { pinned: false });
+  if (!isAll(e)) return { ...e, members: e.members.filter((x) => !ns.has(x)), items };
+  const hide = e.hide || [];
+  const had = new Set(hide);
+  return { ...e, hide: [...hide, ...[...ns].filter((n) => !had.has(n))], items };
+}
+
+// setItemArt for each selected entry. The same edge comes back when nothing changes.
+export function setItemsArt(edge, ns, patch) {
+  const e = edge || { members: 'all' };
+  const items = { ...(e.items || {}) };
+  const keys = ['art', 'artB'].filter((k) => k in patch);
+  let changed = false;
+  for (const n of ns) {
+    const was = items[n] || {};
+    if (keys.every((k) => (was[k] || '') === (patch[k] || ''))) continue;
+    patchItem(items, n, Object.fromEntries(keys.map((k) => [k, patch[k]])));
+    changed = true;
+  }
+  return changed ? { ...e, items } : edge;
 }

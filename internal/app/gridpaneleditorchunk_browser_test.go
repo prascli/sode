@@ -23,8 +23,8 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b.waitFor("the lock goes", `!document.documentElement.dataset.sodeLock`)
 	b.waitFor("the sidebar is built", `!!document.getElementById('ed-set-type')`)
 	b.eval(`const s = document.getElementById('ed-set-type'); s.value = 'grid'; s.dispatchEvent(new Event('change', { bubbles: true })); true`)
-	b.waitFor("the Sources tab", `!!document.getElementById('tab-ed-sources')`)
-	b.eval(`document.getElementById('tab-ed-sources').click(); true`)
+	b.waitFor("the Sources and Destinations tab", `!!document.getElementById('tab-ed-lists')`)
+	b.eval(`document.getElementById('tab-ed-lists').click(); true`)
 
 	rows := `document.querySelectorAll('#ed-sources-router [data-n]:not([hidden])')`
 	b.waitFor("the router list shows its first rows", `!!document.querySelector('#ed-sources-router [data-n="0"]:not([hidden])')`)

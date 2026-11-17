@@ -5,6 +5,8 @@ import { btn } from './formbits.js';
 import { dropTo, canMove } from './orderedlistrules.js';
 
 // opts: rowClass, toolsClass, move(from, to), remove(i), removeTip (the button's name, for example 'Delete Page').
+// drop(from, over, after) is opt-in: the drop goes before or after the row under it by the pointer's half, and the
+// caller places it. Without it a drop takes the place of the row under it, as the Pages bar needs.
 // Buttons carry data-act (the caller's act, or up, down, delete) and data-i, so a caller can put focus back after a repaint.
 export function createOrderedList(opts) {
   let dragFrom = -1;
@@ -44,7 +46,12 @@ export function createOrderedList(opts) {
     return li;
   }
 
-  // A drop takes the place of the row under it.
+  // A drop takes the place of the row under it, or with opts.drop goes to the side of it the pointer is on.
+  const sideOf = (li, e) => {
+    const r = li.getBoundingClientRect();
+    return e.clientY > r.top + r.height / 2;
+  };
+  const unmark = (li) => li.classList.remove('is-drop', 'is-drop-after', 'is-drop-before');
   function dragRow(li, i) {
     li.draggable = true;
     li.addEventListener('dragstart', (e) => {
@@ -55,14 +62,20 @@ export function createOrderedList(opts) {
     li.addEventListener('dragover', (e) => {
       if (dragFrom < 0) return;
       e.preventDefault();
-      li.classList.add('is-drop');
+      if (!opts.drop) return li.classList.add('is-drop');
+      const after = sideOf(li, e);
+      li.classList.toggle('is-drop-after', after);
+      li.classList.toggle('is-drop-before', !after);
     });
-    li.addEventListener('dragleave', () => li.classList.remove('is-drop'));
+    li.addEventListener('dragleave', () => unmark(li));
     li.addEventListener('drop', (e) => {
       e.preventDefault();
+      unmark(li);
       const from = dragFrom;
       dragFrom = -1;
-      if (from >= 0) opts.move(from, dropTo(from, i));
+      if (from < 0) return;
+      if (opts.drop) opts.drop(from, i, sideOf(li, e));
+      else opts.move(from, dropTo(from, i));
     });
     li.addEventListener('dragend', () => (dragFrom = -1));
   }

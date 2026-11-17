@@ -73,8 +73,8 @@ func TestChromeGridPanelArt(t *testing.T) {
 	// The editor's list rows set artwork: Icon A and Icon B on source 3, saved on the item.
 	b.open(srv.URL + "/panels/editor?panel=" + id)
 	b.waitFor("the lock goes", `!document.documentElement.dataset.sodeLock`)
-	b.waitFor("the Sources tab", `!!document.getElementById('tab-ed-sources')`)
-	b.eval(`document.getElementById('tab-ed-sources').click(); true`)
+	b.waitFor("the Sources and Destinations tab", `!!document.getElementById('tab-ed-lists')`)
+	b.eval(`document.getElementById('tab-ed-lists').click(); true`)
 	row := `document.querySelector('#ed-sources-list li[data-id="3"]')`
 	b.waitFor("the source rows", row+` !== null`)
 	b.eval(row + `.querySelector('[data-act="art"]').click(); true`)

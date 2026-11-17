@@ -967,18 +967,46 @@ body {
 }
 /* A Grid panel has no cells, size or Pages (paneleditor.js sets data-type); its lists fill the sidebar. */
 .sode-ed[data-type="grid"] .sode-ed__body {
-  grid-template-columns: minmax(0, 64rem);
+  grid-template-columns: minmax(0, 1fr);
 }
-/* A list tab: the router list (editorrouterlist.js) beside the panel's list. */
+/* The Grid tabs show two columns side by side where the sidebar is wide enough (editorside.js). */
+.sode-ed__side {
+  container: side / inline-size;
+}
+/* Each is a tab panel, and pb-tabpanel.active is display: block. */
+.sode-pair.pb-tabpanel.active {
+  align-items: start;
+  display: grid;
+  gap: var(--pb-space-7);
+  grid-template-columns: minmax(0, 1fr);
+}
+@container side (min-width: 52rem) {
+  .sode-pair.pb-tabpanel.active {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.sode-pair__col {
+  container: col / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-5);
+  min-width: 0;
+}
+.sode-pair__h {
+  font-size: var(--pb-text-lg);
+  font-weight: var(--pb-weight-bold);
+  margin: 0;
+}
+/* A list column: the router list (editorrouterlist.js) beside the panel's list, or above it in a narrow column. */
 .sode-edge {
   align-items: start;
   display: grid;
   gap: var(--pb-space-5);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
-@media (max-width: 48rem) {
+@container col (min-width: 36rem) {
   .sode-edge {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .sode-rlist__wrap,
@@ -1032,6 +1060,19 @@ body {
   align-items: center;
   flex-direction: row;
   justify-content: space-between;
+}
+/* Selected rows of a panel's list (editorgridlist.js), marked as in the router list. */
+.sode-edge__row {
+  cursor: pointer;
+  user-select: none;
+}
+.sode-edge__row[data-selected] {
+  background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
+  box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-accent);
+}
+.sode-edge__list:focus-visible .sode-edge__row.is-cur {
+  outline: 2px solid var(--pb-accent);
+  outline-offset: -2px;
 }
 .sode-edge__acts {
   display: flex;
@@ -1098,6 +1139,13 @@ body {
 }
 .sode-pages__row.is-drop {
   outline: var(--pb-accent-bar-w) solid var(--pb-accent);
+}
+/* A Grid list drop goes before or after the row by the pointer's half (orderedlist.js drop). */
+.sode-pages__row.is-drop-before {
+  box-shadow: inset 0 var(--pb-accent-bar-w) 0 var(--pb-accent);
+}
+.sode-pages__row.is-drop-after {
+  box-shadow: inset 0 calc(-1 * var(--pb-accent-bar-w)) 0 var(--pb-accent);
 }
 .sode-pages__row.is-off .sode-pages__name {
   color: var(--pb-text-disabled);
