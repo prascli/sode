@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -168,6 +169,43 @@ func TestSessionPanelTakeRowNamesPanelFromHeaders(t *testing.T) {
 	}
 	e = lastRow(t, a, "take", 2)
 	if strings.Contains(e.Note, "panel") || strings.Contains(e.Note, "Lobby") {
+		t.Fatalf("row %+v", e)
+	}
+}
+
+// A Session-mode page of a panel that never asks for a name sends no instance. It goes by its address, as on
+// /panels, so the log row, History and the panel's Undo all name the same instance.
+func TestUnnamedSessionInstanceGoesByItsAddress(t *testing.T) {
+	a, f := clientApp(t)
+	shortTimers(a)
+	defer startLog(t, a)()
+	cy := userKey(t, a, "Cy")
+	quiet := makePanel(t, a, cy, `{"name":"Quiet","settings":{"askInstanceName":false}}`)
+	asks := makePanel(t, a, cy, `{"name":"Asks"}`)
+	f.seed(2, 1, 0)
+	addr := strings.Split(apiPeer, ":")[0]
+
+	rec := apiPost(a, "/api/v1/takes", cy, `{"routes":[{"src":3,"dst":2,"levels":[1]}]}`, map[string]string{"X-Sode-Panel": quiet})
+	if rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body.String())
+	}
+	if e := lastRow(t, a, "take"); !strings.Contains(e.Note, "unverified panel "+quiet+" (Quiet), instance "+addr) {
+		t.Fatalf("row %+v", e)
+	}
+	es, _ := a.hist.Page(-1, 1)
+	if len(es) != 1 || es[0].Panel != "Quiet" || es[0].Instance != addr {
+		t.Fatalf("history %+v", es)
+	}
+	if rec := apiDo(a, "GET", "/api/v1/panels/"+quiet+"/undo", cy, map[string]string{"X-Sode-Panel": quiet}); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"id":`+strconv.Itoa(es[0].ID)) {
+		t.Fatalf("undo %d %s", rec.Code, rec.Body.String())
+	}
+
+	// A panel that asks has no address name: its page names itself before it counts.
+	rec = apiPost(a, "/api/v1/takes", cy, `{"routes":[{"src":2,"dst":2,"levels":[1]}]}`, map[string]string{"X-Sode-Panel": asks})
+	if rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body.String())
+	}
+	if e := lastRow(t, a, "take", 2); strings.Contains(e.Note, "instance") {
 		t.Fatalf("row %+v", e)
 	}
 }

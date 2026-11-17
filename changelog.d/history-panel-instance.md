@@ -1,0 +1,2 @@
+- History on the main page shows the full panel name and instance name of a take from a panel. When the text does not fit on the row, it goes onto a new line and is no longer cut off.
+- A take from a Session-mode panel that does not ask for an instance name now uses the device's address as the instance name. History and the Communication Log show this name, and the panel's Undo cell can now undo the takes from that device.
