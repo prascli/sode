@@ -69,7 +69,7 @@ function thumb(p, small) {
   // A Grid panel's counts are tiles in its two bars. A Buttons panel's picture has no bars, so its count is text on the picture.
   if (g) {
     for (const t of g.tiles) {
-      const i = el('i', `sode-ov__k-${t.kind} sode-ov__tile sode-ov__tile--${t.kind}`, t.label);
+      const i = el('i', `sode-ov__k-${t.kind} sode-ov__tile sode-ov__tile--${t.kind}${t.half ? ' sode-ov__tile--half' : ''}`, t.label);
       i.style.gridArea = `${t.r} / ${t.c} / span ${t.rs} / span ${t.cs}`;
       box.append(i);
     }

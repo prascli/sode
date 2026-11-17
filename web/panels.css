@@ -1801,7 +1801,7 @@ body {
 .sode-ed__pick {
   padding-inline-start: var(--pb-space-3);
 }
-/* A count tile sits in a bar's squares. Digits stand upright and stack in the Destination bar, so they read without a tilt. */
+/* A count has one tile per character. The Destination bar reads from the bottom up, as the Grid page's Sources label does. */
 .sode-ov__thumb--grid .sode-ov__tile {
   align-items: center;
   color: var(--pb-text-strong);
@@ -1814,8 +1814,14 @@ body {
   overflow: hidden;
 }
 .sode-ov__thumb--grid .sode-ov__tile--destination {
-  text-orientation: upright;
-  writing-mode: vertical-rl;
+  rotate: -90deg;
+}
+/* An odd number of spare squares: move half a square to stay centred. */
+.sode-ov__thumb--grid .sode-ov__tile--source.sode-ov__tile--half {
+  translate: 50% 0;
+}
+.sode-ov__thumb--grid .sode-ov__tile--destination.sode-ov__tile--half {
+  translate: 0 50%;
 }
 .sode-ov__thumb--sm.sode-ov__thumb--grid .sode-ov__tile {
   font-size: var(--pb-text-xs);
