@@ -2,23 +2,23 @@
 // So another adapter can drive the same view. ctx is { ui, embedded, call, callJSON, post, poll, ready, instance, touched }.
 // The rules are pure modules (gridpanel*.js); this file joins them to the DOM.
 import { envFrom, namesFrom } from './panelrules.js';
-import { gridAxes } from './gridpaneledges.js';
+import { arrange } from './gridpanelarrange.js';
 import { nameArt } from './gridpanelart.js';
 import { defaultsBy } from './panellook.js';
-import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
+import { createStage, restage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
 import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction, findBoxAction } from './gridpanelkeys.js';
 import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
 import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
-import { createFind, findMatches, typed, currentMatch, stepMatch, switchMode, clearFind, shownOrder } from './gridpanelfind.js';
+import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind } from './gridpanelfind.js';
 import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
-import { CORNER, MOVES, moveCursor, pointOf, followCursor, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
+import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
 import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
 import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
@@ -36,12 +36,6 @@ const say = (n, text) => {
   n.hidden = !text;
 };
 
-const stateOf = (p, was) => {
-  const st = createStage({ mode: p.settings?.mode });
-  // Instant mode holds nothing staged.
-  return was && st.mode === 'take' ? { ...st, staged: was.staged, undoId: was.undoId, busy: was.busy } : { ...st, busy: !!was?.busy };
-};
-
 // A focused field or header button keeps its own Enter; the crosspoints are the grid's, the search boxes are not.
 const inControl = (grid) => {
   const a = document.activeElement;
@@ -52,7 +46,7 @@ const inControl = (grid) => {
 export function gridBody(ctx, first) {
   const { ui } = ctx;
   let panel = first;
-  let st = stateOf(panel);
+  let st = createStage({ mode: panel.settings?.mode });
   let tally = null;
   let env = envFrom({}, {});
   let names = namesFrom({});
@@ -180,30 +174,18 @@ export function gridBody(ctx, first) {
 
   // The view moves its nodes to the new items only when the shown sources or destinations change.
   const rebuild = () => {
-    const whole = gridAxes(panel, namesReply);
-    const off = namesReply.numberOffset || 0;
-    matches = {
-      srcs: findMatches(whole.srcs, namesReply.sources, find.srcs.text, off),
-      dsts: findMatches(whole.dsts, namesReply.destinations, find.dsts.text, off),
-    };
-    const next = {
-      srcs: shownOrder(whole.srcs, pinsOf(panel.sources, whole.srcs), find.srcs, matches.srcs),
-      dsts: shownOrder(whole.dsts, pinsOf(panel.destinations, whole.dsts), find.dsts, matches.dsts),
-    };
-    const key = JSON.stringify([whole, next]);
+    const next = arrange(panel, namesReply, { find, picks, cur, axes });
+    matches = next.matches;
+    const key = JSON.stringify([next.full, next.axes]);
     if (key === axesKey) return;
     axesKey = key;
-    cur = followCursor(cur, axes, next);
-    axes = next;
+    ({ cur, axes, full, picks } = next);
     // A line is in display order, so new axes end it.
     if (line) {
       gest?.cancel();
       line = null;
     }
-    full = whole;
-    shownSrcs = new Set(whole.srcs);
-    // Picks on names that left the panel go; picks a Filter hides stay.
-    picks = { ...picks, srcs: picks.srcs.filter((n) => whole.srcs.includes(n)), dsts: picks.dsts.filter((n) => whole.dsts.includes(n)) };
+    shownSrcs = new Set(full.srcs);
     at = null;
     const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
     if (g) g.setAxes(all);
@@ -633,8 +615,10 @@ export function gridBody(ctx, first) {
     },
     pending: () => ({ staged: st.staged.length > 0, busy: st.busy }),
     apply(p) {
+      // The staged routes it shows are dropped below.
+      if (confirm?.isOpen()) confirm.close();
       panel = p;
-      st = stateOf(p, st);
+      st = restage(st, p);
       axesKey = '';
       syncBox();
       rebuild();
