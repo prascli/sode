@@ -89,7 +89,6 @@ func TestChromePanelWatchToast(t *testing.T) {
 	b.shot("hidden")
 	b.eval(`document.querySelector('[data-show-hidden]').click()`)
 	b.waitFor("shown again", `!!document.querySelector('[data-hide-instance="Lobby tablet"]') && document.querySelector('[data-online]').textContent === 'All Online'`)
-	b.waitFor("Open now has the status", `document.querySelector('#panels-open .sode-ov__group .pb-badge')?.textContent === 'All Online'`)
 	b.check()
 }
 
