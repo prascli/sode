@@ -722,8 +722,21 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__tip {
   color: var(--pb-text-muted);
 }
-.sode-gridpanel__note [hidden] {
-  display: none;
+/* The note keeps its height as its words change, so the grid below does not move: one line each, and an empty chip
+   keeps its room. */
+.sode-gridpanel__note > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sode-gridpanel__chip[hidden] {
+  display: inline-flex;
+  visibility: hidden;
+}
+/* A zero-width space gives an empty chip its line height. */
+.sode-gridpanel__chip::before {
+  content: "\200b";
 }
 :root[data-layout="phone"] .sode-gridpanel__tip {
   display: none;
@@ -938,13 +951,6 @@ html:has(.sode-gridpanel) {
     align-self: end;
     grid-column: 3;
     grid-row: 2;
-  }
-  /* One line each, under the typed levels, so the band is no taller than the picks. */
-  :root:not([data-layout="phone"]) .sode-gridpanel__note > * {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__clear {
     align-self: end;

@@ -11,8 +11,9 @@ import (
 )
 
 // gridXp is the crosspoint of router source src and destination dst on a Grid panel page.
+// A spare node keeps its last data-src and data-dst while hidden, so only a shown one counts.
 func gridXp(src, dst int) string {
-	return fmt.Sprintf(`document.querySelector('.sode-gridpanel__xp[data-src="%d"][data-dst="%d"]')`, src, dst)
+	return fmt.Sprintf(`document.querySelector('.sode-gridpanel__xp[data-src="%d"][data-dst="%d"]:not([hidden])')`, src, dst)
 }
 
 // gridConfirm answers the open take confirm with its churning letter once the lockout is over.
@@ -380,6 +381,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.waitFor("the left-out route is dropped", `!document.querySelector('.sode-gridpanel__xp[data-s]:not([hidden])')`)
 
 	// The Rights narrow while routes are staged: the open page reads them with the panel, not only after a reload.
+	gridShow(b, 7, 7)
 	b.eval(gridXp(7, 7) + `.click()`)
 	b.eval(gridXp(8, 8) + `.click()`)
 	b.waitFor("two more routes staged", gridXp(8, 8)+`.dataset.s === 'staged'`)
