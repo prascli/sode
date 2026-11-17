@@ -70,7 +70,7 @@ func TestChromeGridPanelEditor(t *testing.T) {
 	srcs, _ = readPanel(t, a, ana, id)["sources"].(map[string]any)
 	hide, _ = json.Marshal(srcs["hide"])
 	items, _ = json.Marshal(srcs["items"])
-	if srcs["members"] != "all" || string(items) != `{"5":{"pinned":true},"7":{"pinned":true}}` {
+	if srcs["members"] != "all" || string(hide) != `null` || string(items) != `{"5":{"pinned":true},"7":{"pinned":true}}` {
 		t.Errorf("after the PUT, sources %v", srcs)
 	}
 
