@@ -511,14 +511,15 @@ html:has(.sode-gridpanel) {
     opacity: 1;
   }
 }
-/* The corner where the bars meet: the Destinations word, next to its bar, and the search boxes in the editor's live
-   test (gridpanelfindbox.js). A role bar ties each box to its bar. */
+/* The corner where the bars meet: the Destinations word along its bottom, next to the Destination bar, the Sources
+   word on its side down its right edge, next to the Source bar, and the search boxes in the editor's live test
+   (gridpanelfindbox.js). Each word is centred in its colour bar. */
 .sode-gridpanel__head {
-  align-content: end;
   box-sizing: border-box;
   display: grid;
   gap: var(--pb-space-1);
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: 1fr auto auto;
   height: var(--sode-name-h);
   left: 0;
   padding: var(--pb-space-1);
@@ -530,13 +531,29 @@ html:has(.sode-gridpanel) {
   align-items: center;
   display: flex;
   gap: var(--pb-space-1);
-  grid-column: 1 / -1;
+  grid-column: 1 / 3;
 }
-/* The Destinations word gives way to the mode button where the corner is narrow. */
-.sode-gridpanel__head > .sode-gridpanel__label--dst {
+.sode-gridpanel__head > .sode-gridpanel__label {
+  justify-content: center;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+}
+.sode-gridpanel__head > .sode-gridpanel__label--dst {
+  grid-column: 1 / 3;
+  grid-row: 3;
+}
+/* The Destinations word gives way to the mode switch where the corner is narrow. */
+.sode-gridpanel__head:has(> .sode-gridpanel__find-mode) > .sode-gridpanel__label--dst {
+  grid-column: 1;
+}
+/* Read from the bottom up, as a spine label is. */
+.sode-gridpanel__head > .sode-gridpanel__label--src {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  min-height: 0;
+  rotate: 180deg;
+  writing-mode: vertical-rl;
 }
 .sode-gridpanel__find-field {
   flex: 1;
@@ -753,11 +770,6 @@ html:has(.sode-gridpanel) {
   height: var(--sode-picks-h);
   padding: 0 var(--pb-space-3);
 }
-/* The Sources row is the last part of the raised deck over the grid, with one line under it. */
-:root:not([data-layout="phone"]) .sode-gridpanel__bar {
-  background: var(--pb-surface-raised);
-  border-bottom: var(--pb-border-w) solid var(--pb-edge-light);
-}
 /* A narrow mouse window keeps the main page's pick sizes, so the picks fit. */
 @media (max-width: 48rem) {
   .sode-gridpanel__levels .sode__pick {
@@ -924,14 +936,7 @@ html:has(.sode-gridpanel) {
   transform: none;
 }
 
-/* The Sources row over the grid and the Destinations word in the corner, in the role colours. */
-.sode-gridpanel__bar {
-  align-items: center;
-  display: flex;
-  flex: none;
-  gap: var(--pb-space-5);
-  padding: calc(var(--pb-space-3) / 2) 0 calc(var(--pb-space-3) / 2) var(--sode-name-w);
-}
+/* The Sources and Destinations words in the corner, in the role colours. */
 .sode-gridpanel__label {
   align-items: center;
   color: var(--pb-text-strong);

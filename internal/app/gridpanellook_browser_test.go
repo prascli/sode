@@ -33,7 +33,7 @@ const bandFits = `(() => {
 // header row holds the title, the main page's Server and Router status, Full screen and the Panels link, and the Lock
 // chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes
 // with the Filter switch, then Clear and the red Take with the note over them. Nothing in the band moves as words
-// change. It checks the Sources row, the Destinations word, the picked row and column washes and the staged ring. The
+// change. It checks the Sources and Destinations words in the corner, the picked row and column washes and the staged ring. The
 // cursor ring, the staged ring and Take pulse in one phase. The grid goes down to the window's bottom and Full width
 // and Kiosk mode are gone. The band fits at 1280 by 800 and 1920 by 1080, and 8 pins on each edge leave a short
 // window room to scroll. Then it checks the panels list's picture and words for a Grid panel.
@@ -118,21 +118,19 @@ func TestChromeGridPanelLook(t *testing.T) {
 		return sc.offsetHeight - sc.clientHeight === 40 && sc.offsetWidth - sc.clientWidth === 28;
 	})()`)
 	b.waitFor("the grid reaches the window's bottom", `Math.abs(document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect().bottom - innerHeight) < 2 && document.documentElement.scrollHeight === innerHeight`)
-	b.waitFor("the Sources row starts at the Source bar with no words after it, and the corner names the Destinations", `(() => {
-		const label = document.querySelector('.sode-gridpanel__label--src');
-		const src = label.getBoundingClientRect();
-		const dst = document.querySelector('.sode-gridpanel__head > .sode-gridpanel__label--dst');
-		const scroll = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
-		return Math.abs(src.left - 224) < 1 && src.bottom <= scroll.top && dst?.textContent === 'Destinations' && document.querySelector('.sode-gridpanel__head').lastChild === dst &&
-			label.parentNode.textContent === 'Sources';
+	b.waitFor("the corner names both bars: Destinations along its bottom, Sources on its side down its right edge, each word centred", `(() => {
+		const head = document.querySelector('.sode-gridpanel__head'), h = head.getBoundingClientRect();
+		const src = head.querySelector(':scope > .sode-gridpanel__label--src'), dst = head.querySelector(':scope > .sode-gridpanel__label--dst');
+		const s = src.getBoundingClientRect(), d = dst.getBoundingClientRect();
+		const mid = (outer, inner, ax) => Math.abs((outer[ax] + outer[ax === 'left' ? 'right' : 'bottom']) / 2 - (inner[ax] + inner[ax === 'left' ? 'right' : 'bottom']) / 2) < 2;
+		const sw = src.firstChild.getBoundingClientRect();
+		return src.textContent === 'Sources' && dst.textContent === 'Destinations' && head.lastChild === dst && !document.querySelector('.sode-gridpanel__bar') &&
+			getComputedStyle(src).writingMode === 'vertical-rl' && s.height > s.width && s.right <= h.right && s.right > h.right - 12 &&
+			d.bottom <= h.bottom && d.bottom > h.bottom - 12 && d.right <= s.left && mid(s, sw, 'top') && getComputedStyle(dst).justifyContent === 'center';
 	})()`)
 
-	b.waitFor("80 px crosspoints with 16 px names, under one raised deck", `(() => {
-		const bg = (s) => getComputedStyle(document.querySelector(s)).backgroundColor;
-		return Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 80 &&
-			getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '16.25px' &&
-			bg('.sode-gridpanel__bar') === bg('.sode-gridpanel__deck');
-	})()`)
+	b.waitFor("80 px crosspoints with 16 px names", `Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 80 && `+
+		`getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '16.25px'`)
 
 	// The band's controls, to check that nothing moves as their words change.
 	b.eval(bandRects)

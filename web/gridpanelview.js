@@ -236,9 +236,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const side = layer('sode-gridpanel__side');
   const corner = layer('sode-gridpanel__corner');
   // Where the bars meet: the run puts the search boxes here (gridpanelfindbox.js).
-  // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar.
-  const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, word, icon(arrow));
-  const head = el('div', 'sode-gridpanel__head', label('dst', 'Destinations', 'arrow-down'));
+  // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar. The
+  // Sources word is on its side at the corner's right edge, next to the Source bar, so it needs no arrow.
+  const label = (kind, word, ...arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), ...arrow);
+  const head = el('div', 'sode-gridpanel__head', label('src', 'Sources'), label('dst', 'Destinations', icon('arrow-down')));
   corner.append(head);
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
@@ -264,9 +265,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const scroll = el('div', 'pb-grid-body sode-gridpanel__scroll', field, probe);
   // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
   scroll.tabIndex = -1;
-  // The Sources row over the grid. It starts where the Source bar does.
-  const bar = el('div', 'sode-gridpanel__bar', label('src', 'Sources', 'arrow-right'));
-  host.append(bar, el('div', 'pb-grid sode-gridpanel__frame', scroll));
+  host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
 
   let ax = axes;
   let srcAt = new Map(); // router number to display index
