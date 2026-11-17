@@ -1,0 +1,102 @@
+package app
+
+import (
+	"fmt"
+	"testing"
+)
+
+// gridFindBox is the search box input of a bar, kind "srcs" or "dsts".
+func gridFindBox(kind string) string {
+	return fmt.Sprintf(`document.querySelector('.sode-gridpanel__find[data-kind="%s"] input')`, kind)
+}
+
+// gridFound is the router numbers of the drawn names that Find marks on a bar, as "n,n".
+func gridFound(kind string) string {
+	attr := map[string]string{"srcs": "src", "dsts": "dst"}[kind]
+	return fmt.Sprintf(`[...document.querySelectorAll('.sode-gridpanel__%s[data-found]:not([hidden])')].map((n) => n.dataset.%s).sort((a, b) => a - b).join(',')`, attr, attr)
+}
+
+// s and d go to the bars' search boxes in the corner. Find marks matches in place and moves the cursor to the first;
+// Enter and Shift+Enter step. Ctrl+/ switches to Filter, which shows only matches. Esc clears the box, keeps its mode
+// and gives the keys back to the grid with the cursor on the last match. Tab goes to the other box, and n and N on the
+// grid step the box last typed in.
+func TestChromeGridPanelFind(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	srv := seamServer(t, a)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, `{"name":"Find grid","type":"grid","settings":{"mode":"take","levels":[1]}}`)
+	waitNamesAndTally(t, a, ana)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	signInOnPad(b)
+	b.waitFor("the grid", gridXp(3, 2)+` !== null`)
+	b.waitFor("the lock screen goes", `document.querySelector('.sode-lock').hidden`)
+	cols := `getComputedStyle(document.querySelector('.sode-gridpanel__field')).getPropertyValue('--sode-cols').trim()`
+	b.waitFor("200 sources", cols+` === '200'`)
+
+	realKey(b, "s", "KeyS", 83)
+	b.waitFor("s goes to the Source bar box and types nothing", `document.activeElement === `+gridFindBox("srcs")+` && document.activeElement.value === ''`)
+	b.call("Input.insertText", map[string]any{"text": "cam 1"})
+	// CAM 1 and CAM 10 to CAM 12 are sources 12 and 21 to 23; only about 13 columns show, so the grid scrolls.
+	gridCursorOn(b, "Find moves the cursor to the first match", -1, 12)
+	b.waitFor("the first match is marked", gridFound("srcs")+`.split(',').includes('12')`)
+	b.waitFor("the box counts the matches", `document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').textContent.includes('1 of 4')`)
+	b.shot("find")
+
+	realKey(b, "Enter", "Enter", 13)
+	gridCursorOn(b, "Enter steps to the next match", -1, 21)
+	b.waitFor("the grid scrolls to show it", `(() => {
+		const n = document.querySelector('.sode-gridpanel__src[data-src="21"]:not([hidden])');
+		const r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
+		return !!n && n.dataset.found !== undefined && n.getBoundingClientRect().right <= r.right;
+	})()`)
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyDown", "key": "Enter", "code": "Enter", "windowsVirtualKeyCode": 13, "modifiers": 8})
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": "Enter", "code": "Enter", "windowsVirtualKeyCode": 13, "modifiers": 8})
+	gridCursorOn(b, "Shift+Enter steps back", -1, 12)
+	b.waitFor("Find hides nothing", cols+` === '200'`)
+
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyDown", "key": "/", "code": "Slash", "windowsVirtualKeyCode": 191, "modifiers": 2})
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": "/", "code": "Slash", "windowsVirtualKeyCode": 191, "modifiers": 2})
+	shownSrcs := `[...document.querySelectorAll('.sode-gridpanel__src:not([hidden])')].map((n) => n.dataset.src).sort((a, b) => a - b).join(',')`
+	b.waitFor("Ctrl+/ switches to Filter, which shows only the matches, unmarked", cols+` === '4' && `+
+		shownSrcs+` === '12,21,22,23' && `+gridFound("srcs")+` === ''`)
+	b.waitFor("the box stays focused and keeps its text", `document.activeElement === `+gridFindBox("srcs")+` && document.activeElement.value === 'cam 1'`)
+	gridCursorOn(b, "the cursor stays on its source", -1, 0)
+	b.shot("filter")
+
+	realKey(b, "Tab", "Tab", 9)
+	b.waitFor("Tab goes to the Destination bar box", `document.activeElement === `+gridFindBox("dsts"))
+	b.call("Input.insertText", map[string]any{"text": "dsm"})
+	// DSM1 to DSM5 are destinations 2 to 6.
+	gridCursorOn(b, "Find on the Destination bar moves the cursor down to the first match", 2, 0)
+	b.eval(`document.activeElement.blur(); true`)
+	realKey(b, "n", "KeyN", 78)
+	gridCursorOn(b, "n on the grid steps the box last typed in", 3, 0)
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyDown", "key": "N", "code": "KeyN", "windowsVirtualKeyCode": 78, "modifiers": 8})
+	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": "N", "code": "KeyN", "windowsVirtualKeyCode": 78, "modifiers": 8})
+	gridCursorOn(b, "N steps back", 2, 0)
+
+	realKey(b, "s", "KeyS", 83)
+	realKey(b, "Escape", "Escape", 27)
+	b.waitFor("Esc clears the box and leaves it", ``+gridFindBox("srcs")+`.value === '' && document.activeElement !== `+gridFindBox("srcs"))
+	b.waitFor("every source shows again", cols+` === '200'`)
+	gridCursorOn(b, "the cursor stays on the source it was on", 2, 12)
+	b.waitFor("the box keeps Filter for the visit", `document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').dataset.mode === 'filter'`)
+	realKey(b, "j", "KeyJ", 74)
+	gridCursorOn(b, "the keys move the cursor again", 3, 12)
+
+	realKey(b, "s", "KeyS", 83)
+	b.call("Input.insertText", map[string]any{"text": "zz"})
+	b.waitFor("a Filter with no match shows no sources and says so", cols+` === '0' && `+
+		`document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').textContent.includes('No match')`)
+	realKey(b, "Escape", "Escape", 27)
+	b.waitFor("Esc shows every source again", cols+` === '200'`)
+
+	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
+	b.waitFor("the grid after a load", gridXp(3, 2)+` !== null && `+cols+` === '200'`)
+	b.waitFor("a load starts with empty boxes in Find mode", gridFindBox("srcs")+`.value === '' && `+gridFindBox("dsts")+`.value === '' && `+
+		`document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').dataset.mode === 'find'`)
+	b.check()
+}

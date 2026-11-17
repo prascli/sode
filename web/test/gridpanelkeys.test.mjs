@@ -1,7 +1,7 @@
 // Keys on a Grid panel (gridpanelkeys.js): which action a key press asks for.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gridKeyAction } from '../gridpanelkeys.js';
+import { gridKeyAction, findBoxAction } from '../gridpanelkeys.js';
 
 const key = (k, over = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...over });
 const ctx = (over = {}) => ({ staged: 1, picks: 0, inControl: false, ...over });
@@ -91,6 +91,34 @@ test('browser chords such as Cmd+R and Ctrl+L are not the grid’s', () => {
   assert.equal(gridKeyAction(code('KeyR', { metaKey: true }), ctx()), null);
   assert.equal(gridKeyAction(code('KeyL', { ctrlKey: true }), ctx()), null);
   assert.equal(gridKeyAction(code('KeyJ', { altKey: true }), ctx()), null);
+});
+
+test('s and d go to the Source bar and Destination bar boxes, unless a field has focus', () => {
+  assert.equal(gridKeyAction(code('KeyS'), ctx()), 'findSrcs');
+  assert.equal(gridKeyAction(code('KeyD'), ctx()), 'findDsts');
+  assert.equal(gridKeyAction(code('KeyS', { metaKey: true }), ctx()), null);
+  assert.equal(gridKeyAction(code('KeyD', { inControl: true }), ctx({ inControl: true })), null);
+});
+
+test('n and N step the matches only while a box has text, so the keys are otherwise free', () => {
+  assert.equal(gridKeyAction(code('KeyN'), ctx({ finding: true })), 'nextMatch');
+  assert.equal(gridKeyAction(code('KeyN', { shiftKey: true }), ctx({ finding: true })), 'prevMatch');
+  assert.equal(gridKeyAction(code('KeyN'), ctx()), null);
+  assert.equal(gridKeyAction(code('KeyN'), ctx({ finding: true, inControl: true })), null);
+});
+
+test('in a search box: Enter and Shift+Enter step, Esc clears, Tab and Shift+Tab go to the other box, Ctrl+/ switches the mode', () => {
+  assert.equal(findBoxAction(key('Enter')), 'nextMatch');
+  assert.equal(findBoxAction(key('Enter', { shiftKey: true })), 'prevMatch');
+  assert.equal(findBoxAction(key('Escape')), 'clear');
+  assert.equal(findBoxAction(key('Tab')), 'swap');
+  assert.equal(findBoxAction(key('Tab', { shiftKey: true })), 'swap');
+  assert.equal(findBoxAction(key('/', { code: 'Slash', ctrlKey: true })), 'mode');
+});
+
+test('other keys in a search box are typing', () => {
+  for (const c of ['KeyS', 'KeyJ', 'KeyN', 'ArrowLeft', 'Space']) assert.equal(findBoxAction(code(c)), null, c);
+  assert.equal(findBoxAction(key('/', { code: 'Slash' })), null);
 });
 
 const bar = (b, over = {}) => ctx({ staged: 0, bar: b, ...over });
