@@ -42,21 +42,6 @@ function withItem(edge, n, patch) {
   return { ...edge, items };
 }
 
-export function pinItem(edge, n, on) {
-  const e = edge || { members: 'all' };
-  if (pinnedIn(e, n) === on) return edge;
-  if (on && pinCount(e) >= PINS_MAX) return edge;
-  return withItem(e, n, { pinned: on || undefined });
-}
-
-// An item out of the edge loses its pin, since the server counts every pin toward PINS_MAX; its art stays.
-export function removeItemFrom(edge, n) {
-  const e = withItem(edge || { members: 'all' }, n, { pinned: undefined });
-  if (!isAll(e)) return { ...e, members: e.members.filter((x) => x !== n) };
-  const hide = e.hide || [];
-  return hide.includes(n) ? e : { ...e, hide: [...hide, n] };
-}
-
 const withoutHide = (edge) => {
   const out = { ...(edge || {}) };
   delete out.hide;
@@ -84,6 +69,9 @@ export function clearEdge(edge, rights, kind) {
 
 export const followRouter = (edge) => ({ ...withoutHide(edge), members: 'all' });
 
+// Follow the router switched off: the edge keeps what it shows now, in the same order, as a list.
+export const stopFollowing = (edge, router) => (isAll(edge) ? { ...withoutHide(edge), members: membersOf(edge, router) } : edge);
+
 // Add from the router: the router's items the panel does not have, in router order, within the Rights.
 export function routerRows(router, edge, rights, kind) {
   const has = new Set(membersOf(edge, router));
@@ -100,7 +88,7 @@ export function findRows(rows, text, off) {
   return f ? rows.filter((r) => f(r.n + off, r.name)) : [];
 }
 
-// s is { selected: Set of router numbers, anchor }. They are router numbers, so they stay when Find changes. Shift adds
+// s is { selected: Set of router numbers, anchor }. They are router numbers, so they stay through moves and edits. Shift adds
 // the rows in shown from the anchor to n; with the anchor out of shown it adds n alone.
 export function selectRows(s, shown, n, { shift = false, toggle = false } = {}) {
   const at = shown.findIndex((r) => r.n === n);
@@ -140,7 +128,9 @@ const EDGE_KEYS = {
   'alt+down': { move: 'down' },
   'alt+home': { move: 'top' },
   'alt+end': { move: 'end' },
-  // Ctrl+Up and Ctrl+Down never reach a page on macOS (Mission Control), so the group moves have Shift too.
+  // macOS gives Ctrl+Up and Ctrl+Down to Mission Control unless that is turned off, so Ctrl+Shift and Cmd+Shift also move.
+  'ctrl+up': { move: 'up' },
+  'ctrl+down': { move: 'down' },
   'ctrl+shift+up': { move: 'up' },
   'ctrl+shift+down': { move: 'down' },
   'shift+meta+up': { move: 'up' },
@@ -222,7 +212,8 @@ export function pinItems(edge, router, rights, kind, ns, on) {
   return changed ? { ...e, items } : edge;
 }
 
-// removeItemFrom for each selected entry: out of a list or hidden on "all", unpinned, art kept.
+// Each selected entry goes out of a list, or is hidden on "all". Its pin goes, since the server counts every pin toward
+// PINS_MAX; its art stays.
 export function removeItems(edge, ns) {
   if (!ns.size) return edge;
   const e = edge || { members: 'all' };
@@ -234,7 +225,13 @@ export function removeItems(edge, ns) {
   return { ...e, hide: [...hide, ...[...ns].filter((n) => !had.has(n))], items };
 }
 
-// One artwork choice (arttoolrules.js artRun) on the rows ns, router numbers in list order. Icon A goes on each, or
+const ITEM_ART = ['art', 'artB']; // the artwork keys a Grid item stores; a cell's other keys (hideText) do not apply
+
+// The order the panel page draws the rows in: pinned first, each part in list order. Keep in step with gridpaneledges.js
+// pinnedFirst.
+export const drawnOrder = (rows) => [...rows.filter((r) => r.pinned), ...rows.filter((r) => !r.pinned)];
+
+// One artwork choice (arttoolrules.js artRun) on the rows ns, router numbers in drawn order. Icon A goes on each, or
 // Icon B runs from the first. left counts the rows past the end of the run. The edge is the same when nothing changes.
 export function itemsArt(edge, ns, choice) {
   const run = artRun(choice);
@@ -249,7 +246,7 @@ export function itemsArt(edge, ns, choice) {
       left++;
       continue;
     }
-    delete patch.hideText; // a Grid item has no Hide text
+    for (const k of Object.keys(patch)) if (!ITEM_ART.includes(k)) delete patch[k];
     const was = items[n] || {};
     if (Object.keys(patch).every((k) => (was[k] || '') === (patch[k] || ''))) continue;
     patchItem(items, n, patch);

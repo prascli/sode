@@ -1,7 +1,7 @@
 // The Grid panel editor's list tabs (editorgridrules.js). Pure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, PINS_MAX } from '../editorgridrules.js';
+import { edgeRows, moveRow, clearEdge, followRouter, stopFollowing, drawnOrder, PINS_MAX } from '../editorgridrules.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const router = namesReply({
@@ -42,24 +42,6 @@ test('entries outside the Rights are left out of the rows and counted', () => {
   assert.equal(all.outside, 0);
 });
 
-test('a pin is per item, so an "all" edge stays "all"; the ninth pin changes nothing', () => {
-  const e = pinItem({ members: 'all', hide: [2] }, 1, true);
-  assert.deepEqual(e, { members: 'all', hide: [2], items: { 1: { pinned: true } } });
-  assert.deepEqual(pinItem(e, 1, false), { members: 'all', hide: [2], items: {} });
-  const art = pinItem({ members: [1], items: { 1: { art: 'tv', pinned: true } } }, 1, false);
-  assert.deepEqual(art.items, { 1: { art: 'tv' } });
-  let full = { members: 'all' };
-  for (let n = 0; n < PINS_MAX; n++) full = pinItem(full, n, true);
-  assert.equal(PINS_MAX, 8);
-  assert.equal(pinItem(full, 20, true), full);
-});
-
-test('Remove hides an item of an "all" edge and drops it from a list; either way its pin goes and its art stays', () => {
-  const all = removeItemFrom({ members: 'all', items: { 1: { pinned: true, art: 'tv' } } }, 1);
-  assert.deepEqual(all, { members: 'all', hide: [1], items: { 1: { art: 'tv' } } });
-  assert.deepEqual(removeItemFrom({ members: [3, 1, 0], items: { 1: { pinned: true } } }, 1), { members: [3, 0], items: {} });
-});
-
 test('a move turns an "all" edge into a list, and places the row where the row it lands on was', () => {
   assert.deepEqual(moveRow({ members: 'all', hide: [2] }, router, null, 'sources', 0, 2), { members: [1, 3, 0] });
   assert.deepEqual(moveRow({ members: [0, 1] }, router, null, 'sources', 1, 0), { members: [1, 0] });
@@ -77,4 +59,20 @@ test('Clear empties the list but keeps entries outside the Rights; All goes back
   assert.deepEqual(clearEdge(e, { sources: [0, 1] }, 'sources'), { members: [3], items: { 3: { art: 'tv' } } });
   assert.deepEqual(clearEdge({ members: 'all', hide: [1] }, null, 'sources'), { members: [], items: {} });
   assert.deepEqual(followRouter({ members: [3], hide: [], items: { 3: { art: 'tv' } } }), { members: 'all', items: { 3: { art: 'tv' } } });
+});
+
+test('Follow the router off keeps what the edge shows, in router order, as a list; a list stays as it is', () => {
+  const e = { members: 'all', hide: [1], items: { 3: { pinned: true } } };
+  assert.deepEqual(stopFollowing(e, router), { members: [0, 2, 3], items: { 3: { pinned: true } } });
+  const list = { members: [3, 0] };
+  assert.equal(stopFollowing(list, router), list);
+  assert.equal(PINS_MAX, 8);
+});
+
+test('drawnOrder puts the pinned rows first, as the panel page draws them, each part in list order', () => {
+  const rows = [{ n: 4 }, { n: 1, pinned: true }, { n: 2 }, { n: 0, pinned: true }];
+  assert.deepEqual(
+    drawnOrder(rows).map((r) => r.n),
+    [1, 0, 4, 2],
+  );
 });

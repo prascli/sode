@@ -3,6 +3,7 @@
 
 import { artLeftOut } from './panelrules.js';
 import { sizeText } from './gridmodel.js';
+import { plural } from './gridclip.js';
 
 const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 
@@ -86,12 +87,12 @@ export function checkpointLabel(cp) {
   const when = String(cp.at || '')
     .replace('T', ' ')
     .slice(0, 16);
-  return `${when}, ${cp.by}, ${sizeText(cp.rows, cp.cols)}, ${cp.cells} ${cp.cells === 1 ? 'cell' : 'cells'}`;
+  return `${when}, ${cp.by}, ${sizeText(cp.rows, cp.cols)}, ${plural(cp.cells, 'cell')}`;
 }
 
 export const scopeLabel = (scope) => (scope === 'everyone' ? 'Everyone' : 'Me');
 
-export const setLabel = (set) => `${set.name} (${scopeLabel(set.scope)}, ${set.entries.length} ${set.entries.length === 1 ? 'panel' : 'panels'})`;
+export const setLabel = (set) => `${set.name} (${scopeLabel(set.scope)}, ${plural(set.entries.length, 'panel')})`;
 
 export const canSaveSet = (name, selected) => String(name).trim() !== '' && selected.size > 0;
 

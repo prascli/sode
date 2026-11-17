@@ -19,7 +19,7 @@ export function initSidebar(ed) {
     const rows = active?.picked() || [];
     return rows.length ? { list: active, rows } : null;
   };
-  const onPick = (list) => () => {
+  const onPick = (list) => {
     const any = list.picked().length > 0;
     if (any && active !== list) {
       active?.clearPicks();
@@ -28,15 +28,8 @@ export function initSidebar(ed) {
     if (any) tabs.select('ed-cell');
     cell.update();
   };
-  const srcs = createEdgeList(ed, { key: 'sources', rights: 'sources', what: 'source', side: 'Left to right on the top edge.', onPick: () => pick.srcs() });
-  const dsts = createEdgeList(ed, {
-    key: 'destinations',
-    rights: 'dsts',
-    what: 'destination',
-    side: 'Top to bottom on the left edge.',
-    onPick: () => pick.dsts(),
-  });
-  const pick = { srcs: onPick(srcs), dsts: onPick(dsts) };
+  const srcs = createEdgeList(ed, { key: 'sources', rights: 'sources', what: 'source', side: 'left to right on the top edge', onPick });
+  const dsts = createEdgeList(ed, { key: 'destinations', rights: 'dsts', what: 'destination', side: 'top to bottom on the left edge', onPick });
   $('ed-lists').append(srcs.node, dsts.node);
 
   const cell = createCellTab(ed, { picked });
