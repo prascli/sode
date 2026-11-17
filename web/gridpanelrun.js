@@ -300,7 +300,7 @@ export function gridBody(ctx, first) {
     }
     const r = stageRoutes(st, pairs, pressLevels());
     st = r.st;
-    if (r.send) send(r.send);
+    if (r.send) send({ routes: r.send });
     else render();
     if (r.confirm) openConfirm();
   }
