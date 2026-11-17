@@ -8,8 +8,8 @@ import (
 	"github.com/sethdotfm/sode/internal/config"
 )
 
-// A long key list scrolls inside its dialog, and the dialog stays on the screen: the Share modal's instance list in
-// the panel editor, and My API keys in Settings.
+// A long key list scrolls inside its dialog, and the dialog stays on the screen. The lists are the Share modal's
+// instances in the panel editor and My API keys in Settings.
 func TestChromeKeyListsScroll(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -42,7 +42,7 @@ func TestChromeKeyListsScroll(t *testing.T) {
 
 	b.open(srv.URL + "/#settings")
 	b.waitFor("Settings open", `document.documentElement.dataset.view === 'settings'`)
-	// The editor's sign-in may carry over to this page.
+	// The editor's sign-in can carry over to this page.
 	b.waitFor("Sign in or My API keys shown", `!document.getElementById('account-login').hidden || !document.getElementById('account-keys').hidden`)
 	if b.eval(`document.getElementById('account-keys').hidden`) == true {
 		b.eval(`document.getElementById('account-login').click()`)

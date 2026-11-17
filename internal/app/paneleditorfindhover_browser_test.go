@@ -6,7 +6,7 @@ import (
 )
 
 // Find's list and the mouse. A pointer that the list arrived under, or that sends a move with no change of place,
-// takes no highlight. A real move over a row takes it, and leaving the list puts back the keyboard's result, so a
+// takes no highlight. A real move over a row takes it. Leaving the list puts back the keyboard's result, so a
 // pointer that crossed the list on its way somewhere changes nothing. A click still chooses.
 func TestChromeEditorFindHover(t *testing.T) {
 	b := startBrowser(t)

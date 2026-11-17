@@ -41,9 +41,9 @@ export function initFind(editor) {
   let picked = []; // result keys picked with Shift, in list order.
   let order = 'across'; // one of gridmodel's FILL_ORDERS; the order picker sets it
   let hovered = false;
-  let moved = false; // the pointer really moved over the list since it was last drawn
-  let at = null; // where the pointer was last seen over the list since that draw
-  let kept = -1; // the keyboard's result while the pointer holds the highlight; leaving the list puts it back
+  let moved = false; // the pointer really moved over the list since the last draw.
+  let at = null; // where the pointer was last seen over the list since that draw.
+  let kept = -1; // the keyboard's result while the pointer holds the highlight. Leaving the list puts it back.
   let rebuilding = false;
   let preview = [];
   let quiet = false; // the last group fill landed, so no preview of filling it again until the user moves
