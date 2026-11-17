@@ -293,9 +293,9 @@ func Parse(msg []byte) (Event, error) {
 		case 6: // matrix, level, dst(2), state+device(2) — same packing as the dump
 			p = Protect{Matrix: int(d[0]), Level: int(d[1]), Dst: int(d[2])<<8 | int(d[3])}
 			p.Protected, p.Device = protectWord(d[4], d[5])
-		case 7: // details, matrix, level, dst(2), device(2)
-			p = Protect{Matrix: int(d[1]), Level: int(d[2]), Dst: int(d[3])<<8 | int(d[4]),
-				Protected: d[0]&0x03 != 0, Device: int(d[5])<<8 | int(d[6])}
+		case 7: // matrix, level, details, dst(2), device(2)
+			p = Protect{Matrix: int(d[0]), Level: int(d[1]), Dst: int(d[3])<<8 | int(d[4]),
+				Protected: d[2]&0x03 != 0, Device: int(d[5])<<8 | int(d[6])}
 		default:
 			return ev, fmt.Errorf("swp08: cmd 0x%02X: unexpected length %d", msg[0], len(d))
 		}
