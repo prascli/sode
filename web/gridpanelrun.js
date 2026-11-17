@@ -6,7 +6,7 @@ import { gridAxes } from './gridpaneledges.js';
 import { nameArt } from './gridpanelart.js';
 import { defaultsBy } from './panellook.js';
 import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
-import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpanelpick.js';
+import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction } from './gridpanelkeys.js';
@@ -14,10 +14,11 @@ import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
-import { CORNER, MOVES, moveCursor, pointOf, followCursor } from './gridpanelcursor.js';
+import { CORNER, MOVES, moveCursor, pointOf, followCursor, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
+import { shortcutList } from './shortcuts.js';
 
 const NOTE_MS = 4000;
 
@@ -275,11 +276,29 @@ export function gridBody(ctx, first) {
     pointAt(x, y);
   }
 
+  const dims = () => ({ rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() });
+
   function moveTo(move) {
     ptr = null;
-    setCursor(moveCursor(cur, move, { rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() }));
+    setCursor(moveCursor(cur, move, dims()));
     if (move === 'corner') g.scroll.scrollTo(0, 0);
     else g.revealCell(cur);
+  }
+
+  // Space, x and Shift moves on a bar: the same picks as a click, a Cmd-click and a Shift-click.
+  function pickAt(act) {
+    const kind = barOf(cur);
+    const name = (c) => cursorAt(c, axes)[kind === 'srcs' ? 'src' : 'dst'];
+    if (!ctx.ready() || !g || (kind !== 'srcs' && kind !== 'dsts')) return;
+    if (act === 'pick' || act === 'add') picks = pickName(picks, kind, name(cur), { toggle: act === 'add' }, axes[kind]);
+    else {
+      const from = name(cur);
+      ptr = null;
+      setCursor(rangeCursor(cur, act.slice('range:'.length), dims()));
+      g.revealCell(cur);
+      picks = extendPick(picks, kind, from, name(cur), axes[kind]);
+    }
+    render();
   }
 
   function onAt(xp) {
@@ -289,13 +308,30 @@ export function gridBody(ctx, first) {
     if (g && (pickCount(picks) || g.previewing())) preview();
   }
 
+  // The key list (shortcuts.js). An embedded run has none.
+  const keyList = document.getElementById('keys')
+    ? shortcutList({ keyMode: () => false, fromHistory: () => false, enterKeys() {}, focusFirst: () => document.activeElement?.blur() })
+    : null;
+  // As on the main page (desktopkeys.js): Esc and ? close it, and Tab stays on Close.
+  function listKey(e) {
+    e.stopPropagation();
+    if (e.key === 'Escape' || e.key === '?' || gridKeyAction(e, {}) === 'keys') {
+      e.preventDefault();
+      keyList.close(true);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      document.getElementById('keys-close').focus();
+    }
+  }
+
   const onKey = (e) => {
     if (confirm?.isOpen()) return confirm.key(e);
+    if (keyList?.shown()) return listKey(e);
     // The page lock's sign-in and dialogs take their keys first.
     if (e.defaultPrevented) return;
-    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
-    if (!act) return;
-    const moves = MOVES.has(act) || act === 'press';
+    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur) });
+    if (!act || (act === 'keys' && !keyList)) return;
+    const moves = MOVES.has(act) || act === 'press' || act === 'pick' || act === 'add' || act.startsWith('range:');
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
@@ -303,7 +339,9 @@ export function gridBody(ctx, first) {
     e.stopPropagation();
     if (MOVES.has(act)) {
       if (g) moveTo(act);
-    } else if (act === 'press') {
+    } else if (act === 'pick' || act === 'add' || act.startsWith('range:')) pickAt(act);
+    else if (act === 'keys') keyList.open();
+    else if (act === 'press') {
       const xp = pointOf(cur, axes);
       if (xp && g) onPress(xp);
     } else if (act === 'confirm') openConfirm();
@@ -359,6 +397,7 @@ export function gridBody(ctx, first) {
       count.remove();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();
+      if (keyList?.shown()) keyList.close();
     },
   };
 }
