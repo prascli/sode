@@ -80,3 +80,40 @@ export function wheelAcross(e, bar) {
   if (e.clientX < bar.left || e.clientX >= bar.right || e.clientY < bar.top || e.clientY >= bar.bottom) return 0;
   return e.deltaY * (e.deltaMode === 1 ? bar.line : e.deltaMode === 2 ? bar.page : 1);
 }
+
+// A band is an edge's pinned band: { pins, slots, at }. It shows slots items, from pin at. An edge with more pins than
+// slots scrolls its band on its own (owner, 2026-11-17), and the rest of the grid scrolls as before. The window maths
+// above works in slots: the band's slots, then the items past the pins. A band with pins === slots maps item to slot
+// one to one. -1 (the name bar) is the same in both.
+export const itemOf = (v, b) => (v < b.slots ? (v < 0 ? v : v + b.at) : v - b.slots + b.pins);
+
+// The slot that shows item k, or null for a pin the band does not show now.
+export function slotOf(k, b) {
+  if (k < 0 || k >= b.pins) return k < 0 ? k : k - b.pins + b.slots;
+  return k >= b.at && k < b.at + b.slots ? k - b.at : null;
+}
+
+// The band start that shows pin k, moving as little as it can. An item past the pins keeps the start.
+export function bandFor(k, b) {
+  if (k < 0 || k >= b.pins) return b.at;
+  return clamp(k < b.at ? k : k >= b.at + b.slots ? k - b.slots + 1 : b.at, 0, b.pins - b.slots);
+}
+
+// The band start that puts pin k in the band's middle, as centreFor does for the rest.
+export const bandCentre = (k, b) => (k < 0 || k >= b.pins ? b.at : clamp(k - Math.floor((b.slots - 1) / 2), 0, b.pins - b.slots));
+
+// A wheel over a band that scrolls: { kind, px } for the band to move, else null and the grid scrolls. Over the
+// Destination band (pinned rows) the vertical wheel moves it; over the Source band (pinned columns) the sideways one.
+// box is the scroller's client box in client px ({ left, top, right, bottom }). It also has the name bar sizes w and h
+// and the item size. line and page are the px of one line and one page (deltaMode 1 and 2).
+export function wheelBand(e, box, bands) {
+  if (e.ctrlKey) return null;
+  const { clientX: x, clientY: y } = e;
+  if (x < box.left || x >= box.right || y < box.top || y >= box.bottom) return null;
+  const scale = (d) => d * (e.deltaMode === 1 ? box.line : e.deltaMode === 2 ? box.page : 1);
+  const over = (b, at, start) => b.pins > b.slots && at >= start && at < start + b.slots * box.size;
+  const down = Math.abs(e.deltaY) > Math.abs(e.deltaX);
+  if (down && over(bands.dsts, y, box.top + box.h)) return { kind: 'dsts', px: scale(e.deltaY) };
+  if (!down && e.deltaX && over(bands.srcs, x, box.left + box.w)) return { kind: 'srcs', px: scale(e.deltaX) };
+  return null;
+}

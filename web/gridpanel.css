@@ -78,6 +78,29 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__scroll {
   isolation: isolate;
 }
+/* A pinned band's own scroller (gridpanelpins.js): only its little bar shows, over the edge of the pinned names next to
+   the crosspoints. The script sets its place and length; its width is the bar's, so the bar's room leaves it empty. */
+.sode-gridpanel__pins {
+  box-sizing: border-box;
+  overflow: auto;
+  position: absolute;
+}
+.sode-gridpanel__pins--y {
+  overflow-x: hidden;
+  width: var(--sode-littlescroll-w);
+}
+.sode-gridpanel__pins--x {
+  height: var(--sode-littlescroll-w);
+  overflow-y: hidden;
+}
+.sode-gridpanel__pins-fill {
+  min-height: 1px;
+  min-width: 1px;
+}
+.sode-gridpanel__pins[hidden],
+:root[data-layout="phone"] .sode-gridpanel__pins {
+  display: none;
+}
 /* The phone keeps thin native bars, always shown: auto here lets the ::-webkit-scrollbar rules apply (Chrome ignores
    them when either property is set). */
 :root[data-layout="phone"] .sode-gridpanel__scroll {

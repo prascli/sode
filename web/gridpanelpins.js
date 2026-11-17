@@ -1,0 +1,73 @@
+// The little scroll bars of the pinned bands that hold fewer pins than their edge has (owner, 2026-11-17). Each bar
+// drives a scroller of its own beside the grid's, one pin per item size. Its offset in pins is the band's start, which
+// the view draws (gridpanelview.js). The grid's scroller does not move, so a band scroll leaves the rest where it is.
+import { el } from './core.js';
+import { bigScroll } from './bigscroll.js';
+
+// frame holds the grid's scroller (scroll). onAt(kind, at) runs when a bar moves a band's start; kind is 'srcs' or
+// 'dsts'. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
+// of its pinned names.
+export function pinBars(frame, scroll, onAt) {
+  const make = (kind) => {
+    const y = kind === 'dsts';
+    const fill = el('div', 'sode-gridpanel__pins-fill');
+    const sc = el('div', `sode-gridpanel__pins sode-gridpanel__pins--${y ? 'y' : 'x'}`, fill);
+    sc.setAttribute('aria-hidden', 'true');
+    sc.tabIndex = -1;
+    sc.hidden = true;
+    frame.append(sc);
+    const bar = bigScroll(sc, y ? 'y' : 'x', 'little', { watch: fill });
+    let size = 1;
+    let at = 0;
+    const pos = () => (y ? sc.scrollTop : sc.scrollLeft);
+    sc.addEventListener(
+      'scroll',
+      () => {
+        const k = Math.round(pos() / size);
+        if (k === at) return;
+        at = k;
+        onAt(kind, k);
+      },
+      { passive: true },
+    );
+    return {
+      // b is the band ({ pins, slots, at }), px the view's sizes ({ xp, w, h }). Set on new axes or a resize only.
+      set(b, px) {
+        const on = b.pins > b.slots;
+        if (sc.hidden === on) sc.hidden = !on;
+        if (!on) return;
+        size = px.xp;
+        const s = sc.style;
+        const left = scroll.offsetLeft + px.w;
+        const top = scroll.offsetTop + px.h;
+        if (y) {
+          s.left = `calc(${left}px - var(--sode-littlescroll-w))`;
+          s.top = `${top}px`;
+          s.height = `${b.slots * size}px`;
+          fill.style.height = `${b.pins * size}px`;
+        } else {
+          s.left = `${left}px`;
+          s.top = `calc(${top}px - var(--sode-littlescroll-w))`;
+          s.width = `${b.slots * size}px`;
+          fill.style.width = `${b.pins * size}px`;
+        }
+        this.to(b.at);
+        bar?.now();
+      },
+      // Puts the bar at band start k, with no onAt: the view set it.
+      to(k) {
+        at = k;
+        const v = k * size;
+        if (Math.abs(pos() - v) >= 1) sc[y ? 'scrollTop' : 'scrollLeft'] = v;
+      },
+      by(d) {
+        sc[y ? 'scrollTop' : 'scrollLeft'] = pos() + d;
+      },
+      stop() {
+        bar?.stop();
+        sc.remove();
+      },
+    };
+  };
+  return { srcs: make('srcs'), dsts: make('dsts') };
+}

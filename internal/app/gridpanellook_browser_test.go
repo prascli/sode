@@ -31,8 +31,8 @@ const bandFits = `(() => {
 })()`
 
 // The Grid panel page at 1440 by 900. The header, the Levels box and the search boxes are one band, the deck. Its
-// header row is laid out as the main page: the title, Settings, Full screen and the Panels link at the left, the status
-// slot and the main page's Server and Router status at the right. The Lock chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes and the
+// header row is laid out as the main page. The title, Settings, Full screen and the Panels link are at the left. The
+// status slot and the main page's Server and Router status are at the right. The Lock chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes and the
 // Filter switch. Then come Clear and the red Take with the note over them. Nothing in the band moves as words
 // change. It checks the Sources and Destinations words in the corner, the picked row and column washes and the staged ring. The
 // cursor ring, the staged ring and Take pulse in one phase. The grid goes down to the window's bottom and Full width
@@ -255,13 +255,17 @@ func TestChromeGridPanelLook(t *testing.T) {
 		`"sources":{"members":"all","items":`+pins+`},"destinations":{"members":"all","items":`+pins+`}}`)
 	b.open(srv.URL + "/panels/" + pinned + "?instance=Desk")
 	b.waitFor("the pinned grid", `!!document.querySelector('.sode-gridpanel__xp')`)
-	b.waitFor("the pinned bands take at most half the room past the names, so the rest scrolls", `(() => {
+	b.waitFor("the pinned bands take at most half the room past the names, so the rest scrolls, and each band has its own little bar", `(() => {
 		const f = document.querySelector('.sode-gridpanel__field'), sc = document.querySelector('.sode-gridpanel__scroll');
 		const v = (k) => Number(getComputedStyle(f).getPropertyValue(k).trim());
 		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
 		const name = document.querySelector('.sode-gridpanel__probe').getBoundingClientRect();
 		const rows = v('--sode-row-pins'), cols = v('--sode-col-pins');
-		return rows >= 1 && rows < 50 && cols >= 1 && rows * xp <= (sc.clientHeight - name.height) / 2 && cols * xp <= (sc.clientWidth - name.width) / 2;
+		const bars = ['x', 'y'].map((a) => document.querySelector('.sode-gridpanel__pins--' + a + ' + .sode-bigscroll--little')?.getBoundingClientRect());
+		const p = sc.getBoundingClientRect();
+		return rows >= 1 && rows < 50 && cols >= 1 && rows * xp <= (sc.clientHeight - name.height) / 2 && cols * xp <= (sc.clientWidth - name.width) / 2 &&
+			bars.every((r) => r && r.width > 0 && r.height > 0) && Math.abs(bars[0].width - cols * xp) < 1 && Math.abs(bars[1].height - rows * xp) < 1 &&
+			Math.abs(bars[0].left - (p.left + name.width)) < 1 && Math.abs(bars[1].top - (p.top + name.height)) < 1;
 	})()`)
 	b.shot("pins-1280")
 

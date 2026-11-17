@@ -1,7 +1,24 @@
 // Which part of a Grid panel is drawn (gridpanelwindow.js): one axis at a time, in px, pinned items at the edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf, pinsShown, wheelAcross } from '../gridpanelwindow.js';
+import {
+  axisSpan,
+  spanMax,
+  indexAt,
+  slotAt,
+  pageOf,
+  placeAt,
+  scrollFor,
+  centreFor,
+  pinsOf,
+  pinsShown,
+  wheelAcross,
+  itemOf,
+  slotOf,
+  bandFor,
+  bandCentre,
+  wheelBand,
+} from '../gridpanelwindow.js';
 
 // 2500 sources of 70 px after a 220 px name column, in a 1060 px wide view: 12 to 13 columns show.
 const ax = (over = {}) => ({ n: 2500, pins: 0, size: 70, head: 220, offset: 0, view: 1280, over: 0, ...over });
@@ -140,4 +157,50 @@ test('pins draw as pinned only while they fill at most half the room past the na
   assert.equal(at(150), 0);
   assert.equal(at(100), 0);
   assert.equal(pinsShown({ pins: 2, size: 80, head: 112, view: 2000 }), 2);
+});
+
+test('a band with more pins than slots maps slots to items: the band from its start, then the items past the pins', () => {
+  const b = { pins: 10, slots: 4, at: 3 };
+  assert.deepEqual(
+    [-1, 0, 3, 4, 5].map((v) => itemOf(v, b)),
+    [-1, 3, 6, 10, 11],
+  );
+  assert.deepEqual(
+    [-1, 2, 3, 6, 7, 10, 11].map((k) => slotOf(k, b)),
+    [-1, null, 0, 3, null, 4, 5],
+  );
+  const same = { pins: 3, slots: 3, at: 0 };
+  assert.deepEqual(
+    [0, 2, 3, 9].map((v) => itemOf(v, same)),
+    [0, 2, 3, 9],
+  );
+  assert.deepEqual(
+    [0, 2, 3, 9].map((k) => slotOf(k, same)),
+    [0, 2, 3, 9],
+  );
+});
+
+test('bandFor moves the band as little as it can to show a pin; bandCentre puts it in the middle', () => {
+  const b = { pins: 10, slots: 4, at: 3 };
+  assert.deepEqual(
+    [0, 3, 6, 7, 9, 12].map((k) => bandFor(k, b)),
+    [0, 3, 3, 4, 6, 3],
+  );
+  assert.deepEqual(
+    [0, 5, 9, 12].map((k) => bandCentre(k, b)),
+    [0, 4, 6, 3],
+  );
+});
+
+test('a wheel over a band that scrolls moves the band; elsewhere, or with no more pins than slots, the grid scrolls', () => {
+  const box = { left: 0, top: 100, right: 1000, bottom: 800, w: 200, h: 100, size: 70, line: 70, page: 600 };
+  const bands = { srcs: { pins: 9, slots: 3, at: 0 }, dsts: { pins: 6, slots: 2, at: 0 } };
+  const wheel = (x, y, dx, dy, more = {}) => wheelBand({ clientX: x, clientY: y, deltaX: dx, deltaY: dy, deltaMode: 0, ctrlKey: false, ...more }, box, bands);
+  assert.deepEqual(wheel(500, 230, 0, 30), { kind: 'dsts', px: 30 });
+  assert.deepEqual(wheel(500, 230, 0, 1, { deltaMode: 1 }), { kind: 'dsts', px: 70 });
+  assert.equal(wheel(500, 400, 0, 30), null);
+  assert.deepEqual(wheel(300, 600, 25, 0), { kind: 'srcs', px: 25 });
+  assert.equal(wheel(300, 600, 0, 25), null);
+  assert.equal(wheel(500, 230, 0, 30, { ctrlKey: true }), null);
+  assert.equal(wheelBand({ clientX: 500, clientY: 230, deltaX: 0, deltaY: 30, deltaMode: 0 }, box, { ...bands, dsts: { pins: 2, slots: 2, at: 0 } }), null);
 });
