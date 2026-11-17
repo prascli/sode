@@ -186,6 +186,31 @@ html:has(.sode-gridpanel) {
   height: 100%;
   width: var(--sode-name-w);
 }
+/* A line marks the end of the pinned rows and of the pinned columns. With no pins it has no size. */
+.sode-gridpanel__top::after,
+.sode-gridpanel__side::after,
+.sode-gridpanel__corner::before,
+.sode-gridpanel__corner::after {
+  background: var(--pb-text-muted);
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+.sode-gridpanel__top::after,
+.sode-gridpanel__corner::after {
+  height: calc(min(var(--sode-row-pins), 1) * var(--pb-state-border-w));
+  left: 0;
+  top: calc(var(--sode-name-h) + var(--sode-row-pins) * var(--sode-xp) - var(--pb-state-border-w));
+  width: 100%;
+}
+.sode-gridpanel__side::after,
+.sode-gridpanel__corner::before {
+  height: 100%;
+  left: calc(var(--sode-name-w) + var(--sode-col-pins) * var(--sode-xp) - var(--pb-state-border-w));
+  top: 0;
+  width: calc(min(var(--sode-col-pins), 1) * var(--pb-state-border-w));
+}
 .sode-gridpanel__probe {
   height: var(--sode-name-h);
   left: 0;
@@ -259,8 +284,17 @@ html:has(.sode-gridpanel) {
   gap: var(--pb-space-1);
 }
 .sode-gridpanel__prot[hidden],
+.sode-gridpanel__held[hidden],
 .sode-gridpanel__other[hidden] {
   display: none;
+}
+/* The word under a destination with a staged route, in the Buttons panel's staged colour. A pick's wash keeps it. */
+.sode-gridpanel__held {
+  color: var(--pb-view);
+  font-size: var(--pb-text-xs);
+}
+.sode-gridpanel__dst[data-picked] > .sode-gridpanel__held {
+  color: inherit;
 }
 /* Artwork beside a name (gridpanelview.js makeArt). It is the last child but reads first. */
 .sode-gridpanel__art {
@@ -357,7 +391,7 @@ html:has(.sode-gridpanel) {
 /* A staged route left out of the take (gridpanelrights.js): a still dashed ring, no pulse. */
 .sode-gridpanel__xp[data-s="left-out"] {
   outline: var(--pb-border-w) dashed var(--pb-text-strong);
-  outline-offset: -0.25rem;
+  outline-offset: calc(var(--pb-space-2) * -1);
 }
 /* The cursor (gridpanelcursor.js): one node moved by transform, never eased. On a crosspoint it is a ring that grows
    and shrinks; on a bar it is an outline. With the overlay it is under the sticky bands; on a bar or pinned item it is
@@ -451,6 +485,8 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__find-input {
   font-size: var(--pb-text-sm);
   height: 1.8rem;
+  padding-inline-end: var(--pb-space-9);
+  text-overflow: ellipsis;
   -webkit-user-select: text;
   user-select: text;
   width: 100%;
@@ -461,24 +497,33 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-input {
   border-left: var(--pb-rolebar-w) solid var(--pb-dest);
 }
+/* The key hint at the box's end, with the count before it. */
+.sode-gridpanel__find-count,
+.sode-gridpanel__find-key {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.sode-gridpanel__find-key {
+  opacity: 0.7;
+  right: var(--pb-space-2);
+}
 .sode-gridpanel__find-count {
   color: var(--pb-text);
   font-family: var(--pb-font-num);
   font-size: var(--pb-text-xs);
-  pointer-events: none;
-  position: absolute;
-  right: var(--pb-space-2);
-  top: 50%;
-  transform: translateY(-50%);
+  right: var(--pb-space-9);
 }
 .sode-gridpanel__find[data-counted] .sode-gridpanel__find-input {
-  padding-inline-end: 4rem;
+  padding-inline-end: calc(var(--pb-space-10) * 2 + var(--pb-space-5));
 }
 /* One width for Find and Filter, so the box does not move when the mode changes. */
 .sode-gridpanel__find-mode {
   flex: none;
+  font-size: var(--pb-text-xs);
   justify-content: center;
-  min-width: 3.5rem;
+  min-width: calc(var(--pb-space-10) + var(--pb-space-4));
   padding-inline: var(--pb-space-1);
 }
 /* The cursor shows where focus is; the scroller takes focus only so an embedded run gets its keys back. */
@@ -502,7 +547,7 @@ html:has(.sode-gridpanel) {
     transparent 100%
   );
   content: "";
-  inset: 0.4rem;
+  inset: var(--pb-space-3);
   position: absolute;
 }
 .sode-gridpanel__xp[data-n]::after {
@@ -511,7 +556,7 @@ html:has(.sode-gridpanel) {
   font-family: var(--pb-font-num);
   font-size: var(--pb-text-xs);
   font-weight: var(--pb-weight-bold);
-  inset: 0.1rem auto auto 0.2rem;
+  inset: var(--pb-space-1) auto auto var(--pb-space-2);
   line-height: 1;
   position: absolute;
   z-index: 1;
@@ -580,6 +625,14 @@ html:has(.sode-gridpanel) {
   height: 2.08rem;
   min-width: 2.08rem;
 }
+/* With an odd count the first pick is two by two picks, so it gets one more column. */
+.sode-gridpanel__levels .sode__levels--odd {
+  grid-template-columns: repeat(calc(var(--sode-bar-cols) + 1), auto);
+}
+.sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
+  grid-column: span 2;
+  min-width: calc(2 * 2.08rem + var(--pb-space-1));
+}
 .sode-gridpanel__levels .pb-btn.sode__all {
   height: calc(2 * 2.08rem + var(--pb-space-1));
   padding: 0 var(--pb-space-3);
@@ -608,12 +661,15 @@ html:has(.sode-gridpanel) {
   .sode-gridpanel__levels .pb-btn.sode__all {
     height: calc(2 * (var(--pb-space-8) + var(--pb-space-1)) + var(--pb-space-1));
   }
+  .sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
+    min-width: calc(2 * (var(--pb-space-8) + var(--pb-space-1)) + var(--pb-space-1));
+  }
   :root:not([data-layout="phone"]) .sode-gridpanel__levels {
     grid-template-columns: auto auto;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__levels > .sode__input {
-    grid-column: 1 / -1;
-    grid-row: auto;
+    grid-column: 1 / 3;
+    grid-row: 2;
     width: auto;
   }
 }
@@ -624,6 +680,13 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__levels > .sode__input {
   grid-column: 1 / 3;
 }
+/* Rows: the head, the typed levels, the picks, then the note with Clear. Take spans the first three. */
+.sode-gridpanel__levels > .sode__input {
+  grid-row: 2;
+}
+.sode-gridpanel__levels :is(.sode__levels, .sode__all) {
+  grid-row: 3;
+}
 /* The Take button (gridpanelphone.js) at the far end of the Levels box row. */
 .sode-gridpanel__levels:has(> .sode-gridpanel__take:not([hidden])) {
   grid-template-columns: auto auto 1fr;
@@ -631,10 +694,39 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__take {
   align-self: end;
   grid-column: 3;
-  grid-row: 1 / span 4;
+  grid-row: 1 / 4;
   justify-self: end;
   min-height: 4rem;
   min-width: 12rem;
+}
+/* Clear and the note beside Take (gridpanelnote.js). Clear drops what Esc drops. */
+.sode-gridpanel__clear {
+  align-self: start;
+  grid-column: 3;
+  grid-row: 4;
+  justify-self: end;
+}
+.sode-gridpanel__note {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--pb-text-xs);
+  gap: var(--pb-space-1);
+  grid-column: 1 / 3;
+  grid-row: 4;
+  min-width: 0;
+}
+.sode-gridpanel__chip {
+  align-self: start;
+  font-size: var(--pb-text-xs);
+}
+.sode-gridpanel__tip {
+  color: var(--pb-text-muted);
+}
+.sode-gridpanel__note [hidden] {
+  display: none;
+}
+:root[data-layout="phone"] .sode-gridpanel__tip {
+  display: none;
 }
 .sode-gridpanel__take-n {
   font-family: var(--pb-font-num);
@@ -646,6 +738,15 @@ html:has(.sode-gridpanel) {
 /* Outside the grid, so it runs the pulse itself, kept in step with the staged crosspoints (gridpanelrun.js). */
 .sode-gridpanel__take.sode-panel__take--armed {
   animation: sode-panel-pulse var(--panel-pulse-s) ease-in-out infinite;
+}
+/* Take is amber, the commit colour, with dark words; staged routes brighten it with the pulse. */
+.sode-gridpanel__take.sode-panel__take--armed {
+  background-color: color-mix(in oklab, var(--pb-commit-hover) calc(var(--pulse) * 100%), var(--pb-commit));
+  box-shadow: none;
+  color: var(--pb-text-on-accent);
+}
+.sode-gridpanel__take.sode-panel__take:disabled {
+  background-color: color-mix(in oklab, var(--pb-commit) 40%, var(--pb-surface-control));
 }
 @media (prefers-reduced-motion: reduce) {
   .sode-gridpanel__take.sode-panel__take--armed {
@@ -669,13 +770,13 @@ html:has(.sode-gridpanel) {
   display: flex;
   flex: 0 1 auto;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--pb-space-2);
   min-width: 0;
 }
 /* One row on the desktop layout: the line under the title wraps before the boxes do. */
 :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) > .sode-panels__head {
   flex-wrap: nowrap;
-  gap: 0.7rem;
+  gap: var(--pb-space-5);
 }
 .sode-gridpanel__name {
   align-items: baseline;
@@ -688,7 +789,7 @@ html:has(.sode-gridpanel) {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--pb-text-xs);
-  gap: 0.3rem 0.5rem;
+  gap: var(--pb-space-2) var(--pb-space-4);
   line-height: 1.2;
 }
 /* The header stays one row: past the room it has, the line is cut, not wrapped. */
@@ -704,7 +805,7 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__meta > span {
   align-items: center;
   display: inline-flex;
-  gap: 0.2rem;
+  gap: var(--pb-space-2);
 }
 .sode-gridpanel__meta > span[hidden] {
   display: none;
@@ -713,17 +814,17 @@ html:has(.sode-gridpanel) {
   align-items: stretch;
   display: flex;
   flex: none;
-  gap: 0.3rem;
+  gap: var(--pb-space-2);
 }
 .sode-gridpanel__stat {
   background: var(--pb-surface-control);
   border: var(--pb-border-w) solid var(--pb-border);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--pb-space-1);
   justify-content: center;
   min-width: 6.4rem;
-  padding: 0.2rem 0.4rem;
+  padding: var(--pb-space-2) var(--pb-space-3);
 }
 .sode-gridpanel__stat > .pb-label {
   font-size: var(--pb-text-xs);
@@ -735,7 +836,7 @@ html:has(.sode-gridpanel) {
   display: inline-flex;
   font-size: var(--pb-text-md);
   font-weight: var(--pb-weight-bold);
-  gap: 0.2rem;
+  gap: var(--pb-space-2);
   white-space: nowrap;
 }
 .sode-gridpanel__stat-val > .pb-dot {
@@ -755,7 +856,7 @@ html:has(.sode-gridpanel) {
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-4);
   height: 2rem;
-  padding: 0 0.8rem;
+  padding: 0 var(--pb-space-5);
   width: auto;
 }
 :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) #panel-screen::before {
@@ -778,7 +879,7 @@ html:has(.sode-gridpanel) {
   display: flex;
   flex: none;
   gap: var(--pb-space-5);
-  padding: 0.2rem 0 0.2rem var(--sode-name-w);
+  padding: var(--pb-space-2) 0 var(--pb-space-2) var(--sode-name-w);
 }
 .sode-gridpanel__label {
   align-items: center;
@@ -788,7 +889,7 @@ html:has(.sode-gridpanel) {
   font-weight: var(--pb-weight-bold);
   gap: var(--pb-space-2);
   letter-spacing: var(--pb-tracking-label);
-  padding: 0.05rem 0.2rem;
+  padding: calc(var(--pb-space-1) / 2) var(--pb-space-2);
   text-transform: uppercase;
 }
 .sode-gridpanel__label--src {
@@ -830,8 +931,26 @@ html:has(.sode-gridpanel) {
 }
 /* The Take button at 192 by 64 px with 22 px words, in a column of its own at the right of the band. */
 @media not (max-width: 48rem) {
-  :root:not([data-layout="phone"]) .sode-gridpanel__levels:has(> .sode-gridpanel__take:not([hidden])) {
-    grid-template-columns: auto auto auto 1fr;
+  :root:not([data-layout="phone"]) .sode-gridpanel__levels:has(> .sode-gridpanel__note) {
+    grid-template-columns: auto auto minmax(12rem, 1fr) auto auto;
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__note {
+    align-self: end;
+    grid-column: 3;
+    grid-row: 2;
+  }
+  /* One line each, under the typed levels, so the band is no taller than the picks. */
+  :root:not([data-layout="phone"]) .sode-gridpanel__note > * {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__clear {
+    align-self: end;
+    grid-column: 4;
+    grid-row: 1 / 3;
+    height: 3.2rem;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels {
     grid-column: 1;
@@ -843,7 +962,7 @@ html:has(.sode-gridpanel) {
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__take {
     font-size: 1.1rem;
-    grid-column: 4;
+    grid-column: 5;
     grid-row: 1 / 3;
     height: 3.2rem;
     letter-spacing: var(--pb-tracking-label);
@@ -852,17 +971,17 @@ html:has(.sode-gridpanel) {
     width: 9.6rem;
   }
 }
-/* The prototype's badge: 13 px words with 2 by 6 px padding, so the line is 20 px high. */
+/* The badge: 13 px words and a thin padding, so the line is 20 px high. */
 .sode-gridpanel__meta > .pb-badge {
   font-size: var(--pb-text-xs);
   line-height: 1.2;
-  padding: 0.05rem 0.3rem;
+  padding: calc(var(--pb-space-1) / 2) var(--pb-space-2);
 }
 .sode-gridpanel__meta .pb-icon {
   height: 0.8rem;
   width: 0.8rem;
 }
-/* Below the prototype's 1440 px the boxes are only as wide as their words and Full screen is an icon, so the line
+/* Below 1440 px the boxes are only as wide as their words and Full screen is an icon, so the line
    under the title keeps its room. */
 @media (max-width: 89.9rem) {
   .sode-gridpanel__stat {
@@ -876,7 +995,7 @@ html:has(.sode-gridpanel) {
     width: 2rem;
   }
 }
-/* The prototype has no phone design: the phone header keeps its one short row, with no boxes and no line. */
+/* The phone header keeps its one short row, with no boxes and no line. */
 :root[data-layout="phone"] :is(.sode-gridpanel__stats, .sode-gridpanel__meta) {
   display: none;
 }

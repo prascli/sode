@@ -13,11 +13,14 @@ const named = (act) => (c) => (!c.inControl && onBar(c) ? act : null);
 const range = (kind, move) => (c) => (!c.inControl && c.bar === kind ? `range:${move}` : null);
 const keys = () => 'keys';
 
+// The line goes first, then picks, then staged routes. The Clear button beside Take uses it too.
+export const clearAction = (c) => (c.line ? 'unline' : c.picks ? 'unpick' : c.staged ? 'drop' : null);
+
 const ACTIONS = {
   enter: (c) => (c.staged && !c.inControl ? 'confirm' : null),
   f: free('levels'),
-  // The line goes first, then picks, then staged routes. With none, Kiosk mode's own Esc works.
-  escape: (c) => (c.line ? 'unline' : c.picks ? 'unpick' : c.staged ? 'drop' : null),
+  // With nothing to clear, Kiosk mode's own Esc works.
+  escape: clearAction,
   v: free('line'),
   ' ': (c) => (c.inControl || c.bar === 'corner' ? null : onBar(c) ? 'pick' : 'press'),
   x: named('add'),

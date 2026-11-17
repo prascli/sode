@@ -9,7 +9,7 @@ import { createStage, restage, stageRoutes, stagedCount, confirmRoutes, cancelCo
 import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
-import { gridKeyAction, findBoxAction } from './gridpanelkeys.js';
+import { gridKeyAction, findBoxAction, clearAction } from './gridpanelkeys.js';
 import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
 import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
 import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind, stepBox } from './gridpanelfind.js';
@@ -25,7 +25,8 @@ import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
 import { shortcutList } from './shortcuts.js';
-import { restPoint, takeButton, tapMods } from './gridpanelphone.js';
+import { restPoint, takeButton, tapMods, pickNote } from './gridpanelphone.js';
+import { clearNote } from './gridpanelnote.js';
 import { onLayout } from './layout.js';
 import { gridHead } from './gridpanelheadview.js';
 
@@ -100,6 +101,7 @@ export function gridBody(ctx, first) {
     take.addEventListener('click', () => openConfirm());
     document.getElementById('panel-levels')?.append(take);
   }
+  const clearer = take?.parentNode ? clearNote(take.parentNode, take, () => clearStep(clearAction(clearCtx()))) : null;
 
   // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
   const images = new Map(); // artwork id -> { url, type }, or null while it loads or after it failed
@@ -146,6 +148,7 @@ export function gridBody(ctx, first) {
     levelText: (list) => levelTextOf(list, tally?.levels || [], tally?.levelNumbering),
     pie: (s, d) => pieOn(env, s, d),
     staged,
+    held: (d) => st.staged.some((x) => x.dst === d),
     picked: (kind, n) => picks[kind].includes(n),
     // Filter shows only matches, so only Find marks them.
     found: (kind, n) => find.mode === 'find' && matches[kind].includes(n),
@@ -201,6 +204,7 @@ export function gridBody(ctx, first) {
       take.classList.toggle('sode-panel__take--armed', t.armed);
       say(takeCount, t.count);
     }
+    clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
     boxes?.paint(find, countsOf());
     status();
   };
@@ -464,6 +468,23 @@ export function gridBody(ctx, first) {
     preview();
   }
 
+  // Esc and the Clear button: act is clearAction's.
+  function clearCtx() {
+    return { line: !!line, picks: pickCount(picks), staged: st.staged.length };
+  }
+  function clearStep(act) {
+    if (act === 'unline') {
+      gest?.cancel();
+      dropLine();
+    } else if (act === 'unpick') {
+      picks = dropPicks(picks);
+      render();
+    } else if (act === 'drop') {
+      st = dropStaged(st);
+      render();
+    }
+  }
+
   // Release, or Space in v mode. A line that ends on its start row stages nothing.
   function stageLine() {
     if (!canStage()) return dropLine();
@@ -634,23 +655,15 @@ export function gridBody(ctx, first) {
         line = { a: centre(cur), b: centre(cur), keys: true };
         preview();
       }
-    } else if (act === 'unline') {
-      gest?.cancel();
-      dropLine();
-    } else if (act === 'jump') jumped(jumpFrom(cur));
+    } else if (act === 'unline' || act === 'unpick' || act === 'drop') clearStep(act);
+    else if (act === 'jump') jumped(jumpFrom(cur));
     else if (act === 'step') jumped(holderJump(cur, axes, env));
     else if (act === 'undo') pressUndo();
     else if (act === 'confirm') openConfirm();
-    else if (act === 'unpick') {
-      picks = dropPicks(picks);
-      render();
-    } else if (act === 'levels') {
+    else if (act === 'levels') {
       const i = document.getElementById('panel-lvl');
       i?.focus();
       i?.select();
-    } else if (act === 'drop') {
-      st = dropStaged(st);
-      render();
     } else if (act === 'findSrcs' || act === 'findDsts') {
       const i = boxes?.input(act === 'findSrcs' ? 'srcs' : 'dsts');
       i?.focus();
@@ -716,6 +729,7 @@ export function gridBody(ctx, first) {
       count.remove();
       head?.stop();
       take?.remove();
+      clearer?.remove();
       offLayout();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();

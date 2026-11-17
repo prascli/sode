@@ -63,7 +63,32 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const band = document.getElementById('panel-levels').getBoundingClientRect();
 		return Math.round(t.width) === 192 && Math.round(t.height) === 64 && innerWidth - t.right < 12 && t.top >= band.top && t.bottom <= band.bottom && document.getElementById('panel-take').textContent === 'Take 1';
 	})()`)
+	b.waitFor("the V pick is two by two picks, filled when on", `(() => {
+		const [v, two] = document.querySelectorAll('#panel-lvl-pick > .sode__pick');
+		const r = v.getBoundingClientRect(), p = two.getBoundingClientRect();
+		return Math.abs(r.width - r.height) < 2 && r.width > 2 * p.width && v.getAttribute('aria-pressed') === 'true' && getComputedStyle(v).backgroundColor !== 'rgba(0, 0, 0, 0)';
+	})()`)
+	b.waitFor("an armed Take is amber with dark words", `(() => {
+		const t = document.getElementById('panel-take');
+		// Canvas turns any colour form (oklab from color-mix) into RGB.
+		const rgb = (c) => { const x = document.createElement('canvas').getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data]; };
+		const [r, g, bl] = rgb(getComputedStyle(t).backgroundColor);
+		const [ir] = rgb(getComputedStyle(t).color);
+		return t.classList.contains('sode-panel__take--armed') && r > 200 && g > 150 && bl < 140 && ir < 100;
+	})()`)
+	held := `[...document.querySelectorAll('.sode-gridpanel__held:not([hidden])')].map((n) => n.parentNode.dataset.dst + ':' + n.textContent).join(',')`
+	note := `[...document.querySelectorAll('.sode-gridpanel__note > :not([hidden])')].map((n) => n.textContent).join('|')`
+	b.waitFor("the staged destination says so, and the note counts it", held+` === '3:staged' && `+note+` === '1 staged|Press Take or Enter to send the staged routes. Esc drops them.'`)
+	b.waitFor("the search boxes name the mode and show their keys", `[...document.querySelectorAll('.sode-gridpanel__find-input')].map((n) => n.placeholder).join('|') === 'Find sources|Find destinations' && `+
+		`[...document.querySelectorAll('.sode-gridpanel__find-key')].map((n) => n.textContent).join('') === 'sd'`)
 	b.shot("look")
+	b.eval(`document.querySelector('.sode-gridpanel__dst[data-dst="2"]').click(); true`)
+	b.waitFor("a pick shows first in the note", note+` === '1 destination picked|Click a crosspoint in a picked row or column for a Diagonal. Esc drops the picks.'`)
+	b.eval(`document.getElementById('panel-clear').click(); true`)
+	b.waitFor("Clear drops the picks first", note+` === '1 staged|Press Take or Enter to send the staged routes. Esc drops them.' && !document.querySelector('.sode-gridpanel__dst[data-picked]')`)
+	b.eval(`document.getElementById('panel-clear').click(); true`)
+	b.waitFor("then the staged routes, and has nothing left to drop", held+` === '' && document.getElementById('panel-take').disabled && document.getElementById('panel-clear').disabled && `+
+		note+` === 'Click names to pick rows and columns. Shift-click picks a range.'`)
 
 	b.open(srv.URL + "/panels")
 	b.waitFor("the Grid panel in the list", `!!document.querySelector('.sode-ov__item[data-id="`+id+`"]')`)

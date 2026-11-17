@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPicks, pickName } from '../gridpanelpick.js';
-import { restPoint, takeButton, tapMods } from '../gridpanelphone.js';
+import { restPoint, takeButton, tapMods, pickNote } from '../gridpanelphone.js';
 
 const axes = { srcs: [30, 10, 20, 40, 50], dsts: [7, 3, 5, 9, 1, 2] };
 const picked = (srcs, dsts) => ({ ...createPicks(), srcs, dsts });
@@ -52,4 +52,16 @@ test('a click on the desktop layout keeps its modifiers', () => {
   assert.deepEqual(tapMods({ shiftKey: true, metaKey: false, ctrlKey: false }, false), { range: true, toggle: false });
   assert.deepEqual(tapMods({ shiftKey: false, metaKey: false, ctrlKey: true }, false), { range: false, toggle: true });
   assert.deepEqual(tapMods({ shiftKey: true }, true), { range: true, toggle: true });
+});
+
+test('the note beside Take counts picks first, then staged routes, with a hint for the next step', () => {
+  const at = (o) => pickNote({ srcs: 0, dsts: 0, staged: 0, ...o });
+  assert.deepEqual(at({ dsts: 1 }), {
+    chip: '1 destination picked',
+    hint: 'Click a crosspoint in a picked row or column for a Diagonal. Esc drops the picks.',
+  });
+  assert.equal(at({ dsts: 2, srcs: 1, staged: 3 }).chip, '2 destinations, 1 source picked');
+  assert.equal(at({ srcs: 3 }).chip, '3 sources picked');
+  assert.deepEqual(at({ staged: 2 }), { chip: '2 staged', hint: 'Press Take or Enter to send the staged routes. Esc drops them.' });
+  assert.deepEqual(at({}), { chip: '', hint: 'Click names to pick rows and columns. Shift-click picks a range.' });
 });

@@ -49,6 +49,10 @@ func TestChromeGridPanelScale(t *testing.T) {
 		const c = document.querySelector('.sode-gridpanel__src[data-src="0"]');
 		return s && d && s.getBoundingClientRect().left < c.getBoundingClientRect().left;
 	})()`)
+	b.waitFor("a line marks the end of each pinned band", `(() => {
+		const after = (n) => getComputedStyle(document.querySelector(n), '::after');
+		return parseFloat(after('.sode-gridpanel__top').height) > 2 && parseFloat(after('.sode-gridpanel__side').width) > 2;
+	})()`)
 	b.waitFor("the scroller spans the whole grid", `(() => {
 		const sc = document.querySelector('.sode-gridpanel__scroll');
 		const xp = document.querySelector('.sode-gridpanel__src[data-src="0"]').getBoundingClientRect().width;
