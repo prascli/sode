@@ -5,13 +5,21 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, OVER } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, OVER } from './gridpanelwindow.js';
 
-const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
 const GLIDE_MAX_MS = 3000; // a glide across 2500 sources takes about 1.5 s
-// A newly pulsing node starts in step with the others. All count from time zero.
-export const pulseDelay = () => `${-(document.timeline.currentTime % PULSE_MS)}ms`;
+// A node that starts the panel pulse (sode-panel-pulse) joins the others in phase: every pulse counts from the
+// timeline's time zero. One read per task, since getAnimations brings the style up to date.
+const joining = new Set();
+export function joinPulse(node) {
+  if (!joining.size)
+    queueMicrotask(() => {
+      for (const n of joining) for (const a of n.getAnimations()) if (a.animationName === 'sode-panel-pulse') a.startTime = 0;
+      joining.clear();
+    });
+  joining.add(node);
+}
 
 // A name node keeps one Text child, so a rename or a move is not a childList change.
 const setText = (n, t) => {
@@ -55,9 +63,10 @@ function paintXp(xp, s, d, view) {
   const out = staged.length > 0 && view.leftOut(s, d);
   const prot = view.protected(d);
   const st = out ? 'left-out' : staged.length ? 'staged' : undefined;
-  // A staged crosspoint runs the pulse itself (gridpanel.css). The delay puts it in step with the others.
-  if (st === 'staged' && xp.dataset.s !== 'staged') xp.style.animationDelay = pulseDelay();
+  // A staged crosspoint runs the pulse itself (gridpanel.css).
+  const starts = st === 'staged' && xp.dataset.s !== 'staged';
   setData(xp, 's', st);
+  if (starts) joinPulse(xp);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
   if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
   const state = out ? ', staged, left out of the take' : staged.length ? ', staged' : '';
@@ -247,7 +256,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
   scroll.tabIndex = -1;
   // The Sources row over the grid. It starts where the Source bar does.
-  const bar = el('div', 'sode-gridpanel__bar', label('src', 'Sources', 'arrow-right'), el('span', 'sode-gridpanel__hint', 'Top edge.'));
+  const bar = el('div', 'sode-gridpanel__bar', label('src', 'Sources', 'arrow-right'));
   host.append(bar, el('div', 'pb-grid sode-gridpanel__frame', scroll));
 
   let ax = axes;
@@ -380,6 +389,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
 
   // A bar or pinned item is sticky, so each draw places the cursor again.
   let curKey = '';
+  let ringOn = false;
   const placeCursor = () => {
     const m = metricsNow();
     const ra = axis(false, m);
@@ -399,8 +409,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     cursor.style.width = `${w}px`;
     cursor.style.height = `${h}px`;
     setData(cursor, 'band', band ? '' : undefined);
-    setData(cursor, 'bar', cur.i < 0 || cur.j < 0 ? '' : undefined);
+    const bar = cur.i < 0 || cur.j < 0;
+    setData(cursor, 'bar', bar ? '' : undefined);
     cursor.hidden = hide;
+    // A ring shown again starts its animation again.
+    const on = !hide && !bar;
+    if (on && !ringOn) joinPulse(cursor.firstChild);
+    ringOn = on;
   };
 
   const reserve = () => {
@@ -492,6 +507,17 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // A finger has no hover: its moves are a scroll or a line, so the cursor stays and the targets show from the picks.
   const onMove = (e) => e.pointerType === 'touch' || head.contains(e.target) || onPoint(e.clientX, e.clientY);
   scroll.addEventListener('pointermove', onMove, { passive: true });
+  // Not passive, so a wheel over the horizontal scroll bar can scroll across instead of down. Chrome makes the rest of
+  // a wheel turn async once its first event goes by.
+  const onWheel = (e) => {
+    const m = metricsNow();
+    const bar = { left: m.x, right: m.x + m.cw, top: m.y + m.ch, bottom: m.y + scroll.offsetHeight, line: px.xp, page: m.cw };
+    const dx = wheelAcross(e, bar);
+    if (!dx) return;
+    e.preventDefault();
+    scroll.scrollLeft += dx;
+  };
+  scroll.addEventListener('wheel', onWheel, { passive: false });
   measure();
   setAxes(axes);
 
@@ -649,6 +675,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
       scroll.removeEventListener('pointermove', onMove);
+      scroll.removeEventListener('wheel', onWheel);
       if (hitEnd) clearTimeout(hitEnd.timer);
       listeners.clear();
     },

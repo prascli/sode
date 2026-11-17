@@ -25,9 +25,19 @@ test('a press with nothing staged stages that one route on the levels given', ()
   assert.equal(stagedCount(st), 1);
 });
 
-test('a press on a staged crosspoint unstages it', () => {
-  const { st } = press(press(take(), 3, 7).st, 3, 7);
-  assert.deepEqual(routesOf(st), []);
+test('a second press on a staged crosspoint keeps the stage and asks for the take confirm', () => {
+  const first = press(take(), 3, 7).st;
+  const r = press(first, 3, 7);
+  assert.equal(r.confirm, true);
+  assert.equal(r.send, null);
+  assert.deepEqual(routesOf(r.st), [{ src: 3, dst: 7, levels: [1, 2] }]);
+});
+
+test('a press on one crosspoint of a staged Diagonal or line asks for the take confirm', () => {
+  const st = diag(take(), three).st;
+  const r = press(st, three[1].src, three[1].dst);
+  assert.equal(r.confirm, true);
+  assert.equal(stagedCount(r.st), 3);
 });
 
 test('another source in a staged row replaces only the levels it carries, so a breakaway is one plan', () => {
@@ -38,9 +48,6 @@ test('another source in a staged row replaces only the levels it carries, so a b
     { src: 4, dst: 7, levels: [2] },
   ]);
   assert.equal(stagedCount(st), 2);
-  // Unstaging one source of the breakaway leaves the other.
-  st = press(st, 4, 7).st;
-  assert.deepEqual(routesOf(st), [{ src: 3, dst: 7, levels: [1, 3] }]);
 });
 
 test('a source that covers every staged level of a row replaces the route whole', () => {
@@ -133,10 +140,10 @@ test('a Diagonal stages one route per pair, in its order, on the levels given', 
   ]);
 });
 
-test('the same Diagonal pressed again stays staged; only a one-route press unstages', () => {
-  const again = diag(diag(take(), three).st, three).st;
-  assert.equal(stagedCount(again), 3);
-  assert.equal(stagedCount(diag(diag(take(), [three[0]]).st, [three[0]]).st), 0);
+test('the same Diagonal pressed again stays staged and asks for nothing', () => {
+  const again = diag(diag(take(), three).st, three);
+  assert.equal(stagedCount(again.st), 3);
+  assert.equal(again.confirm, false);
 });
 
 test('a Diagonal replaces the staged levels on its destinations and leaves other levels', () => {

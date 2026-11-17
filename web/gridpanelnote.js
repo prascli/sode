@@ -1,4 +1,4 @@
-// The chip, hint and Clear button beside a Grid panel's Take button. The words come from pickNote
+// The chip and Clear button beside a Grid panel's Take button. The words come from pickNote
 // (gridpanelphone.js); Clear does what Esc does (gridpanelkeys.js clearAction).
 import { el } from './core.js';
 
@@ -10,8 +10,7 @@ const setText = (n, t) => {
 // host is the Levels box; before is the node they go in front of (the Take button). onClear runs on a press.
 export function clearNote(host, before, onClear) {
   const chip = el('span', 'pb-badge pb-badge--info sode-gridpanel__chip', document.createTextNode(''));
-  const hint = el('span', 'sode-gridpanel__tip', document.createTextNode(''));
-  const note = el('div', 'sode-gridpanel__note', chip, hint);
+  const note = el('div', 'sode-gridpanel__note', chip);
   note.setAttribute('role', 'status');
   const clear = el('button', 'pb-btn sode-gridpanel__clear', 'Clear');
   clear.type = 'button';
@@ -23,10 +22,9 @@ export function clearNote(host, before, onClear) {
   host.insertBefore(note, before);
   host.insertBefore(clear, before);
   return {
-    // n is pickNote's { chip, hint }; can is true when Clear has something to drop.
+    // n is pickNote's words; can is true when Clear has something to drop.
     paint(n, can) {
-      setText(chip, n.chip);
-      setText(hint, n.hint);
+      setText(chip, n);
       if (clear.disabled === can) clear.disabled = !can;
     },
     remove() {

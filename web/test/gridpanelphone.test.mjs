@@ -54,14 +54,11 @@ test('a click on the desktop layout keeps its modifiers', () => {
   assert.deepEqual(tapMods({ shiftKey: true }, true), { range: true, toggle: true });
 });
 
-test('the note beside Take counts picks first, then staged routes, with a hint for the next step', () => {
+test('the chip beside Clear counts picks first, then staged routes, and has no help words', () => {
   const at = (o) => pickNote({ srcs: 0, dsts: 0, staged: 0, ...o });
-  assert.deepEqual(at({ dsts: 1 }), {
-    chip: '1 destination picked',
-    hint: 'Click a crosspoint in a picked row or column for a Diagonal. Esc drops the picks.',
-  });
-  assert.equal(at({ dsts: 2, srcs: 1, staged: 3 }).chip, '2 destinations, 1 source picked');
-  assert.equal(at({ srcs: 3 }).chip, '3 sources picked');
-  assert.deepEqual(at({ staged: 2 }), { chip: '2 staged', hint: 'Press Take or Enter to send the staged routes. Esc drops them.' });
-  assert.deepEqual(at({}), { chip: '', hint: 'Click names to pick rows and columns. Shift-click picks a range.' });
+  assert.equal(at({ dsts: 1 }), '1 destination picked');
+  assert.equal(at({ dsts: 2, srcs: 1, staged: 3 }), '2 destinations, 1 source picked');
+  assert.equal(at({ srcs: 3 }), '3 sources picked');
+  assert.equal(at({ staged: 2 }), '2 staged');
+  assert.equal(at({}), '');
 });

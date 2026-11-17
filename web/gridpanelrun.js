@@ -16,7 +16,7 @@ import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind, step
 import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
-import { buildGridPanel, pulseDelay } from './gridpanelview.js';
+import { buildGridPanel, joinPulse } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
 import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
@@ -94,7 +94,7 @@ export function gridBody(ctx, first) {
   const phone = () => document.documentElement.dataset.layout === 'phone';
   // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
   const takeCount = el('span', 'sode-gridpanel__take-n');
-  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--commit sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
+  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
   if (take) {
     take.type = 'button';
     take.id = 'panel-take';
@@ -201,8 +201,9 @@ export function gridBody(ctx, first) {
       const t = takeButton({ mode: st.mode, staged: n, busy: st.busy });
       if (take.hidden === t.shown) take.hidden = !t.shown;
       if (take.disabled !== t.disabled) take.disabled = t.disabled;
-      if (t.armed && !take.classList.contains('sode-panel__take--armed')) take.style.animationDelay = pulseDelay();
+      const starts = t.armed && !take.classList.contains('sode-panel__take--armed');
       take.classList.toggle('sode-panel__take--armed', t.armed);
+      if (starts) joinPulse(take);
       say(takeCount, t.count);
     }
     clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
@@ -248,7 +249,7 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
-      boxes = findBoxes(g.head, { onText: findText, onMode: findMode, onStep: findStep });
+      boxes = findBoxes(head?.finds || g.head, { onText: findText, onMode: findMode, onStep: findStep });
       gest = lineGestures(g, {
         start: lineStart,
         move: lineMove,

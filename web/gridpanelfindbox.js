@@ -1,4 +1,4 @@
-// The Source bar and Destination bar search boxes in a Grid panel's corner. The rules are in gridpanelfind.js and
+// The Source bar and Destination bar search boxes of a Grid panel. The rules are in gridpanelfind.js and
 // the keys in gridpanelkeys.js (findBoxAction); the run (gridpanelrun.js) joins them.
 import { el, icon } from './core.js';
 
@@ -18,9 +18,9 @@ const STEPS = {
   ],
 };
 
-// host is the view's corner (g.head). onText(kind, text) on each edit; onMode() on a mode button press; onStep(kind,
-// dir) on a step button press, dir 1 for the next match. One mode serves both boxes, so one button sits at the end of
-// the Destinations word and the boxes keep their width. The step buttons show only while the box has text, which is
+// host is the deck's search slot (gridpanelheadview.js), or the view's corner (g.head) in the editor's live test.
+// onText(kind, text) on each edit; onMode() on a press of the other mode; onStep(kind, dir) on a step button press,
+// dir 1 for the next match. One mode serves both boxes. The step buttons show only while the box has text, which is
 // when they do something and the placeholder is gone.
 export function findBoxes(host, { onText, onMode, onStep }) {
   const make = (kind) => {
@@ -58,14 +58,25 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   };
   const boxes = { srcs: make('srcs'), dsts: make('dsts') };
   let last = 'srcs';
-  const mode = el('button', 'pb-btn pb-btn--ghost pb-btn--sm sode-gridpanel__find-mode', document.createTextNode(MODE.find));
-  mode.type = 'button';
-  mode.tabIndex = -1;
+  let now = 'find';
+  // Find and Filter side by side (patchbay's pb-btn-group); the pressed one is the mode of both boxes.
+  const modeBtn = (m) => {
+    const b = el('button', 'pb-btn pb-btn--outline', document.createTextNode(MODE[m]));
+    b.type = 'button';
+    b.tabIndex = -1;
+    b.dataset.mode = m;
+    b.setAttribute('aria-pressed', String(m === now));
+    b.addEventListener('click', () => {
+      if (m !== now) onMode();
+      boxes[last].input.focus();
+    });
+    return b;
+  };
+  const modes = { find: modeBtn('find'), filter: modeBtn('filter') };
+  const mode = el('div', 'pb-btn-group sode-gridpanel__find-mode', modes.find, modes.filter);
+  mode.setAttribute('role', 'group');
+  mode.setAttribute('aria-label', 'Search mode');
   mode.dataset.pbTip = 'Find marks matches. Filter shows only matches. Ctrl+/';
-  mode.addEventListener('click', () => {
-    onMode();
-    boxes[last].input.focus();
-  });
   host.prepend(boxes.srcs.wrap, boxes.dsts.wrap, mode);
   return {
     input: (kind) => boxes[kind].input,
@@ -77,7 +88,9 @@ export function findBoxes(host, { onText, onMode, onStep }) {
     // find is gridpanelfind.js state; counts[kind] is { n: matches, at: the current match's place from 1 }.
     paint(find, counts) {
       last = find.last;
-      if (mode.firstChild.data !== MODE[find.mode]) mode.firstChild.data = MODE[find.mode];
+      now = find.mode;
+      for (const m of ['find', 'filter'])
+        if (modes[m].getAttribute('aria-pressed') !== String(m === now)) modes[m].setAttribute('aria-pressed', String(m === now));
       for (const k of ['srcs', 'dsts']) {
         const b = boxes[k];
         const box = find[k];

@@ -30,13 +30,9 @@ export const tapMods = (e, phone) => ({ range: !!e.shiftKey, toggle: phone || !!
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-// The chip and the hint beside Clear and Take: what Esc and Clear drop next (picks, then staged routes) and the next
-// step. srcs and dsts count picked names; staged counts staged routes.
+// The chip beside Clear: what Esc and Clear drop next (picks, then staged routes). srcs and dsts count picked names;
+// staged counts staged routes.
 export function pickNote({ srcs, dsts, staged }) {
-  if (srcs || dsts) {
-    const parts = [dsts && plural(dsts, 'destination'), srcs && plural(srcs, 'source')].filter(Boolean);
-    return { chip: `${parts.join(', ')} picked`, hint: 'Click a crosspoint in a picked row or column for a Diagonal. Esc drops the picks.' };
-  }
-  if (staged) return { chip: `${staged} staged`, hint: 'Press Take or Enter to send the staged routes. Esc drops them.' };
-  return { chip: '', hint: 'Click names to pick rows and columns. Shift-click picks a range.' };
+  if (srcs || dsts) return `${[dsts && plural(dsts, 'destination'), srcs && plural(srcs, 'source')].filter(Boolean).join(', ')} picked`;
+  return staged ? `${staged} staged` : '';
 }
