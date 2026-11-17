@@ -1,1 +1,2 @@
-- "Show all destinations" now shows below the destinations that you added with +. Before, those destinations covered it.
+- "Show all destinations" now stays at the bottom right of the Destination box. The destinations that you add with + stay above it and never cover it.
+- The router and server status at the top right of the main page now scrolls away with the page.

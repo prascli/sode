@@ -51,7 +51,7 @@ html {
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-4);
   padding: var(--pb-space-2) var(--pb-space-3);
-  position: fixed;
+  position: absolute;
   right: var(--pb-space-5);
   top: var(--pb-space-4);
   z-index: var(--pb-z-sticky);

@@ -8,8 +8,9 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// Show all destinations hangs below the destinations added with +, not over them, and a press
-// at its centre reaches it.
+// Show all destinations sits at the bottom right of the Destination box, under the destinations added
+// with + and never over them, and a press at its centre reaches it. The router and server status
+// scrolls away with the page.
 func TestChromeMainShowAllBelowChips(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -40,11 +41,22 @@ func TestChromeMainShowAllBelowChips(t *testing.T) {
 		t.Fatal("Show all destinations overlaps the added destinations")
 	}
 	if got := b.eval(`(() => {
+		const all = document.querySelector('#dst-all').getBoundingClientRect();
+		const box = document.querySelector('.sode__box--dst').getBoundingClientRect();
+		return Math.abs(all.right - box.right) < 1 && all.bottom <= box.bottom + 0.5;
+	})()`); got != true {
+		t.Fatal("Show all destinations is not at the bottom right of its box")
+	}
+	if got := b.eval(`(() => {
 		const btn = document.querySelector('#dst-all button');
 		const r = btn.getBoundingClientRect();
 		return btn.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
 	})()`); got != true {
 		t.Fatal("something covers Show all destinations")
+	}
+	// The status at the top right is not fixed to the window.
+	if got := b.eval(`getComputedStyle(document.getElementById('conn')).position`); got == "fixed" || got == "sticky" {
+		t.Fatalf("router and server status is %v, want it to scroll with the page", got)
 	}
 	b.check()
 }
