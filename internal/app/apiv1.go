@@ -99,8 +99,8 @@ func apiJSONTagged(w http.ResponseWriter, r *http.Request, v any) {
 	apiJSONTaggedBy(w, r, v, nil)
 }
 
-// apiJSONTaggedBy tags v by the JSON of tagOf, when tagOf is not nil. It is for an answer that holds a
-// field that moves with time alone: tagOf leaves that field out, so an unchanged read still gets 304.
+// apiJSONTaggedBy tags v by the JSON of tagOf, when tagOf is not nil. tagOf leaves out a field that moves
+// with time alone, so an unchanged read still gets 304.
 func apiJSONTaggedBy(w http.ResponseWriter, r *http.Request, v, tagOf any) {
 	body, err := json.Marshal(v)
 	if err != nil {

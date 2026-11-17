@@ -370,6 +370,7 @@ export function gridBody(ctx, first) {
   const confirm = document.getElementById('confirm')
     ? gridConfirm({
         tally: () => tally,
+        settings: () => panel.confirm,
         onTake: (plan) => (plan.replace ? takeUndo(plan.next) : send(plan)),
         onClose: () => {
           st = cancelConfirm(st);
@@ -661,7 +662,8 @@ export function gridBody(ctx, first) {
     },
     renamed: render,
     // From each panel read (panelrun.js), so staged routes that leave the Rights are left out at once.
-    rights(r) {
+    read({ rights: r, confirm: c }) {
+      if (c) panel = { ...panel, confirm: c };
       if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
       panel = { ...panel, rights: r };
       syncBox();

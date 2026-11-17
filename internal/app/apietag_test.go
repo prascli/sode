@@ -103,3 +103,18 @@ func TestPanelReadAnswers304ToAnEditorWhileTimePasses(t *testing.T) {
 		t.Fatalf("after the instance went offline: %d, want 200", code)
 	}
 }
+
+// A panel page opened by a key or as Public has no socket hello, so the read carries the take confirm's settings.
+func TestPanelReadCarriesTheConfirmSettings(t *testing.T) {
+	a := etagApp(t)
+	id := makePanel(t, a, userKey(t, a, "Ana"), etagPanel)
+	cfg := a.r().cfg
+	cfg.ConfirmLockoutMs, cfg.ConfirmEnter = 1500, true
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := readPanel(t, a, botKey(t, a), id)["confirm"].(map[string]any)
+	if got["lockoutMs"] != 1500.0 || got["enter"] != true {
+		t.Fatalf("confirm %v, want lockoutMs 1500 and enter true", got)
+	}
+}
