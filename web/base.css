@@ -1204,9 +1204,12 @@ button.sode-up__bar:not(:disabled):hover,
 
 /* Big scroll bars (bigscroll.js): drawn by Sode, oversized and always shown where a user needs to scroll.
    The phone layout keeps the native bars, since a touch screen scrolls the content itself. */
+/* The page's scroller is html itself, so :root needs its own selector beside the descendant one. */
+:root:not([data-layout="phone"])[data-bigscroll],
 :root:not([data-layout="phone"]) [data-bigscroll] {
   scrollbar-width: none;
 }
+:root:not([data-layout="phone"])[data-bigscroll]::-webkit-scrollbar,
 :root:not([data-layout="phone"]) [data-bigscroll]::-webkit-scrollbar {
   display: none;
 }
