@@ -29,28 +29,43 @@ func TestChromeGridPanelLook(t *testing.T) {
 			t('.sode-gridpanel__meta').includes('Your panel') && t('.sode-gridpanel__meta').includes('Grid panel, 200 sources by 120 destinations') &&
 			t('.sode-gridpanel__meta').includes('Can view and take') && !!document.querySelector('.sode-gridpanel__stat-val .pb-dot--ok');
 	})()`)
-	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 150 px high", `(() => {
+	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 180 px high", `(() => {
 		const deck = document.querySelector('.sode-gridpanel__deck');
 		const r = deck.getBoundingClientRect();
 		const inside = ['#panel-title', '.sode-gridpanel__tools', '#panel-lvl', '.sode-gridpanel__find[data-kind="srcs"] input', '#panel-take']
 			.every((s) => { const n = deck.querySelector(s); const b = n?.getBoundingClientRect(); return b && b.top >= r.top && b.bottom <= r.bottom; });
-		return r.top === 0 && r.height < 150 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
+		return r.top === 0 && r.height < 180 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
 	})()`)
 	b.waitFor("the Lock chip does not cover the title or the Levels box", `(() => {
 		const c = document.querySelector('.sode-lock__who').getBoundingClientRect();
 		const off = (s) => { const n = document.querySelector(s).getBoundingClientRect(); return n.top >= c.bottom || n.left >= c.right; };
 		return off('#panel-title') && off('#panel-lvl-pick') && off('#panel-levels .sode__box-head');
 	})()`)
-	b.waitFor("the Levels box is the main page's: half its old 240 px, large words, as tall as the picks", `(() => {
+	b.waitFor("the Levels box is the main page's: at least half its 336 px, large words that fit, as tall as the picks", `(() => {
 		const i = document.getElementById('panel-lvl'), p = document.getElementById('panel-lvl-pick').getBoundingClientRect();
-		const r = i.getBoundingClientRect();
-		return i.classList.contains('sode__input') && Math.round(r.width) === 120 && getComputedStyle(i).fontSize === '27.5px' &&
+		const r = i.getBoundingClientRect(), cs = getComputedStyle(i);
+		const c = document.createElement('canvas').getContext('2d');
+		c.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+		const fits = c.measureText(i.placeholder).width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) <= i.clientWidth;
+		return i.classList.contains('sode__input') && r.width >= 168 && cs.fontSize === '27.5px' && fits &&
 			Math.abs(r.top - p.top) < 1 && Math.abs(r.height - p.height) < 1;
 	})()`)
-	b.waitFor("Find and Filter are two buttons, each as tall as a search box", `(() => {
+	b.waitFor("nothing in the deck is cut: the title, its line, Select none on one line", `(() => {
+		const cut = (n) => n.scrollWidth > n.clientWidth + 1;
+		const all = document.getElementById('panel-lvl-all');
+		const line = [...all.children].map((n) => n.getBoundingClientRect().top);
+		return !cut(document.getElementById('panel-title')) && ![...document.querySelectorAll('.sode-gridpanel__cut')].some(cut) &&
+			/^Select(All|None)$/.test(all.textContent) && Math.abs(line[0] - line[1]) < 1 && document.documentElement.scrollWidth === innerWidth;
+	})()`)
+	b.waitFor("the user is named once, in the Signed in box: the Lock chip shows only its button", `(() => {
+		const name = document.querySelector('.sode-lock__who-name');
+		return !!document.querySelector('.sode-lock__who .pb-btn') && name.getClientRects().length === 0;
+	})()`)
+	b.waitFor("Find and Filter are one segmented pair, each as tall as a search box", `(() => {
 		const [f, x] = document.querySelectorAll('.sode-gridpanel__find-mode > .pb-btn');
+		const [fr, xr] = document.querySelectorAll('.sode-gridpanel__find-mode > input[type="radio"]');
 		const box = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input').getBoundingClientRect();
-		return f.textContent === 'Find' && f.getAttribute('aria-pressed') === 'true' && x.textContent === 'Filter' &&
+		return f.textContent === 'Find' && fr.checked && x.textContent === 'Filter' && !xr.checked &&
 			Math.abs(f.getBoundingClientRect().height - box.height) < 2 && Math.abs(x.getBoundingClientRect().height - box.height) < 2;
 	})()`)
 	b.waitFor("Full screen is an icon, Full width is gone and the Panels link is in the header", `(() => {

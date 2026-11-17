@@ -1,5 +1,6 @@
 // A Grid panel by touch and on the phone layout, and its Take button. Pure. A phone has no hover and
 // no modifier keys.
+import { plural } from './gridmodel.js';
 
 const first = (picked, order) => order.find((n) => picked.includes(n));
 
@@ -27,8 +28,6 @@ export function takeButton({ mode, staged, busy }) {
 // pickName's mods for a click on a name. On the phone a tap adds or removes one name, as Cmd-click does, and a
 // long-press (given as shiftKey) adds a range.
 export const tapMods = (e, phone) => ({ range: !!e.shiftKey, toggle: phone || !!(e.metaKey || e.ctrlKey) });
-
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // The chip beside Clear: what Esc and Clear drop next (picks, then staged routes). srcs and dsts count picked names;
 // staged counts staged routes.

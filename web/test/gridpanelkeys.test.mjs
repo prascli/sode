@@ -203,3 +203,11 @@ test('? opens the key list, but not from a field; Ctrl+? opens it from anywhere'
   assert.equal(gridKeyAction(key('/', { code: 'Slash', shiftKey: true, ctrlKey: true }), ctx({ inControl: true })), 'keys');
   assert.equal(gridKeyAction(q({ metaKey: true }), ctx()), null);
 });
+
+test('Delete and Backspace unstage the route at the cursor, only on a crosspoint with routes staged', () => {
+  assert.equal(gridKeyAction(key('Delete'), ctx()), 'unstage');
+  assert.equal(gridKeyAction(key('Backspace'), ctx()), 'unstage');
+  assert.equal(gridKeyAction(key('Delete'), ctx({ staged: 0 })), null);
+  assert.equal(gridKeyAction(key('Delete'), ctx({ bar: 'srcs' })), null);
+  assert.equal(gridKeyAction(key('Backspace'), ctx({ inControl: true })), null);
+});

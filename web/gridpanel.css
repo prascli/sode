@@ -556,7 +556,7 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__find-step[hidden] {
   display: none;
 }
-/* The one mode button, beside the Destinations word. One width for Find and Filter. */
+/* The Find and Filter pair in the corner of the editor's live test; the deck and the phone place it themselves. */
 .sode-gridpanel__find-mode {
   font-size: var(--pb-text-xs);
   grid-column: 2;
@@ -662,11 +662,12 @@ html:has(.sode-gridpanel) {
 }
 
 /* The Levels box (levelbox.js): input above, chips in two rows with V double size (base.css), All beside them. */
-/* Level picks are 41.6 px with 17 px numbers. On the desktop layout the box is a band with the input beside All, so it
+/* Level picks are 42.5 px with 17 px numbers. On the desktop layout the box is a band with the input beside All, so it
    is no taller than the picks. */
 .sode-gridpanel__levels {
   /* The height of the two rows of picks. All, Clear and Take use it, so they line up with the picks. */
-  --sode-picks-h: calc(2 * 2.08rem + var(--pb-space-1));
+  --sode-pick: calc(var(--pb-space-10) + var(--pb-space-1));
+  --sode-picks-h: calc(2 * var(--sode-pick) + var(--pb-space-1));
   align-items: start;
   column-gap: var(--pb-space-2);
   display: grid;
@@ -677,8 +678,8 @@ html:has(.sode-gridpanel) {
 }
 .sode-gridpanel__levels .sode__pick {
   font-size: var(--pb-text-md);
-  height: 2.08rem;
-  min-width: 2.08rem;
+  height: var(--sode-pick);
+  min-width: var(--sode-pick);
 }
 /* With an odd count the first pick is two by two picks, so it gets one more column. The phone has no room. */
 :root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels--odd {
@@ -686,7 +687,7 @@ html:has(.sode-gridpanel) {
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
   grid-column: span 2;
-  min-width: calc(2 * 2.08rem + var(--pb-space-1));
+  min-width: var(--sode-picks-h);
 }
 .sode-gridpanel__levels .pb-btn.sode__all {
   height: var(--sode-picks-h);
@@ -797,7 +798,10 @@ html:has(.sode-gridpanel) {
   }
 }
 :root[data-layout="phone"] .sode-gridpanel__take {
+  /* The column beside the picks is what is left of a narrow phone, so Take fills it and does not cover All. */
+  justify-self: stretch;
   min-width: 0;
+  padding-inline: var(--pb-space-3);
 }
 /* The phone keeps a plain one-line Levels box, as its main page does. */
 :root[data-layout="phone"] .sode-gridpanel__levels > .sode__input {
@@ -834,10 +838,10 @@ html:has(.sode-gridpanel) {
   gap: var(--pb-space-2) var(--pb-space-4);
   line-height: 1.2;
 }
-/* The header stays one row: past the room it has, the line is cut, not wrapped. */
+/* In the deck's title block the parts wrap whole onto a second line; a part wider than the block is cut. */
 :root:not([data-layout="phone"]) .sode-gridpanel__meta {
-  flex-wrap: nowrap;
   overflow: hidden;
+  row-gap: var(--pb-space-2);
   white-space: nowrap;
 }
 /* The note beside Take counts the staged routes, so the line under the title leaves the count out. */
@@ -848,6 +852,17 @@ html:has(.sode-gridpanel) {
   align-items: center;
   display: inline-flex;
   gap: var(--pb-space-2);
+  min-width: 0;
+}
+.sode-gridpanel__meta > .pb-badge {
+  flex: none;
+}
+/* A part cut short ends in an ellipsis, and tooltip.js shows it whole on hover. */
+.sode-gridpanel__cut {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sode-gridpanel__meta > span[hidden] {
   display: none;
@@ -913,6 +928,15 @@ html:has(.sode-gridpanel) {
 }
 :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel__deck .sode-panels__home) {
   padding-bottom: 0;
+}
+/* At the top right of the deck the link's tip opens below and ends at its right edge, as the other header tips do
+   (pb-tip--end), not above the window. */
+.sode-gridpanel__tools .sode-panels__home .pb-tip--top[data-pb-tip]::after {
+  bottom: auto;
+  left: auto;
+  right: 0;
+  top: calc(100% + var(--pb-space-2));
+  transform: none;
 }
 
 /* The Sources row over the grid and the Destinations word in the corner, in the role colours. */
@@ -1001,6 +1025,9 @@ html:has(.sode-gridpanel) {
   grid-column: 2;
   grid-row: 1 / 3;
 }
+.sode-gridpanel__finds > .sode-gridpanel__find {
+  grid-column: 1;
+}
 .sode-gridpanel__finds > .sode-gridpanel__find-mode > .pb-btn {
   flex: 1;
 }
@@ -1010,8 +1037,10 @@ html:has(.sode-gridpanel) {
   gap: var(--pb-space-2);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck {
-  /* One pick: the picks, the search boxes, the mode buttons, Select none, Clear and Take line up with it. */
-  --sode-pick: 2.08rem;
+  /* One pick (--sode-pick): the picks, the search boxes, the mode buttons, Select none, Clear and Take line up with
+     it. The Levels box is at least half the main page's (336 px): four picks wide. */
+  --sode-pick: calc(var(--pb-space-10) + var(--pb-space-1));
+  --sode-lvl-w: calc(4 * var(--sode-pick) + 3 * var(--pb-space-1));
   align-items: stretch;
   background: var(--pb-surface-raised);
   border-bottom: var(--pb-border-w) solid var(--pb-border);
@@ -1021,9 +1050,10 @@ html:has(.sode-gridpanel) {
     "head r1 lab   lab   .    top  top  top top top   top"
     "head r1 picks input r2 fsrc mode r3  all clear take"
     "head r1 picks input r2 fdst mode r3  all clear take";
-  grid-template-columns: minmax(0, 1fr) auto auto 6rem auto 11rem auto auto auto auto 6.4rem;
+  grid-template-columns: minmax(0, 1fr) auto auto var(--sode-lvl-w) auto 11rem auto auto auto auto 6.4rem;
   grid-template-rows: auto var(--sode-pick) var(--sode-pick);
-  padding: var(--pb-space-3) var(--pb-space-4);
+  /* The top matches the Lock chip's, so the title lines up with the chip's button. */
+  padding: var(--pb-space-4) var(--pb-space-4) var(--pb-space-3);
   row-gap: var(--pb-space-1);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck :is(.sode-panels__head:not([hidden]), .sode-gridpanel__levels:not([hidden]), .sode-gridpanel__finds) {
@@ -1045,17 +1075,24 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__rule--3 {
   grid-area: r3;
 }
-/* The title and the line under it sit low in their cell, so the Lock chip has the top. */
+/* The title block: the title beside the Lock chip's button, the line under it. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__id {
-  align-self: end;
+  align-self: start;
   grid-area: head;
   min-width: 0;
 }
 [data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-gridpanel__deck .sode-gridpanel__id {
-  padding-top: calc(var(--pb-control-h) + var(--pb-space-2));
+  padding-inline-start: calc(var(--sode-who-w, 0px) + var(--pb-space-2));
 }
+/* As tall as the Lock chip's bar (lock.css), so the title is level with its button. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__name {
+  align-items: center;
   gap: var(--pb-space-3);
+  min-height: calc(var(--pb-control-h-sm) + var(--pb-space-2) * 2);
+}
+/* The Signed in box names the user, so the Lock chip shows only its button. The lock screen still names the user. */
+:root:not([data-layout="phone"], [data-sode-lock]):has(.sode-gridpanel__deck) .sode-lock__who:not(.is-hand) .sode-lock__who-name {
+  display: none;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__name > .sode-panels__title {
   font-size: var(--pb-text-xl);
@@ -1076,7 +1113,7 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels .sode__levels {
   grid-area: picks;
 }
-/* As on the main page: a tall box with large words, here as tall as the picks and half its old width. */
+/* As on the main page: a tall box with large words, here as tall as the picks. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels > .sode__input {
   grid-area: input;
   height: auto;
@@ -1086,8 +1123,11 @@ html:has(.sode-gridpanel) {
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels .sode__all {
   align-self: stretch;
+  flex-direction: row;
+  gap: var(--pb-space-2);
   grid-area: all;
   height: auto;
+  white-space: nowrap;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__note {
   align-self: end;
@@ -1102,7 +1142,7 @@ html:has(.sode-gridpanel) {
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__take {
   align-self: stretch;
-  font-size: 1.1rem;
+  font-size: var(--pb-text-lg);
   grid-area: take;
   height: auto;
   justify-self: stretch;
@@ -1136,57 +1176,106 @@ html:has(.sode-gridpanel) {
   min-height: 0;
   padding: 0 var(--pb-space-4);
 }
-/* In the deck the status boxes are one line each, as tall as the header buttons. */
+/* In the deck the status boxes are quiet: one line each with no box, a rule between them. */
+:root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stats {
+  align-items: center;
+  gap: 0;
+}
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stat {
   align-items: baseline;
+  background: none;
+  border: 0;
   flex-direction: row;
   gap: var(--pb-space-2);
   min-width: 0;
-  padding: var(--pb-space-1) var(--pb-space-3);
+  padding: 0 var(--pb-space-4);
+}
+:root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stat + .sode-gridpanel__stat {
+  border-inline-start: var(--pb-border-w) solid var(--pb-border);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stat-val {
+  color: var(--pb-text);
   font-size: var(--pb-text-sm);
+  font-weight: var(--pb-weight-medium);
 }
 /* Kiosk mode hides the header, so on a wide window its column goes and the search boxes take the room. */
-@media not (max-width: 89.9rem) {
+@media not (max-width: 104.9rem) {
   :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-panels__head[hidden]) {
-    grid-template-columns: 0 0 auto 6rem auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
+    grid-template-columns: 0 0 auto var(--sode-lvl-w) auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-panels__head[hidden]) > .sode-gridpanel__rule--1 {
     display: none;
   }
 }
-/* Below 1440 px the title and the tools are a row of their own over the controls, past the Lock chip. The tools
-   span the search column, the one flexible column, so their width does not widen Select none, Clear and Take. */
-@media (max-width: 89.9rem) {
+/* Below 1680 px the title block and the tools are a row of their own over the controls: in one row the title had
+   no room. The tools span the search column, the one flexible column, so their width does not widen Select none,
+   Clear and Take. */
+@media (max-width: 104.9rem) {
   :root:not([data-layout="phone"]) .sode-gridpanel__deck {
     grid-template-areas:
-      "head  head  head top  top  top top top   top"
+      "head  head  head head head head head head  head"
       "lab   lab   lab  .    .    .   .   .     ."
       "picks input r2   fsrc mode r3  all clear take"
       "picks input r2   fdst mode r3  all clear take";
-    grid-template-columns: auto 6rem auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
+    grid-template-columns: auto var(--sode-lvl-w) auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
     grid-template-rows: auto auto var(--sode-pick) var(--sode-pick);
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__rule--1 {
     display: none;
   }
+  /* The header is one flex row over the whole deck, so the title block takes the room the tools leave and adds
+     nothing to the column widths under it. The line goes beside the title, so the row is one line high. */
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-panels__head:not([hidden]) {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--pb-space-5);
+    grid-area: head;
+    min-width: 0;
+  }
+  /* The header itself clears the Lock chip here (panels.css). */
   [data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-gridpanel__deck .sode-gridpanel__id {
-    padding-inline-start: calc(var(--sode-who-w, 0px) + var(--pb-space-4));
-    padding-top: 0;
+    padding-inline-start: 0;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__id {
-    align-self: center;
+    align-items: baseline;
+    flex: 1 1 auto;
+    flex-direction: row;
+    gap: var(--pb-space-5);
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__tools {
+    flex: none;
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__meta {
+    flex-wrap: nowrap;
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__name {
+    flex: none;
+    max-width: 50%;
   }
 }
-/* A narrow mouse window: a smaller Levels box, Take and gap, so the controls still fit in one row at 1024 px, and the
-   status boxes without their labels. */
-@media (max-width: 71.9rem) {
+/* Below 1280 px the controls row is tight: a smaller Take and gap, and Select none shows one word, so the row still
+   fits at 1024 px. The Levels box gives way only past the search boxes' least width (5rem); at 1024 px that leaves it
+   134 px, under half the main page's, so its words get smaller and the placeholder still fits. */
+@media (max-width: 79.9rem) {
   :root:not([data-layout="phone"]) .sode-gridpanel__deck {
     column-gap: var(--pb-space-1);
-    grid-template-columns: auto 4rem auto minmax(5rem, 1fr) auto auto auto auto 5.2rem;
+    grid-template-columns: auto minmax(5rem, var(--sode-lvl-w)) auto minmax(5rem, 1fr) auto auto auto auto 5.2rem;
   }
-  /* The values say what they are (a dot, a mode, a name), so the box labels go. */
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels > .sode__input {
+    font-size: var(--pb-text-lg);
+  }
+  /* Select All and Select None show only their last word; the tip and the screen reader keep the whole name. */
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels .sode__all > span:first-child {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+  }
+}
+/* Below 1152 px the status boxes lose their labels: the values say what they are (a dot, a mode, a name). */
+@media (max-width: 71.9rem) {
   :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stat > .pb-label {
     display: none;
   }
@@ -1200,4 +1289,13 @@ html:has(.sode-gridpanel) {
     padding: 0;
     width: 2rem;
   }
+}
+/* A panel with no sources or no destinations (gridpanelrun.js paintEmpty): the note is in the flow under the corner.
+   No :has() on the scroller: a scroll toggles hidden on spare nodes, and each toggle would test it again. */
+.sode-gridpanel__empty {
+  justify-content: center;
+  min-height: calc(var(--sode-name-h) * 2);
+}
+.sode-gridpanel__empty[hidden] {
+  display: none;
 }

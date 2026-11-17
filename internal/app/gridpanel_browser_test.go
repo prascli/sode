@@ -155,7 +155,8 @@ func TestChromeGridPanelTake(t *testing.T) {
 }
 
 // Picks on the Source bar make a press stage a Diagonal. The targets show numbered before the press. The header
-// counts the staged routes, and one confirm takes them all. In Kiosk mode Esc drops the picks, then the staged
+// counts the staged routes. The same Diagonal again opens the confirm, Alt-click unstages one route, and one confirm
+// takes the rest. In Kiosk mode Esc drops the picks, then the staged
 // routes, and only then leaves Kiosk mode.
 func TestChromeGridPanelDiagonal(t *testing.T) {
 	b := startBrowser(t)
@@ -204,11 +205,19 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	staged := func(s, d int) string { return gridXp(s, d) + `.dataset.s === 'staged'` }
 	b.waitFor("the press stages the Diagonal", staged(11, 4)+` && `+staged(12, 5)+` && `+staged(13, 6))
 	b.waitFor("the header counts the staged routes", `document.getElementById('panel-staged')?.textContent === '3 staged' && !document.getElementById('panel-staged').hidden`)
+	// The same Diagonal again adds nothing, so it is the second press.
+	b.eval(gridXp(11, 4) + `.click()`)
+	b.waitFor("the same Diagonal again opens the take confirm", `!document.getElementById('confirm').hidden && document.getElementById('confirm-body').textContent.includes('3 destinations')`)
+	b.eval(`document.getElementById('confirm-cancel').click(); true`)
+	b.waitFor("Cancel keeps the stage", `document.getElementById('confirm').hidden && `+staged(12, 5))
+	// Alt-click takes one route out, not the rest.
+	b.eval(gridXp(12, 5) + `.dispatchEvent(new MouseEvent('click', { bubbles: true, altKey: true }))`)
+	b.waitFor("Alt-click unstages only that route", `!(`+staged(12, 5)+`) && `+staged(11, 4)+` && `+staged(13, 6)+` && document.getElementById('panel-staged').textContent === '2 staged'`)
+	b.waitFor("Clear's tip names the way to unstage one route", `document.getElementById('panel-clear').dataset.pbTip.includes('Alt-click')`)
 	gridKey(b, "Enter")
-	b.waitFor("the confirm lists all three", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
+	b.waitFor("the confirm lists the two", `document.getElementById('confirm-body').textContent.includes('2 destinations')`)
 	gridConfirm(b)
 	tallyHas(t, a, ana, 4, 11)
-	tallyHas(t, a, ana, 5, 12)
 	tallyHas(t, a, ana, 6, 13)
 	b.waitFor("nothing staged after the take", `document.getElementById('panel-staged').hidden`)
 

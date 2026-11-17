@@ -10,6 +10,7 @@ import {
   stagedCount,
   confirmRoutes,
   dropStaged,
+  unstageRoute,
   afterTake,
   stageText,
   STAGE_MAX,
@@ -140,10 +141,59 @@ test('a Diagonal stages one route per pair, in its order, on the levels given', 
   ]);
 });
 
-test('the same Diagonal pressed again stays staged and asks for nothing', () => {
+test('the same Diagonal pressed again adds nothing, so it asks for the take confirm', () => {
   const again = diag(diag(take(), three).st, three);
   assert.equal(stagedCount(again.st), 3);
+  assert.equal(again.confirm, true);
+});
+
+test('a Diagonal pressed again with new levels stages those levels and asks for nothing', () => {
+  const again = diag(diag(take(), three, [1]).st, three, [1, 2]);
   assert.equal(again.confirm, false);
+  assert.deepEqual(
+    routesOf(again.st).map((r) => r.levels),
+    [
+      [1, 2],
+      [1, 2],
+      [1, 2],
+    ],
+  );
+});
+
+test('a second press with other levels stages them; with fewer levels it adds nothing and confirms', () => {
+  const st = press(take(), 3, 7, [1]).st;
+  const more = press(st, 3, 7, [2]);
+  assert.equal(more.confirm, false);
+  assert.deepEqual(routesOf(more.st), [{ src: 3, dst: 7, levels: [1, 2] }]);
+  const fewer = press(more.st, 3, 7, [2]);
+  assert.equal(fewer.confirm, true);
+  assert.deepEqual(routesOf(fewer.st), [{ src: 3, dst: 7, levels: [1, 2] }]);
+});
+
+test('a press that puts its source back on a level another source holds is a change, so it stages', () => {
+  let st = press(take(), 3, 7, [1, 2]).st;
+  st = press(st, 4, 7, [2]).st;
+  const r = press(st, 3, 7, [1, 2]);
+  assert.equal(r.confirm, false);
+  assert.deepEqual(routesOf(r.st), [{ src: 3, dst: 7, levels: [1, 2] }]);
+});
+
+test('Instant mode never confirms a press because it adds nothing', () => {
+  const r = press(createStage({ mode: 'instant' }), 3, 7);
+  assert.equal(r.confirm, false);
+  assert.deepEqual(r.send, [{ src: 3, dst: 7, levels: [1, 2] }]);
+});
+
+test('unstageRoute drops one staged route on every level and keeps the rest', () => {
+  let st = press(take(), 3, 7, [1, 2]).st;
+  st = press(st, 4, 7, [3]).st;
+  st = press(st, 5, 8).st;
+  const out = unstageRoute(st, { src: 3, dst: 7 });
+  assert.deepEqual(routesOf(out), [
+    { src: 4, dst: 7, levels: [3] },
+    { src: 5, dst: 8, levels: [1, 2] },
+  ]);
+  assert.equal(unstageRoute(st, { src: 9, dst: 9 }), st);
 });
 
 test('a Diagonal replaces the staged levels on its destinations and leaves other levels', () => {

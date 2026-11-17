@@ -46,6 +46,9 @@ const ACTIONS = {
   g: free('jump'),
   'shift+g': free('step'),
   u: free('undo'),
+  // One staged route at the cursor, as an Alt-click does.
+  delete: (c) => (c.staged && !c.inControl && !c.bar ? 'unstage' : null),
+  backspace: (c) => (c.staged && !c.inControl && !c.bar ? 'unstage' : null),
   up: free('up'),
   down: free('down'),
   left: free('left'),

@@ -4,7 +4,7 @@
 // A block is { sode: CLIP_MARK, version, panel, rows, cols, cells }. It holds the copied rectangle's size and its
 // cells as stored (gridmodel.js), with r and c counted from the rectangle's top left. panel is the panel copied from ('' when
 // unsaved), since an uploaded image belongs to that panel's artwork store.
-import { rectOf, selCells, ROWS_MAX, COLS_MAX } from './gridmodel.js';
+import { rectOf, selCells, plural, ROWS_MAX, COLS_MAX } from './gridmodel.js';
 import { KINDS, PRESET_SCOPES } from './panelrules.js';
 import { artOf, ART_B_CHOICES } from './panellook.js';
 import { SHOW_PARTS } from './pagecells.js';
@@ -16,7 +16,8 @@ const TEXT_MAX = 1_000_000;
 
 const posInt = (v) => Number.isInteger(v) && v >= 1;
 export const overlap = (a, b) => !(a.r + a.rs - 1 < b.r || b.r + b.rs - 1 < a.r || a.c + a.cs - 1 < b.c || b.c + b.cs - 1 < a.c);
-export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+// The editor modules import plural from here.
+export { plural };
 
 // A clipboard is text anyone can write, so each field is checked as the Cell tab and the server would make it.
 // Keep in step with CAPTION_MAX (editorcell.js), FONT_MIN and FONT_MAX (sidebarrules.js), pageIDRe

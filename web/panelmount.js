@@ -24,6 +24,7 @@ export function pageUi() {
     screen: $('panel-screen'),
     kiosk: $('panel-kiosk'),
     home: $('panel-home'),
+    levels: $('panel-levels'),
   };
 }
 

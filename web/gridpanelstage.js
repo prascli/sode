@@ -29,24 +29,31 @@ export const pressCrosspoint = (st, xp, levels) => stageRoutes(st, [xp], levels)
 
 // One press: pairs is [{ src, dst }], a single crosspoint or a Diagonal (gridpanelpick.js), no destination twice.
 // Returns { st, send, confirm }. confirm asks for the take confirm at once: a press of more than one route confirms
-// even in Instant mode. A one-route press on a staged crosspoint is the second press, also on a staged Diagonal or
-// line. It keeps the stage and asks for the take confirm.
+// even in Instant mode. In Take mode, a press that adds nothing to the stage is the second press. Examples are the same
+// crosspoint, Diagonal or line again, on the same or fewer levels. It keeps the stage and asks for the take confirm.
 export function stageRoutes(st, pairs, levels) {
-  const base = st.mode === 'instant' ? [] : st.staged;
   const none = { send: null, confirm: false };
-  if (pairs.length === 1) {
-    const { src, dst } = pairs[0];
-    if (base.some((x) => x.dst === dst && x.src === src)) return { st: { ...st, error: null }, send: null, confirm: true };
-  }
   if (!levels.length) return { st: fail(st, 'no-levels'), ...none };
+  const base = st.mode === 'instant' ? [] : st.staged;
   const dsts = new Set(pairs.map((x) => x.dst));
   const kept = base.filter((x) => !(dsts.has(x.dst) && levels.includes(x.level)));
   const staged = [...kept, ...pairs.flatMap(({ src, dst }) => levels.map((level) => ({ dst, level, src })))];
+  if (base.length && sameStage(base, staged)) return { st: { ...st, error: null }, send: null, confirm: true };
   const next = { ...st, staged, error: null };
   if (stagedCount(next) > STAGE_MAX) return { st: { ...st, error: { code: 'cap', add: pairs.length, have: stagedCount({ staged: base }) } }, ...none };
   if (st.mode === 'take') return { st: next, ...none };
   if (pairs.length > 1) return { st: next, send: null, confirm: true };
   return { st: { ...st, staged: [], error: null }, send: routesOf(next), confirm: false };
+}
+
+const keyOf = (x) => `${x.dst}:${x.level}:${x.src}`;
+// Staging is keyed by destination and level, so neither list holds a key twice.
+const sameStage = (a, b) => a.length === b.length && new Set([...a, ...b].map(keyOf)).size === a.length;
+
+// Alt-click on a staged crosspoint: that route goes on every level, the rest stay. The same state when it is not staged.
+export function unstageRoute(st, { src, dst }) {
+  const staged = st.staged.filter((x) => !(x.src === src && x.dst === dst));
+  return staged.length === st.staged.length ? st : { ...st, staged, error: null };
 }
 
 // What the take confirm sends, or null when nothing is staged. In Instant mode only a press waiting on its confirm is.
