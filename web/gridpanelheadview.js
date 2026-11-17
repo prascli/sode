@@ -2,7 +2,7 @@
 // (connview.js), Full screen and the Panels link. The Lock chip names the user, as on the main page. On the panel
 // page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run
 // (gridpanelrun.js) makes them on the panel page only, and its stop puts the page back.
-import { el, on } from './core.js';
+import { el, icon, on } from './core.js';
 import { connBox, paintConn } from './connview.js';
 import { layout, onLayout } from './layout.js';
 
@@ -42,6 +42,28 @@ export function gridHead(ui, count) {
   const deck = el('div', 'sode-gridpanel__deck');
   ui.head.before(deck);
   deck.append(ui.head, ...(box ? [box] : []), rule(1), finds, rule(2));
+  // The phone's band (gridpanel.css): More and the levels in words open the rest of the deck under it.
+  const more = el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__more', icon('menu', false));
+  more.type = 'button';
+  more.id = 'panel-more';
+  more.setAttribute('aria-label', 'More');
+  more.setAttribute('aria-expanded', 'false');
+  const lvText = document.createTextNode('');
+  const lv = el('button', 'pb-btn pb-btn--outline pb-btn--sm sode-gridpanel__lv', el('span', 'sode-gridpanel__lv-word', 'Levels'), lvText);
+  lv.type = 'button';
+  const open = (on) => {
+    deck.toggleAttribute('data-open', on);
+    more.setAttribute('aria-expanded', String(on));
+  };
+  const toggle = () => open(!deck.hasAttribute('data-open'));
+  more.addEventListener('click', toggle);
+  lv.addEventListener('click', toggle);
+  // text is the levels a press stages, in words; the band is the only place they show while the rest is closed.
+  const paintLevels = (text) => {
+    const t = text || 'none';
+    if (lvText.data !== t) lvText.data = t;
+  };
+  box?.prepend(more, lv);
   // On the desktop layout the status line has its own room in the deck (gridpanel.css), so a result or refusal never
   // moves the grid. The phone keeps it where the page has it.
   const statusHome = ui.status ? [ui.status.parentNode, ui.status.nextSibling] : null;
@@ -55,7 +77,11 @@ export function gridHead(ui, count) {
   return {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
+    // The run calls this on each render and on each Levels box change.
+    paintLevels,
     stop() {
+      more.remove();
+      lv.remove();
       conns.delete(conn);
       delete ui.tools;
       id.replaceWith(ui.title, ui.name);

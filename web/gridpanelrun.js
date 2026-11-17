@@ -44,6 +44,7 @@ import { clearNote } from './gridpanelnote.js';
 import { onLayout } from './layout.js';
 import { gridHead } from './gridpanelheadview.js';
 import { emptyText } from './gridpanelhead.js';
+import { gridPosition } from './gridpanelpos.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -93,9 +94,11 @@ export function gridBody(ctx, first) {
   let at = null; // the crosspoint under the cursor, whose press the preview shows
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
-  let ptr = null; // { x, y } in client px while the pointer leads, else null
+  let ptr = null; // { x, y } in client px while the pointer leads, else null.
+  let keyed = false; // true after a key move: only then can the cursor draw its box on a bar.
   let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
   let gest = null;
+  let pos = null; // the phone's position strips (gridpanelpos.js)
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -203,6 +206,7 @@ export function gridBody(ctx, first) {
   };
 
   const render = () => {
+    paintLevels();
     dirty = false;
     out = leftOut(st, world());
     if (g) {
@@ -278,6 +282,7 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
+      if (head) pos = gridPosition(g, g.scroll.parentNode, phone);
       boxes = findBoxes(head?.finds || g.head, { onText: findText, onMode: findMode, onStep: findStep });
       gest = lineGestures(g, {
         start: lineStart,
@@ -411,6 +416,7 @@ export function gridBody(ctx, first) {
   const lvl = boxNode
     ? levelBox(document.getElementById('panel-lvl'), document.getElementById('panel-lvl-pick'), document.getElementById('panel-lvl-all'), boxSource, {
         hold: 'pointerdown',
+        onChange: () => paintLevels(),
       })
     : null;
   if (boxNode) boxNode.hidden = false;
@@ -431,6 +437,7 @@ export function gridBody(ctx, first) {
     if (fill) lvl.set(fill);
   }
 
+  const paintLevels = () => head?.paintLevels(levelTextOf(pressLevels(), tally?.levels || [], tally?.levelNumbering));
   const pressLevels = () => {
     if (lvl) return stageLevels(lvl.levels(), tally, panel.rights);
     const src = boxSource();
@@ -584,7 +591,7 @@ export function gridBody(ctx, first) {
   function setCursor(c) {
     cur = c;
     // The box on a bar is for the keys only; while the pointer leads, the ring and the name outlines are enough.
-    g.cursor(c, !ptr);
+    g.cursor(c, keyed);
     onAt(pointOf(c, axes));
   }
 
@@ -596,6 +603,7 @@ export function gridBody(ctx, first) {
 
   function onPoint(x, y) {
     ptr = { x, y };
+    keyed = false;
     pointAt(x, y);
   }
 
@@ -711,6 +719,7 @@ export function gridBody(ctx, first) {
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
     e.preventDefault();
     e.stopPropagation();
+    keyed = true;
     if (MOVES.has(act)) {
       if (g) moveTo(act);
     } else if (act === 'pick' || act === 'add' || act.startsWith('range:')) pickAt(act);
@@ -797,6 +806,7 @@ export function gridBody(ctx, first) {
       stopped = true;
       document.removeEventListener('keydown', onKey, true);
       gest?.stop();
+      pos?.stop();
       g?.stop();
       count.remove();
       head?.stop();

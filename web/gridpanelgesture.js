@@ -10,7 +10,11 @@ import { isLine } from './gridpanelline.js';
 const LONG_MS = 450;
 const DOUBLE_MS = 350; // the most time between the two taps of a double-tap.
 const SLOP_PX = 10; // a touch that moves this far before the timer is a scroll
-const EDGE_SPEED = 0.25; // auto-scroll px per frame for each px inside the edge zone
+// Edge auto-scroll, in crosspoints, so phone and desktop feel alike. Time-based, so a 120 Hz screen is not twice as
+// fast. The depth is capped at the zone: a finger past the body (over the names or the band) does not speed it up.
+const EDGE_MAX = 10; // crosspoints per second at the full depth.
+const EDGE_ZONE = 0.15; // the zone's part of the body's side, at most one crosspoint.
+const EDGE_RAMP_MS = 400; // from rest to full speed. A press that starts near an edge does not jump.
 
 export function lineGestures(g, on) {
   const { scroll } = g;
@@ -56,6 +60,7 @@ export function lineGestures(g, on) {
     touchAt = null;
     nameAt = null;
     cancelAnimationFrame(raf);
+    edgeT = 0;
   };
   const moveTo = (x, y) => {
     active.x = x;
@@ -74,20 +79,38 @@ export function lineGestures(g, on) {
   };
 
   // Near an edge of the body the grid scrolls, faster the further in; the end point is read again after it. A drag on
-  // a bar scrolls only along that bar.
-  function edge() {
+  // a bar scrolls only along that bar. Speed goes with the square of the depth.
+  let edgeT = 0; // the last frame's time, 0 at rest
+  let edgeFrom = 0; // when this edge scroll started
+  const carry = { x: 0, y: 0 }; // sub-pixel steps, which scrollBy would drop
+  const step = (k, d) => {
+    carry[k] += d;
+    const whole = Math.trunc(carry[k]);
+    carry[k] -= whole;
+    return whole;
+  };
+  function edge(now) {
     const at = active || span;
     if (!at) return;
     const box = g.bodyBox();
-    const zone = g.metrics().xp;
-    const by = (p, lo, hi) => (p < lo + zone ? -(lo + zone - p) : p > hi - zone ? p - (hi - zone) : 0) * EDGE_SPEED;
-    const dx = span?.kind === 'dsts' ? 0 : by(at.x, box.left, box.right);
-    const dy = span?.kind === 'srcs' ? 0 : by(at.y, box.top, box.bottom);
-    if (dx || dy) {
-      scroll.scrollBy(dx, dy);
+    const xp = g.metrics().xp;
+    const by = (p, lo, hi) => {
+      const zone = Math.min(xp, (hi - lo) * EDGE_ZONE);
+      const d = p < lo + zone ? -(lo + zone - p) : p > hi - zone ? p - (hi - zone) : 0;
+      const f = Math.min(1, Math.abs(d) / zone);
+      return Math.sign(d) * f * f;
+    };
+    const fx = span?.kind === 'dsts' ? 0 : by(at.x, box.left, box.right);
+    const fy = span?.kind === 'srcs' ? 0 : by(at.y, box.top, box.bottom);
+    if (fx || fy) {
+      if (!edgeT) edgeT = edgeFrom = now;
+      const dt = Math.min(50, now - edgeT);
+      edgeT = now;
+      const v = (EDGE_MAX * xp * Math.min(1, (now - edgeFrom) / EDGE_RAMP_MS) * dt) / 1000;
+      scroll.scrollBy(step('x', fx * v), step('y', fy * v));
       if (active) on.move(units(active.x, active.y));
       else spanTo(span.x, span.y);
-    }
+    } else edgeT = carry.x = carry.y = 0;
     raf = requestAnimationFrame(edge);
   }
 

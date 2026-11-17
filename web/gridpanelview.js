@@ -577,7 +577,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   });
   // Over the search boxes the cursor stays where Find put it.
   // A finger has no hover: its moves are a scroll or a line, so the cursor stays and the targets show from the picks.
-  const onMove = (e) => e.pointerType === 'touch' || head.contains(e.target) || onPoint(e.clientX, e.clientY);
+  const onMove = (e) => {
+    if (e.pointerType === 'touch') return;
+    setData(field, 'touch', undefined);
+    if (!head.contains(e.target)) onPoint(e.clientX, e.clientY);
+  };
+  // A finger hides the cursor until the next mouse move or key move; it never follows a finger.
+  scroll.addEventListener('pointerdown', (e) => e.pointerType === 'touch' && setData(field, 'touch', ''), { passive: true });
   scroll.addEventListener('pointermove', onMove, { passive: true });
   // Not passive, so a wheel over the horizontal scroll bar can scroll across instead of down. Chrome makes the rest of
   // a wheel turn async once its first event goes by.
@@ -653,10 +659,25 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     cursor(c, keys = false) {
       cur = c;
       setData(cursor, 'keys', keys ? '' : undefined);
+      if (keys) setData(field, 'touch', undefined);
       setData(cursor, 'i', String(c.i));
       setData(cursor, 'j', String(c.j));
       placeCursor();
       cueNames();
+    },
+    // The body's view on each axis: first and last display positions shown (1-based, pins counted), the count, and
+    // the scroll offset and its most (gridpanelpos.js).
+    shown() {
+      const m = metricsNow();
+      const one = (a, max) => {
+        const v = a.view - a.head - a.pins * a.size;
+        const first = Math.min(a.n, a.pins + Math.floor(a.offset / a.size) + 1);
+        return { first, last: Math.min(a.n, a.pins + Math.ceil((a.offset + v) / a.size)), n: a.n, offset: a.offset, max };
+      };
+      return {
+        srcs: one(axis(true, m), scroll.scrollWidth - m.cw),
+        dsts: one(axis(false, m), scroll.scrollHeight - m.ch),
+      };
     },
     // Whole scrolling rows and columns one screen shows.
     page() {
