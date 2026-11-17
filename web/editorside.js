@@ -28,8 +28,14 @@ export function initSidebar(ed) {
     if (any) tabs.select('ed-cell');
     cell.update();
   };
-  const srcs = createEdgeList(ed, { key: 'sources', rights: 'sources', what: 'source', side: 'left to right on the top edge', onPick });
-  const dsts = createEdgeList(ed, { key: 'destinations', rights: 'dsts', what: 'destination', side: 'top to bottom on the left edge', onPick });
+  // A list's Artwork button: Test it live shows the Cell tab in its drawer (editorlive.js), else the Cell tab opens here.
+  const onArt = () => {
+    if (ed.openArt()) return;
+    tabs.select('ed-cell');
+    cell.openPicker();
+  };
+  const srcs = createEdgeList(ed, { key: 'sources', rights: 'sources', what: 'source', side: 'left to right on the top edge', onPick, onArt });
+  const dsts = createEdgeList(ed, { key: 'destinations', rights: 'dsts', what: 'destination', side: 'top to bottom on the left edge', onPick, onArt });
   $('ed-lists').append(srcs.node, dsts.node);
 
   const cell = createCellTab(ed, { picked });
@@ -42,6 +48,7 @@ export function initSidebar(ed) {
     { id: 'ed-access', text: 'Access', panel: access.node },
   ]);
   host.append(tabs.node, cell.node, panel.node, access.node);
+  ed.useCellTab({ node: cell.node, openPicker: () => cell.openPicker() });
   tabs.select('ed-panel');
 
   // Levels come from the hello the page's socket gets (S.levels), which carries each level's label and color.

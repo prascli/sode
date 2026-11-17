@@ -330,6 +330,18 @@ html:has(.sode-gridpanel) {
   font-weight: var(--pb-weight-bold);
   line-height: 1;
 }
+/* Hide text (gridpanelview.js paintArt): the name's Text child has no box of its own, so it goes to no size and stays
+   for screen readers. The artwork grows into the room; the marks keep their size. */
+:is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-hide-text] {
+  font-size: 0;
+}
+[data-hide-text] > .sode-gridpanel__art {
+  font-size: var(--pb-text-lg);
+  height: 2.25rem;
+}
+[data-hide-text] > .sode-gridpanel__art .sode-gridpanel__art-a {
+  width: 2.25rem;
+}
 .sode-gridpanel__xp {
   background: transparent;
   border: 0;

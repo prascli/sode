@@ -68,7 +68,8 @@ func TestChromeGridPanelEditorSelect(t *testing.T) {
 	b.waitFor("Icon A choices", `!!cellTab().querySelector('button[aria-label="camera"]')`)
 	b.eval(`cellTab().querySelector('button[aria-label="camera"]').click(); cellTab().querySelector('[role="group"][aria-label="Icon B"] button[aria-label="7"]').click(); true`)
 	b.waitFor("every selected row shows its artwork, and only those", `[2, 3, 4, 5, 8].every((n) => !!li(n).querySelector('.sode-edge__art')) && !li(6).querySelector('.sode-edge__art')`)
-	b.waitFor("the Cell tab offers no Hide text for rows", `[...cellTab().querySelectorAll('.pb-btn')].every((x) => x.textContent !== 'Hide text' || x.hidden)`)
+	b.eval(`[...cellTab().querySelectorAll('.pb-btn')].find((x) => x.textContent === 'Hide text' && !x.hidden).click(); true`)
+	b.waitFor("Hide text on the rows sets it on all five, and the button turns to Show text", `[...cellTab().querySelectorAll('.pb-btn')].some((x) => x.textContent === 'Show text' && !x.hidden)`)
 	b.shot("selected")
 
 	// A selection in Destinations ends the one in Sources, so the Cell tab has one target.
@@ -174,8 +175,8 @@ func TestChromeGridPanelEditorSelect(t *testing.T) {
 		t.Errorf("members start %s (%d), want [1,2,3,8,0,6] of 2498", head, len(members))
 	}
 	items, _ := srcs["items"].(map[string]any)
-	if it, _ := items["8"].(map[string]any); it["art"] != "icon:camera" || it["artB"] != "11" {
-		t.Errorf("item 8 %v, want Icon A camera and Icon B 11 (the fifth from 7)", it)
+	if it, _ := items["8"].(map[string]any); it["art"] != "icon:camera" || it["artB"] != "11" || it["hideText"] != true {
+		t.Errorf("item 8 %v, want Icon A camera, Icon B 11 (the fifth from 7) and Hide text", it)
 	}
 	if it, _ := items["100"].(map[string]any); it["art"] != "icon:camera" || it["artB"] != nil {
 		t.Errorf("item 100 %v, want Icon A camera alone", it)

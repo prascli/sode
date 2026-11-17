@@ -69,7 +69,8 @@ export function createCellTab(ed, { picked }) {
     set: (v) => artChoice({ a: v }),
     setB: (v) => artChoice({ b: v }),
     // false is stored only against a default, which would otherwise hide the text (panellook.js withDefault).
-    setHideText: (v) => patch((x) => ({ hideText: v ? true : defaultFor(x, ed.defaults()) ? false : undefined })),
+    setHideText: (v) =>
+      isGridPanel(ed.fields()) ? picked()?.list.hideText(v) : patch((x) => ({ hideText: v ? true : defaultFor(x, ed.defaults()) ? false : undefined })),
   });
   const deflt = createDefaultRow({ ed, patch, done: () => update() });
   const target = createPageTarget({ ed, patch });
@@ -128,6 +129,7 @@ export function createCellTab(ed, { picked }) {
       at = '';
       levelBoxes.reset();
     },
+    openPicker: () => art.openPicker(),
     update,
   };
 
@@ -153,7 +155,15 @@ export function createCellTab(ed, { picked }) {
     const key = `rows ${g.rows.map((r) => r.n).join()}`;
     if (key !== at) artNote.textContent = '';
     at = key;
-    art.update({ value: same(items, 'art'), artB: same(items, 'artB'), text: false });
+    // As for cells: the controls edit what the rows set, and Hide text shows as drawn.
+    const drawn = g.rows.map((r, i) => withDefault({ kind: what, n: r.n, ...items[i] }, ed.defaults()));
+    art.update({
+      value: same(items, 'art'),
+      artB: same(items, 'artB'),
+      caption: g.rows[0].name || '',
+      hideText: drawn.every((x) => x.hideText === true),
+      drawn: drawn.some((x) => x.art || x.artB),
+    });
   }
 
   function update() {

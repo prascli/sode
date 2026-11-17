@@ -1,7 +1,8 @@
 // A Grid panel's Sources or Destinations list in the editor: the panel's items in drawn order, pinned first. Each row
 // has a grip, Pin, Move and Remove. Add from the router is under it (editorrouterlist.js). The bar's buttons act on every
-// selected row; the Cell tab sets their artwork through art(). While Follow the router is on (the Panel tab's
-// switch), only Pin and artwork change it. Rules are editorgridrules.js; each edit is one ed.setFields of the edge.
+// selected row; the Cell tab sets their artwork through art(), and the bar's Artwork calls onArt to show it. While
+// Follow the router is on (the Panel tab's switch), only Pin and artwork change it. Rules are editorgridrules.js; each
+// edit is one ed.setFields of the edge.
 import { el, icon } from './core.js';
 import { axisSpan, OVER } from './gridpanelwindow.js';
 import { btn } from './formbits.js';
@@ -11,7 +12,20 @@ import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { artNode } from './panelview.js';
 import { plural } from './gridclip.js';
-import { edgeRows, clearEdge, selectRows, moveRows, stepRows, pinItems, removeItems, itemsArt, drawnOrder, edgeListKey } from './editorgridrules.js';
+import { defaultFor } from './panellook.js';
+import {
+  edgeRows,
+  clearEdge,
+  selectRows,
+  moveRows,
+  stepRows,
+  pinItems,
+  removeItems,
+  itemsArt,
+  itemsHideText,
+  drawnOrder,
+  edgeListKey,
+} from './editorgridrules.js';
 
 const FIRST = 30; // rows drawn before the list has a height
 const NONE = () => ({ selected: new Set(), anchor: null });
@@ -19,7 +33,7 @@ const MOVE_KEYS = { top: 'Alt+Home', up: 'Alt+Up, Ctrl+Up or Cmd+Shift+Up', down
 
 // key is the panel field and the /names list ('sources' or 'destinations'). rights is the Rights key, what the item
 // word, side the edge of the grid it is drawn on. onPick(list) runs when the selection changes.
-export function createEdgeList(ed, { key, rights, what, side, onPick }) {
+export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
   const edge = () => ed.fields()[key];
   const router = () => ed.routerNames()?.[key] || [];
   const set = (next) => next !== edge() && ed.setFields({ [key]: next });
@@ -92,6 +106,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     set(removeItems(edge(), many()));
     setSel(NONE());
   };
+  const selArt = barBtn('art', 'image', 'Artwork: Icon A, Icon B and Hide text', () => onArt?.(api));
   const selPin = barBtn('pin', 'pin', 'Pin, in list order', () => pinSel(true));
   const selUnpin = barBtn('unpin', 'pin-off', 'Unpin', () => pinSel(false));
   const moves = [
@@ -106,6 +121,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     'sode-edge__acts',
     selNote,
     el('span', 'sode-panels__spacer'),
+    selArt,
+    el('span', 'sode-edge__sep'),
     selPin,
     selUnpin,
     el('span', 'sode-edge__sep'),
@@ -175,7 +192,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     const ro = ed.readOnly();
     const n = many().size;
     selNote.textContent = `${n} selected`;
-    for (const b of [selPin, selUnpin]) b.disabled = ro || !n;
+    for (const b of [selArt, selPin, selUnpin]) b.disabled = ro || !n;
     // A disabled button can show no tip in some browsers, so the note above the list says it too.
     for (const b of [selRemove, ...moves]) {
       b.disabled = ro || !n || fixed;
@@ -387,6 +404,11 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
       );
       set(out.edge);
       return out.left;
+    },
+    // Hide text on the selected rows, as the Cell tab sets it on cells.
+    hideText(on) {
+      const ns = api.picked().map((r) => r.n);
+      set(itemsHideText(edge(), ns, on, (n) => !!defaultFor({ kind: what, n }, ed.defaults())));
     },
     clearPicks: () => many().size && setSel(NONE()),
   };

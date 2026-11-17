@@ -54,7 +54,12 @@ func TestChromeEditorSidebar(t *testing.T) {
 	b.waitFor("Hide text appears with an icon", `[...document.querySelectorAll('#panel-ed-cell .pb-btn')].some((x) => x.textContent === 'Hide text' && !x.hidden)`)
 	b.waitFor("the square shows Icon A", `!!document.querySelector('.sode-ed__sq[data-r="1"][data-c="1"] .sode-panel__art-a')`)
 	// Icon B: the glyph column beside Icon A's, both shown at once, each with its own None; the square shows "[tv] 2".
-	// The columns' tops line up; Icon A's vendored grid sits lower, under the Uploaded section.
+	// Under "Default icons" the two lists start level; "Uploaded icons" comes under both.
+	b.waitFor("the Icon A and Icon B lists start at one height, under Default icons, with Uploaded icons below both", `(() => {
+		const a = document.querySelector('.sode-side__icons[aria-label="Icon A"]').getBoundingClientRect(), b = document.querySelector('.sode-side__icons[aria-label="Icon B"]').getBoundingClientRect();
+		const hs = [...document.querySelectorAll('#panel-ed-cell .sode-side__picker-h')], up = document.getElementById('ed-lib-open').getBoundingClientRect();
+		return Math.abs(a.top - b.top) < 2 && hs.map((h) => h.textContent).join() === 'Default icons,Uploaded icons' && hs[0].getBoundingClientRect().bottom <= a.top && up.top >= Math.max(a.bottom, b.bottom);
+	})()`)
 	b.waitFor("Icon A and Icon B sit side by side, each with None in its header", `(() => { const a = document.querySelector('.sode-side__icons[aria-label="Icon A"]'); const b = document.querySelector('.sode-side__icons[aria-label="Icon B"]'); const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect(); const ta = a.parentNode.getBoundingClientRect().top; const tb = b.parentNode.getBoundingClientRect().top; return ra.width > 0 && rb.width > 0 && rb.left >= ra.right && Math.abs(tb - ta) < 2 && a.parentNode.querySelector('.sode-side__col-top').textContent.includes('None') && b.parentNode.querySelector('.sode-side__col-top').textContent.includes('None') && getComputedStyle(a).overflowY === 'scroll' && getComputedStyle(b).overflowY === 'scroll'; })()`)
 	b.waitFor("Icon A and Icon B columns are the same width", `(() => { const w = (l) => document.querySelector('.sode-side__icons[aria-label="' + l + '"]').parentNode.getBoundingClientRect().width; return w('Icon A') > 0 && Math.abs(w('Icon A') - w('Icon B')) < 2; })()`)
 	b.waitFor("the Icon B column lists digits and letters", `!!document.querySelector('.sode-side__icons[aria-label="Icon B"] button[aria-label="16"]') && !!document.querySelector('.sode-side__icons[aria-label="Icon B"] button[aria-label="Z"]')`)

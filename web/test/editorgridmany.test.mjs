@@ -1,7 +1,7 @@
 // The Grid panel editor's edits of several selected entries at once (editorgridrules.js). Pure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moveRows, stepRows, pinItems, removeItems, itemsArt, edgeRows, edgeListKey } from '../editorgridrules.js';
+import { moveRows, stepRows, pinItems, removeItems, itemsArt, itemsHideText, edgeRows, edgeListKey } from '../editorgridrules.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const router = namesReply({
@@ -99,6 +99,17 @@ test('itemsArt runs Icon B down the rows in list order, as the Cell tab does on 
   assert.deepEqual(itemsArt({ members: [1], items: { 1: { art: 'icon:mic', artB: '2', pinned: true } } }, [1], { clear: true }).edge.items, {
     1: { pinned: true },
   });
+});
+
+test('itemsHideText sets true, keeps false only against a default, and removes it otherwise', () => {
+  const e = { members: [1, 2, 3], items: { 1: { art: 'icon:mic', pinned: true } } };
+  const withDefault = (n) => n === 2;
+  const on = itemsHideText(e, [1, 2], true, withDefault);
+  assert.deepEqual(on.items, { 1: { art: 'icon:mic', pinned: true, hideText: true }, 2: { hideText: true } });
+  const off = itemsHideText(on, [1, 2], false, withDefault);
+  assert.deepEqual(off.items, { 1: { art: 'icon:mic', pinned: true }, 2: { hideText: false } });
+  assert.equal(itemsHideText(off, [1, 2], false, withDefault), off);
+  assert.deepEqual(itemsArt(on, [1], { clear: true }).edge.items[1], { pinned: true });
 });
 
 test('edgeListKey names the list keys by chord; other keys are null', () => {

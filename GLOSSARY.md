@@ -325,6 +325,12 @@ The icon or image on a panel cell. A cell has Icon A (an icon or uploaded image)
 **Icon library**:
 The install-wide set of SVG and PNG icons that trusted users add, which any cell's Icon A can use. An SVG draws in the cell's text colour and a PNG keeps its colours. It is separate from the vendored icons and from a panel's own pictures.
 
+**Default icons**:
+The icons that come with Sode, as the Choose icon picker names them: Icon A's vendored icons and Icon B's numbers and letters. Not the same as Default artwork.
+
+**Uploaded icons**:
+The Icon library's icons, as the Choose icon picker names them, under the Default icons.
+
 **Rescan**:
 Adds the SVG and PNG files in the Icon library's drop-in directory (`icons/drop-in/`), as Sode does at start. Needs a trusted user or the Advanced Settings PIN. A file it skips stays and is reported.
 

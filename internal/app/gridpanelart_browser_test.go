@@ -7,7 +7,8 @@ import (
 )
 
 // Artwork on a Grid panel's names: an item's own artwork (an icon with Icon B, an uploaded image), else its Default
-// artwork. A Default artwork that hides text never hides a name. A node moved by a scroll keeps no artwork of its old item.
+// artwork. Hide text works as on a cell: a Default artwork that hides text hides the name, unless the item sets false.
+// A node moved by a scroll keeps no artwork of its old item.
 func TestChromeGridPanelArt(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -22,7 +23,7 @@ func TestChromeGridPanelArt(t *testing.T) {
 	img := apiBody(t, rec)["id"].(string)
 	body := `{"name":"Art grid","type":"grid","settings":{"mode":"take"},
 		"sources":{"members":"all","items":{"1":{"art":"icon:camera","artB":"2"}}},
-		"destinations":{"members":"all","items":{"1":{"art":"` + img + `"}}}}`
+		"destinations":{"members":"all","items":{"1":{"art":"` + img + `"},"2":{"hideText":false}}}}`
 	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, body); rec.Code != 200 {
 		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
 	}
@@ -64,12 +65,10 @@ func TestChromeGridPanelArt(t *testing.T) {
 		const r = `+art("dst", 2)+`;
 		return !!r && r.lastChild.textContent === 'A' && getComputedStyle(r.firstChild).display === 'none';
 	})()`)
-	// Hide text in a default never hides the name.
-	for _, q := range []string{name("src", 2), name("dst", 2)} {
-		if b.eval(`(() => { const n = `+q+`; return n.firstChild.data.length > 0 && n.firstChild.data === n.firstChild.data.trim() && n.getBoundingClientRect().width > 0; })()`) != true {
-			t.Errorf("a name lost its text under a default that hides text: %s", q)
-		}
-	}
+	// A default's Hide text hides the name's text and keeps it for screen readers; the item's own false shows it.
+	b.waitFor("source 2's name is hidden under its default, its words kept", `(() => { const n = `+name("src", 2)+`; return n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize === '0px' && n.firstChild.data.length > 0 && getComputedStyle(`+art("src", 2)+`.lastChild).fontSize !== '0px'; })()`)
+	b.waitFor("destination 2 sets false, so its name shows", `(() => { const n = `+name("dst", 2)+`; return !n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize !== '0px' && n.firstChild.data.length > 0; })()`)
+	b.waitFor("source 1 has no Hide text", `!`+name("src", 1)+`.hasAttribute('data-hide-text')`)
 	// The editor's Cell tab sets a selected row's artwork: Icon A and Icon B on source 3, saved on the item.
 	b.open(srv.URL + "/panels/editor?panel=" + id)
 	b.waitFor("the lock goes", `!document.documentElement.dataset.sodeLock`)

@@ -1063,6 +1063,28 @@ body {
   font-weight: var(--pb-weight-bold);
   margin: 0;
 }
+/* The Artwork panel (editorliveart.js) lies over the whole drawer and scrolls on its own. Its z-index is the big scroll
+   bars' (base.css): it comes after the lists, so it covers their bars, and its own bar comes after it. */
+.sode-live__art {
+  background: var(--pb-surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-4);
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--pb-space-5);
+  position: absolute;
+  z-index: 2;
+}
+.sode-live__art[hidden] {
+  display: none;
+}
+.sode-live__art-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-4);
+}
 /* Over patchbay's .pb-tabpanel.active display: block. */
 .sode-live__drawer .sode-live__tab.active {
   display: flex;
@@ -1609,11 +1631,25 @@ body {
 .sode-side__art-text {
   font-size: var(--pb-text-sm);
 }
-/* The icon picker: Icon A and Icon B side by side, half each, each scrolling on its own. */
+/* The icon picker: Default icons, with Icon A and Icon B side by side, half each, each scrolling on its own; then
+   Uploaded icons across both. */
 .sode-side__picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-3);
+}
+.sode-side__picker[hidden] {
+  display: none;
+}
+.sode-side__cols {
   display: grid;
   gap: var(--pb-space-1);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.sode-side__picker-h {
+  color: var(--pb-text-strong);
+  font-size: var(--pb-text-sm);
+  font-weight: var(--pb-weight-bold);
 }
 .sode-side__col {
   display: flex;
@@ -1641,7 +1677,7 @@ body {
   font-family: var(--pb-font-num);
   font-weight: var(--pb-weight-bold);
 }
-/* Uploaded (the Icon library) above the vendored icons in Icon A's column. */
+/* Uploaded icons (the Icon library), under the Default icons. */
 .sode-side__lib-sec {
   display: flex;
   flex-direction: column;

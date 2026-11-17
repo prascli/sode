@@ -81,7 +81,7 @@ export function initArtTool(editor, find) {
   clear.dataset.choice = 'clear';
 
   const column = (head, p, ...extra) => el('div', 'sode-side__col', el('div', 'sode-side__col-top', el('span', 'sode-side__col-h', head), ...extra), p.grid);
-  const picker = el('div', 'sode-side__picker', column('Icon A', a, search), column('Icon B', b));
+  const picker = el('div', 'sode-side__cols', column('Icon A', a, search), column('Icon B', b));
   const orders = createOrderPicker(find.order(), (id) => find.setOrder(id, { focus: false }));
   find.onOrder((id) => {
     orders.set(id);
