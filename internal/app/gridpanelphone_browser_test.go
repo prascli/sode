@@ -94,7 +94,10 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	tap(b, `document.getElementById('panel-take')`)
 	b.waitFor("the confirm lists all three", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
 	b.shot("phone-confirm")
-	gridConfirm(b)
+	// A phone has no keys: the confirm's own button, by touch.
+	b.waitFor("the confirm lockout ends", `!document.getElementById('confirm-ok').disabled`)
+	tap(b, `document.getElementById('confirm-ok')`)
+	b.waitFor("the confirm closes", `document.getElementById('confirm').hidden`)
 	tallyHas(t, a, ana, 0, 11)
 	tallyHas(t, a, ana, 1, 12)
 	tallyHas(t, a, ana, 2, 13)

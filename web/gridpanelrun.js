@@ -482,7 +482,8 @@ export function gridBody(ctx, first) {
 
   function onName(kind, n, e) {
     if (!ctx.ready()) return;
-    picks = pickName(picks, kind, n, tapMods(e, phone()), axes[kind]);
+    // A finger has no modifier keys on any layout, so a touch tap adds or removes too.
+    picks = pickName(picks, kind, n, tapMods(e, phone() || e.pointerType === 'touch'), axes[kind]);
     render();
   }
 
@@ -650,7 +651,7 @@ export function gridBody(ctx, first) {
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);
   // A turned phone or a changed Layout setting shows or hides the rest-point targets.
-  onLayout(() => !stopped && render());
+  const offLayout = onLayout(render);
 
   return {
     render,
@@ -689,6 +690,7 @@ export function gridBody(ctx, first) {
       g?.stop();
       count.remove();
       take?.remove();
+      offLayout();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();
       if (keyList?.shown()) keyList.close();
