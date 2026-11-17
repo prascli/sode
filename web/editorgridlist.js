@@ -2,6 +2,7 @@
 // Clear and All (follow router). The router list (editorrouterlist.js) is beside it. Rules are editorgridrules.js;
 // each edit is one ed.setFields of the edge.
 import { el } from './core.js';
+import { axisSpan } from './gridpanelwindow.js';
 import { btn } from './formbits.js';
 import { createOrderedList } from './orderedlist.js';
 import { createRouterList } from './editorrouterlist.js';
@@ -9,6 +10,9 @@ import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, setItemArt, PINS_MAX } from './editorgridrules.js';
 import { createArtControl } from './editorart.js';
+
+const OVER = 4; // rows drawn past each end of the view
+const FIRST = 30; // rows drawn before the list has a height
 
 // key is the panel field and the /names list ('sources' or 'destinations'), rights the Rights key, what the item word.
 export function createEdgeTab(ed, { key, rights, what }) {
@@ -76,6 +80,8 @@ export function createEdgeTab(ed, { key, rights, what }) {
     // A Buttons panel never shows the tab, so it holds no rows.
     if (!isGridPanel(ed.fields())) {
       drawn = [];
+      shown = [];
+      made = new Map();
       return list.replaceChildren();
     }
     routerList.paint();
@@ -99,47 +105,89 @@ export function createEdgeTab(ed, { key, rights, what }) {
     outside.hidden = !v.outside;
     clear.disabled = ro || (!v.all && !v.rows.length);
     all.disabled = ro || v.all;
-    // A repaint replaces the buttons, so focus goes back to the same act on the same row.
+    shownOff = off;
+    shownRo = ro;
+    shownFull = full;
+    made = new Map();
+    drawRows();
+  }
+
+  // Only the rows in view have nodes, as in the router list. An edge can hold thousands, and each row has about 20
+  // elements and 10 listeners. Rows are one height, so margins stand in for the rows not drawn.
+  let shownOff = 0;
+  let shownRo = false;
+  let shownFull = false;
+  let made = new Map(); // row index -> its li, for the rows of the last paint
+  let pitch = 0; // px from the top of one row to the next
+  let span = { lo: 0, hi: 0 };
+  function makeRow(r, i) {
+    const off = shownOff;
+    const body = [el('span', 'sode-pages__num', String(r.n + off)), el('span', 'sode-pages__name', r.name || `${what} ${r.n + off}`)];
+    if (r.pinned) body.push(el('span', 'sode__hint', 'pinned'));
+    const own = edge()?.items?.[r.n];
+    if (own?.art || own?.artB) body.push(el('span', 'sode__hint', 'artwork'));
+    if (r.gone) body.push(el('span', 'sode__hint', 'not on router'));
+    const li = rows.row({
+      i,
+      n: shown.length,
+      id: String(r.n),
+      readOnly: shownRo,
+      body: [el('div', 'sode-pages__head', ...body)],
+      actions: [
+        {
+          icon: 'image',
+          tip: 'Artwork',
+          act: 'art',
+          run: () => {
+            artN = artN === r.n ? null : r.n;
+            paint(true);
+          },
+        },
+        {
+          icon: r.pinned ? 'pin-off' : 'pin',
+          tip: r.pinned ? 'Unpin' : shownFull ? `At most ${PINS_MAX} pinned` : 'Pin',
+          act: 'pin',
+          off: !r.pinned && shownFull,
+          run: () => set(pinItem(edge(), r.n, !r.pinned)),
+        },
+      ],
+    });
+    li.querySelector('[data-act="pin"]').setAttribute('aria-pressed', String(r.pinned));
+    return li;
+  }
+  function drawRows() {
+    const n = shown.length;
+    // A hidden tab has no height to measure, so it draws the first rows until it shows.
+    if (!pitch && n && list.firstElementChild?.offsetHeight) {
+      pitch = list.firstElementChild.offsetHeight + (parseFloat(getComputedStyle(list).rowGap) || 0);
+    }
+    const view = list.clientHeight;
+    const next = pitch && view ? axisSpan({ n, pins: 0, size: pitch, head: 0, offset: list.scrollTop, view, over: OVER }) : { lo: 0, hi: Math.min(n, FIRST) };
+    if (next.lo === span.lo && next.hi === span.hi && made.size) return;
+    span = next;
+    // A redraw replaces the buttons of a row it makes again, so focus goes back to the same act on the same row.
     const had = list.contains(document.activeElement) ? document.activeElement.dataset : null;
     const back = had && { act: had.act, i: had.i };
-    list.replaceChildren(
-      ...v.rows.map((r, i) => {
-        const body = [el('span', 'sode-pages__num', String(r.n + off)), el('span', 'sode-pages__name', r.name || `${what} ${r.n + off}`)];
-        if (r.pinned) body.push(el('span', 'sode__hint', 'pinned'));
-        const own = edge()?.items?.[r.n];
-        if (own?.art || own?.artB) body.push(el('span', 'sode__hint', 'artwork'));
-        if (r.gone) body.push(el('span', 'sode__hint', 'not on router'));
-        const li = rows.row({
-          i,
-          n: v.rows.length,
-          id: String(r.n),
-          readOnly: ro,
-          body: [el('div', 'sode-pages__head', ...body)],
-          actions: [
-            {
-              icon: 'image',
-              tip: 'Artwork',
-              act: 'art',
-              run: () => {
-                artN = artN === r.n ? null : r.n;
-                paint(true);
-              },
-            },
-            {
-              icon: r.pinned ? 'pin-off' : 'pin',
-              tip: r.pinned ? 'Unpin' : full ? `At most ${PINS_MAX} pinned` : 'Pin',
-              act: 'pin',
-              off: !r.pinned && full,
-              run: () => set(pinItem(edge(), r.n, !r.pinned)),
-            },
-          ],
-        });
-        li.querySelector('[data-act="pin"]').setAttribute('aria-pressed', String(r.pinned));
-        return li;
-      }),
-    );
-    if (back) list.querySelector(`[data-act="${back.act}"][data-i="${back.i}"]`)?.focus();
+    const keep = new Map();
+    for (let i = next.lo; i < next.hi; i++) keep.set(i, made.get(i) || makeRow(shown[i], i));
+    made = keep;
+    // Margins, not the list's padding: with border-box sizing, padding past max-height makes the list taller.
+    for (const li of keep.values()) li.style.margin = '';
+    const rowsIn = [...keep.values()];
+    if (pitch && rowsIn.length) {
+      rowsIn[0].style.marginTop = `${next.lo * pitch}px`;
+      rowsIn[rowsIn.length - 1].style.marginBottom = `${(n - next.hi) * pitch}px`;
+    }
+    list.replaceChildren(...rowsIn);
+    if (back && !list.contains(document.activeElement)) list.querySelector(`[data-act="${back.act}"][data-i="${back.i}"]`)?.focus();
   }
+  list.addEventListener('scroll', drawRows, { passive: true });
+  // Shown, resized or a new font size: the rows that fit, and their height, can change.
+  new ResizeObserver(() => {
+    pitch = 0;
+    drawRows();
+    if (pitch) drawRows();
+  }).observe(list);
   onMyRights(() => paint());
 
   return { node, update: () => paint() };
