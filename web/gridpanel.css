@@ -864,3 +864,7 @@ html:has(.sode-gridpanel) {
     width: 2rem;
   }
 }
+/* The prototype has no phone design: the phone header keeps its one short row, with no boxes and no line. */
+:root[data-layout="phone"] :is(.sode-gridpanel__stats, .sode-gridpanel__meta) {
+  display: none;
+}
