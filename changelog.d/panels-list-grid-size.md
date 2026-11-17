@@ -1,2 +1,2 @@
-- On the panels list, a Grid panel's picture has one of three fixed sizes: Small, Medium or Large. The source count is a tile in the top row. The destination count is a tile in the side column. Each tile is centred across a few squares. A Buttons panel shows its columns by rows as text. An "all" edge makes the picture Large.
+- On the panels list, a Grid panel's picture has one of three fixed sizes: Small, Medium or Large. The source count is in the top row and the destination count is in the side column, one character per square, centred. The side column reads from the bottom up. A Buttons panel shows its columns by rows as text. An "all" edge makes the picture Large.
 - In the panel editor, the Panels button in the header is now the Sode Panels logo, left of the title.
