@@ -41,8 +41,9 @@ export function initFind(editor) {
   let picked = []; // result keys picked with Shift, in list order.
   let order = 'across'; // one of gridmodel's FILL_ORDERS; the order picker sets it
   let hovered = false;
-  let moved = false; // the pointer really moved since the list was last drawn
-  let at = null;
+  let moved = false; // the pointer really moved over the list since the last draw.
+  let at = null; // where the pointer was last seen over the list since that draw.
+  let kept = -1; // the keyboard's result while the pointer holds the highlight. Leaving the list puts it back.
   let rebuilding = false;
   let preview = [];
   let quiet = false; // the last group fill landed, so no preview of filling it again until the user moves
@@ -159,6 +160,8 @@ export function initFind(editor) {
 
   function draw() {
     moved = false;
+    at = null;
+    kept = -1;
     results = rankFind(everything(), input.value, chipKinds(chip));
     hi = Math.max(0, Math.min(hi, results.length - 1));
     picked = picked.filter((k) => results.some((e) => e.key === k));
@@ -255,6 +258,7 @@ export function initFind(editor) {
     place(i);
   }
   function place(i) {
+    kept = -1;
     const g = editor.grid();
     const plan = planFor(i);
     if (!plan || !plan.slots.length) return;
@@ -293,14 +297,8 @@ export function initFind(editor) {
   list.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.sode-find__row')) e.preventDefault(); // keeps focus in the box
   });
-  // A redraw puts a new row under a still pointer and fires pointerover, so a hover counts only after a real move.
-  list.addEventListener('pointermove', (e) => {
-    if (!at || at.x !== e.clientX || at.y !== e.clientY) moved = true;
-    at = { x: e.clientX, y: e.clientY };
-  });
-  list.addEventListener('pointerover', (e) => {
-    const li = e.target.closest('.sode-find__row');
-    if (!li || picked.length > 1 || !moved) return;
+  function hoverRow(li) {
+    if (!li || picked.length > 1) return;
     const i = Number(li.dataset.i);
     if (i === hi) return;
     quiet = false;
@@ -308,6 +306,22 @@ export function initFind(editor) {
     list.querySelector('.is-hi')?.classList.remove('is-hi');
     li.classList.add('is-hi');
     showPreview();
+  }
+  // A list that arrives under a still pointer gets pointerover, and Chrome can send a move with no change of place.
+  // So the first place seen after a draw is only noted, and a row takes the highlight after a real move.
+  list.addEventListener('pointermove', (e) => {
+    if (at && (at.x !== e.clientX || at.y !== e.clientY)) moved = true;
+    at = { x: e.clientX, y: e.clientY };
+    const li = moved && e.target.closest('.sode-find__row');
+    if (!li || Number(li.dataset.i) === hi) return;
+    if (kept < 0) kept = hi;
+    hoverRow(li);
+  });
+  // A pointer that crossed the list on its way somewhere else leaves the keyboard's result as it was.
+  list.addEventListener('pointerleave', () => {
+    const li = kept < 0 ? null : list.querySelector(`[data-i="${kept}"]`);
+    kept = -1;
+    hoverRow(li);
   });
   fill.addEventListener('click', () => {
     place(hi);

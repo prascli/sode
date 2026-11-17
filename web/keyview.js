@@ -51,27 +51,32 @@ async function copyText(text, field) {
   }
 }
 
-// The key, shown one time. Nothing keeps it: drop the node and it is gone.
-export function secretNode(secret) {
+// A read-only field with its Copy button. what names the text in the failure note.
+export function copyRow(text, { label, button = 'Copy', what = 'key' }) {
   const field = el('input', 'pb-input sode__secret-key');
   field.readOnly = true;
-  field.value = secret;
+  field.value = text;
   field.spellcheck = false;
-  field.setAttribute('aria-label', 'API key');
+  field.setAttribute('aria-label', label);
   field.addEventListener('focus', () => field.select());
   const say = el('span', 'sode__hint');
   say.setAttribute('role', 'status');
-  const copy = el('button', 'pb-btn pb-btn--outline pb-btn--sm', icon('copy'), 'Copy');
+  const copy = el('button', 'pb-btn pb-btn--outline pb-btn--sm', icon('copy'), button);
   copy.type = 'button';
   copy.addEventListener('click', async () => {
-    say.textContent = (await copyText(secret, field)) ? 'Copied.' : 'Copy failed. Select the key and copy it by hand.';
+    say.textContent = (await copyText(text, field)) ? 'Copied.' : `Copy failed. Select the ${what} and copy it by hand.`;
   });
+  return el('div', 'sode__secret-row', field, copy, say);
+}
+
+// The key, shown one time. Nothing keeps it: drop the node and it is gone.
+export function secretNode(secret) {
   const qr = qrNode(secret);
   return el(
     'div',
     'sode__secret',
     el('p', 'sode__hint', 'Copy this key now. Sode shows it one time and keeps only a hash of it.'),
-    el('div', 'sode__secret-row', field, copy, say),
+    copyRow(secret, { label: 'API key' }),
     ...(qr ? [qr] : []),
   );
 }

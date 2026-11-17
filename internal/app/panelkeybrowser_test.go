@@ -122,6 +122,8 @@ func TestChromeShareModalKeyTab(t *testing.T) {
 	shownKey := func() string {
 		b.waitFor("the key dialog", `document.querySelector('.sode-ov__keyshow .sode__secret-key')?.value.startsWith('`+keyPrefix+`') && !!document.querySelector('.sode-ov__keyshow .sode__qr')`)
 		k, _ := b.eval(`document.querySelector('.sode-ov__keyshow .sode__secret-key').value`).(string)
+		// The link that holds the key is in the dialog too, whole, with its own Copy link.
+		b.waitFor("the dialog shows the link with the key", `(() => { const l = document.querySelector('.sode-ov__keyshow input[aria-label^="Link for"]')?.value || ''; return l.includes('#key=`+strings.TrimPrefix(k, keyPrefix)+`') && l.includes('?instance=') && [...document.querySelectorAll('.sode-ov__keyshow button')].some((x) => x.textContent.trim() === 'Copy link'); })()`)
 		b.eval(`[...document.querySelectorAll('.sode-ov__keyshow button')].find(x => x.textContent.trim() === 'Done').click()`)
 		b.waitFor("the key dialog is gone", `!document.querySelector('.sode-ov__keyshow')`)
 		return k
