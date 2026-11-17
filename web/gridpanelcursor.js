@@ -45,3 +45,12 @@ const follow = (k, was, now) => {
   return at >= 0 ? at : Math.min(k, now.length - 1);
 };
 export const followCursor = (c, was, now) => ({ i: follow(c.i, was.dsts, now.dsts), j: follow(c.j, was.srcs, now.srcs) });
+
+// 'srcs' on the Source bar, 'dsts' on the Destination bar, 'corner', or null on a crosspoint.
+export const barOf = (c) => (c.i < 0 ? (c.j < 0 ? 'corner' : 'srcs') : c.j < 0 ? 'dsts' : null);
+
+// A Shift move along a bar (gridpanelkeys.js range actions) stays on that bar's items.
+export function rangeCursor(c, move, dims) {
+  const n = moveCursor(c, move, dims);
+  return barOf(c) === 'srcs' ? { i: -1, j: Math.max(0, n.j) } : { i: Math.max(0, n.i), j: -1 };
+}
