@@ -1,2 +1,2 @@
-- On the panels list, a Grid panel's picture has one of three fixed sizes: Small, Medium or Large. It shows its count as text, such as "40 × 12" (sources by destinations). A Buttons panel shows its columns by rows. An "all" edge makes the picture Large.
+- On the panels list, a Grid panel's picture has one of three fixed sizes: Small, Medium or Large. The source count is in the top row and the destination count is in the side column, one character per square, centred. The side column reads from the bottom up. A Buttons panel shows its columns by rows as text. An "all" edge makes the picture Large.
 - In the panel editor, the Panels button in the header is now the Sode Panels logo, left of the title.

@@ -462,7 +462,7 @@ func TestChromeGridPanelLevels(t *testing.T) {
 	b.eval(gridXp(12, 4) + `.click()`)
 	b.waitFor("a press stages", gridXp(12, 4)+`.dataset.s === 'staged'`)
 	gridKey(b, "Enter")
-	b.waitFor("the confirm shows the typed levels", `!document.getElementById('confirm').hidden && [...document.querySelectorAll('#confirm-body .sode__slot--on')].map((n) => n.textContent).join() === '3,5'`)
+	b.waitFor("the confirm shows the typed levels", `!document.getElementById('confirm').hidden && [...(document.querySelector('#confirm-body .sode__route')?.querySelectorAll('.sode__slot--on') || [])].map((n) => n.textContent).join() === '3,5'`)
 	b.shot("levels-confirm")
 	gridConfirm(b)
 	b.check()

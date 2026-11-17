@@ -99,8 +99,8 @@ export function deleteStep(armed, id) {
 export const thumbCells = (p) => cellsIn(p).map(({ r, c, rs, cs, kind }) => ({ r, c, rs, cs, kind }));
 
 // A Grid panel has no cells. Its picture is a Source bar across the top, a Destination bar down the side and a
-// diagonal of routes. It has three fixed sizes. The size follows the larger edge, and the count shows as text
-// inside the picture. The page reads no names, so an "all" edge counts as GRID_ALL_ITEMS, which is Large.
+// diagonal of routes. It has three fixed sizes. The size follows the larger edge. Each count has one tile per character,
+// centred in its bar. The page reads no names, so an "all" edge counts as GRID_ALL_ITEMS, which is Large.
 export const GRID_ALL_ITEMS = 256;
 export const GRID_MEDIUM_FROM = 13;
 export const GRID_LARGE_FROM = 65;
@@ -112,6 +112,19 @@ export function pictureSize(n) {
   if (n >= GRID_LARGE_FROM) return 'large';
   return n >= GRID_MEDIUM_FROM ? 'medium' : 'small';
 }
+// One tile per character, centred in the bar's n squares. With an odd number of spare squares, half is true and the tile
+// moves half a square to centre. The Destination bar reads from the bottom up, so its first character takes the lowest
+// square. A label always fits: a bar with more than 2 characters is in a Large picture (8 squares).
+function edgeTiles(kind, label, n) {
+  const src = kind === 'source';
+  const chars = [...label];
+  const first = 2 + Math.floor((n - chars.length) / 2);
+  const half = (n - chars.length) % 2 === 1;
+  return chars.map((ch, i) => {
+    const at = src ? first + i : first + chars.length - 1 - i;
+    return { kind, r: src ? 1 : at, c: src ? at : 1, rs: 1, cs: 1, label: ch, half };
+  });
+}
 export function gridThumb(p) {
   const size = pictureSize(Math.max(gridEdgeCount(p.sources), gridEdgeCount(p.destinations)));
   const n = GRID_SQUARES[size];
@@ -120,7 +133,8 @@ export function gridThumb(p) {
   const cells = [];
   for (let c = 2; c <= cols; c++) cells.push({ r: 1, c, rs: 1, cs: 1, kind: 'source' });
   for (let r = 2; r <= rows; r++) cells.push({ r, c: 1, rs: 1, cs: 1, kind: 'destination' }, { r, c: r, rs: 1, cs: 1, kind: 'on' });
-  return { size, rows, cols, cells, label: `${gridEdgeLabel(p.sources)} \u00d7 ${gridEdgeLabel(p.destinations)}` };
+  const tiles = [...edgeTiles('source', gridEdgeLabel(p.sources), n), ...edgeTiles('destination', gridEdgeLabel(p.destinations), n)];
+  return { size, rows, cols, cells, tiles };
 }
 
 // The words under a Grid panel's picture. An "all" edge counts the router's items, which the list page does not read.

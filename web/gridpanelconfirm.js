@@ -41,6 +41,17 @@ function routeRow(tally, g, dstName) {
   );
 }
 
+// What each destination has before the take, as the main page's confirm shows it (itemSummary in plans.js). A plan
+// made without the tally has no now.
+function nowRows(tally, item, boxed) {
+  if (!item.now?.length) return [];
+  const rows = [
+    el('div', 'sode__label', 'Currently'),
+    ...item.now.map((r) => el('div', 'sode__route', levelBar(tally, r.levels), el('span', 'sode__end sode__end--src', r.srcName))),
+  ];
+  return boxed ? [el('div', 'sode__plan-before', ...rows)] : rows;
+}
+
 const routesText = (n) => (n === 1 ? '1 staged route' : `${n} staged routes`);
 
 // plan is planOf (gridpanelplan.js); tally() is the last GET /tally answer. A plan with verb 'undo' is this instance's
@@ -70,7 +81,8 @@ export function gridSummary(plan, tally) {
       ]
     : [];
   if (plan.verb === 'undo') left.push(el('div', null, 'This undoes the last take of this panel instance.'));
-  if (n === 1) return [...left, question, ...plan.items[0].groups.map((g) => routeRow(tally, g, plan.items[0].dstName))];
+  if (n === 1)
+    return [...left, question, ...plan.items[0].groups.map((g) => routeRow(tally, g, plan.items[0].dstName)), ...nowRows(tally, plan.items[0], false)];
   return [
     ...left,
     question,
@@ -80,6 +92,7 @@ export function gridSummary(plan, tally) {
         'sode__plan-item',
         el('div', 'sode__plan-head', el('span', 'sode__plan-n', `${i + 1}/${n}`), strong(item.dstName)),
         ...item.groups.map((g) => routeRow(tally, g, item.dstName)),
+        ...nowRows(tally, item, true),
       ),
     ),
   ];

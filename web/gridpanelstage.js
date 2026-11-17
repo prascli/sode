@@ -6,8 +6,16 @@
 // The server takes 200 routes in one take; the Grid stops well under it.
 export const STAGE_MAX = 128;
 
-// undoId is set while the stage is this instance's Undo (gridpanelundo.js).
-export const createStage = ({ mode } = {}) => ({ mode: mode === 'instant' ? 'instant' : 'take', staged: [], busy: false, error: null, undoId: null });
+// undoId is set while the stage is this instance's Undo (gridpanelundo.js). The stored mode takeOnly is Take mode
+// whose Take sends with no confirm box; ask is false only then. Any other value is today's Take mode, with the box.
+export const createStage = ({ mode } = {}) => ({
+  mode: mode === 'instant' ? 'instant' : 'take',
+  ask: mode !== 'takeOnly',
+  staged: [],
+  busy: false,
+  error: null,
+  undoId: null,
+});
 
 // The staged entries as routes for POST /takes, one per destination and source, in the order first staged.
 export function routesOf(st) {
