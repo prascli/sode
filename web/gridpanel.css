@@ -5,13 +5,11 @@
 .sode-panel__grid.sode-gridpanel {
   display: block;
   /* At the 125% root: 80 px crosspoints, a 224 by 120 px corner. The prototype had 72 px; the owner asked for a grid
-     a little bigger and easier to read. The scroll bars are 40 px across the bottom and 28 px down the side, so a
-     trackball can catch them; the phone scrolls by touch and keeps thin ones. */
+     a little bigger and easier to read. The scroll bars are Sode's own big ones (bigscroll.js), the same on both
+     axes; the phone scrolls by touch and keeps thin native ones. */
   --sode-xp: 4rem;
   --sode-name-w: 11.2rem;
   --sode-name-h: 6rem;
-  --sode-scroll-h: 2rem;
-  --sode-scroll-w: 1.4rem;
   --sode-line: color-mix(in oklab, var(--pb-text) 22%, transparent);
   /* The patch field: light in a light theme, dark in a dark one, with no per-theme CSS. */
   --sode-patch-field: var(--pb-surface-sunken);
@@ -24,8 +22,6 @@
   --sode-xp: 4rem;
   --sode-name-w: 8rem;
   --sode-name-h: 5.6rem;
-  --sode-scroll-h: 0.88rem;
-  --sode-scroll-w: 0.88rem;
 }
 /* A double-tap on a name is a jump, not a zoom (gridpanelgesture.js). */
 .sode-gridpanel__src,
@@ -77,36 +73,42 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__scroll {
   overscroll-behavior: none;
   position: relative;
-  /* Thick and always shown: auto here lets the ::-webkit-scrollbar rules below apply (Chrome ignores them when
-     either property is set), and a styled scrollbar never hides. */
+}
+/* The sticky bands stack inside the scroller, so they never paint over its scroll bars (siblings at z-index 2). */
+:root:not([data-layout="phone"]) .sode-gridpanel__scroll {
+  isolation: isolate;
+}
+/* The phone keeps thin native bars, always shown: auto here lets the ::-webkit-scrollbar rules apply (Chrome ignores
+   them when either property is set). */
+:root[data-layout="phone"] .sode-gridpanel__scroll {
   scrollbar-color: auto;
   scrollbar-width: auto;
 }
-.sode-gridpanel__scroll::-webkit-scrollbar {
-  height: var(--sode-scroll-h);
-  width: var(--sode-scroll-w);
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar {
+  height: 0.88rem;
+  width: 0.88rem;
 }
-.sode-gridpanel__scroll::-webkit-scrollbar-track,
-.sode-gridpanel__scroll::-webkit-scrollbar-corner {
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-track,
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-corner {
   background: var(--pb-surface-control);
 }
-.sode-gridpanel__scroll::-webkit-scrollbar-thumb {
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-thumb {
   background-color: color-mix(in oklab, var(--pb-text) 40%, var(--pb-surface-control));
   border: 0.15rem solid var(--pb-surface-control);
 }
 /* With 2500 sources a thumb in scale would be a few px; Chrome and Safari read its least length from these. */
-.sode-gridpanel__scroll::-webkit-scrollbar-thumb:horizontal {
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-thumb:horizontal {
   min-width: 6rem;
 }
-.sode-gridpanel__scroll::-webkit-scrollbar-thumb:vertical {
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-thumb:vertical {
   min-height: 6rem;
 }
-.sode-gridpanel__scroll::-webkit-scrollbar-thumb:hover,
-.sode-gridpanel__scroll::-webkit-scrollbar-thumb:active {
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-thumb:hover,
+:root[data-layout="phone"] .sode-gridpanel__scroll::-webkit-scrollbar-thumb:active {
   background-color: var(--pb-text-muted);
 }
 @supports not selector(::-webkit-scrollbar) {
-  .sode-gridpanel__scroll {
+  :root[data-layout="phone"] .sode-gridpanel__scroll {
     scrollbar-color: color-mix(in oklab, var(--pb-text) 40%, var(--pb-surface-control)) var(--pb-surface-control);
   }
 }

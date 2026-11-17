@@ -5,6 +5,7 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
+import { bigScroll } from './bigscroll.js';
 import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, pinsShown, OVER } from './gridpanelwindow.js';
 
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
@@ -266,6 +267,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
   scroll.tabIndex = -1;
   host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
+  // Sode's own scroll bars on both axes (bigscroll.js). They are the scroller's siblings, so the grid's own pointer and
+  // wheel listeners never see a press or a wheel on them. The field size changes with the axes, so no MutationObserver.
+  const scrollBars = bigScroll(scroll, 'xy', 'big', { watch: field });
 
   let ax = axes;
   let srcAt = new Map(); // router number to display index
@@ -411,11 +415,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let frame = null;
   const read = () => {
     const r = scroll.getBoundingClientRect();
+    // The drawn scroll bars sit over the client box (native ones sit outside it), so their room is taken off.
+    const room = scrollBars ? scrollBars.room() : { right: 0, bottom: 0 };
     return {
       left: scroll.scrollLeft,
       top: scroll.scrollTop,
-      cw: scroll.clientWidth,
-      ch: scroll.clientHeight,
+      cw: scroll.clientWidth - room.right,
+      ch: scroll.clientHeight - room.bottom,
       x: r.left + scroll.clientLeft,
       y: r.top + scroll.clientTop,
     };
@@ -512,11 +518,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
 
   const setAxes = (next) => {
     ax = next;
-    pinned = pinsNow();
     srcAt = new Map(ax.srcs.map((n, j) => [n, j]));
     dstAt = new Map(ax.dsts.map((n, i) => [n, i]));
     setVar(field, '--sode-cols', ax.srcs.length);
     setVar(field, '--sode-rows', ax.dsts.length);
+    // The scroll bars for the new size before the pools are sized: a pool never shrinks.
+    scrollBars?.now();
+    pinned = pinsNow();
     setVar(field, '--sode-col-pins', pinned.srcs);
     setVar(field, '--sode-row-pins', pinned.dsts);
     for (const p of Object.values(pools)) p.clear();
@@ -616,7 +624,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       };
       return { x: unit(p.x, axis(true, m)), y: unit(p.y, axis(false, m)) };
     },
-    // The scroller's body in client px: past the name bars and the pinned bands, inside the scrollbars.
+    // The scroller's body in client px: past the name bars and the pinned bands, inside the scroll bars.
     bodyBox() {
       const m = metricsNow();
       return { left: m.x + px.w + pinned.srcs * px.xp, top: m.y + px.h + pinned.dsts * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
@@ -631,7 +639,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       set('x2', px.w + seg.b.x * px.xp);
       set('y2', px.h + seg.b.y * px.xp);
     },
-    // The display cell { i, j } under a client point, -1 on a bar, or null past the last item or on a scrollbar.
+    // The display cell { i, j } under a client point, -1 on a bar, or null past the last item or on a scroll bar.
     cellAt(x, y) {
       const m = metricsNow();
       const p = local(x, y, m);
@@ -677,10 +685,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       if (i >= 0) to.top = centreFor(i, axis(false, m));
       goTo(to, { srcs: j >= 0 ? ax.srcs[j] : null, dsts: i >= 0 ? ax.dsts[i] : null });
     },
-    // The crosspoint under a client point, or null on a name, a gap or outside.
+    // The crosspoint under a client point, or null on a name, a gap, a scroll bar or outside.
     hit(x, y) {
       const m = metricsNow();
       const p = local(x, y, m);
+      if (p.x >= m.cw || p.y >= m.ch) return null;
       const j = indexAt(p.x, axis(true, m));
       const i = indexAt(p.y, axis(false, m));
       return i < 0 || j < 0 ? null : { src: ax.srcs[j], dst: ax.dsts[i], i, j };
@@ -725,6 +734,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     },
     previewing: () => mark.xps.size > 0 || mark.srcs.size > 0 || mark.skip.size > 0,
     stop() {
+      scrollBars?.stop();
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
       scroll.removeEventListener('pointermove', onMove);

@@ -113,9 +113,9 @@ func TestChromeGridPanelLook(t *testing.T) {
 			document.querySelector('.sode-panels__head').contains(document.getElementById('panel-home')) &&
 			!!document.querySelector('#panel-home a[href="panels"]');
 	})()`)
-	b.waitFor("big scroll bars: 40 px across the bottom, 28 px down the side", `(() => {
-		const sc = document.querySelector('.sode-gridpanel__scroll');
-		return sc.offsetHeight - sc.clientHeight === 40 && sc.offsetWidth - sc.clientWidth === 28;
+	b.waitFor("big scroll bars: 28 px on both axes", `(() => {
+		const x = document.querySelector('.sode-gridpanel__frame > .sode-bigscroll--x'), y = document.querySelector('.sode-gridpanel__frame > .sode-bigscroll--y');
+		return !!x && !!y && !x.hidden && !y.hidden && x.offsetHeight === 28 && y.offsetWidth === 28;
 	})()`)
 	b.waitFor("the grid reaches the window's bottom", `Math.abs(document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect().bottom - innerHeight) < 2 && document.documentElement.scrollHeight === innerHeight`)
 	b.waitFor("the corner names both bars: Destinations along its bottom, Sources on its side down its right edge, each word centred", `(() => {
