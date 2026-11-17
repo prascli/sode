@@ -92,8 +92,7 @@ func TestChromeGridPanelLine(t *testing.T) {
 	gridConfirm(b)
 	tallyHas(t, a, ana, 1, 5)
 	tallyHas(t, a, ana, 2, 6)
-	if n := b.eval(`document.querySelectorAll('.sode-gridpanel__xp[data-s="staged"]').length`); n != float64(0) {
-		t.Errorf("%v routes still staged after the take", n)
-	}
+	// The router can confirm before the page has the POST's answer.
+	b.waitFor("nothing staged after the take", `!document.querySelector('.sode-gridpanel__xp[data-s="staged"]')`)
 	b.check()
 }
