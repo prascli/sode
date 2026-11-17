@@ -8,9 +8,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// Show all destinations sits at the bottom right of the Destination box, under the destinations added
-// with + and never over them, and a press at its centre reaches it. The router and server status
-// scrolls away with the page.
+// Show all destinations sits at the bottom right of the Destination box. Destinations added with +
+// stay above it. A press at its centre reaches it. The router and server status is not fixed.
 func TestChromeMainShowAllBelowChips(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
