@@ -51,6 +51,7 @@ Files, all in `internal/app`:
   - Alt+Shift+C from the Source box toggles it and writes This browser. Settings shows it under This browser.
   - Ctrl+Z still reaches undo and Ctrl+, opens Settings.
   - When the simulator stops, the page shows the lost link and un-fades the status.
+- `mainshowall_browser_test.go`: `TestChromeMainShowAllBelowChips`, with 0, 3 and 12 destinations added with +. Show all destinations stays at the bottom right of the Destination box. The chips start below it, and nothing covers its centre. The Server and Router status is not fixed or sticky.
 - `settingsfind_browser_test.go`: `TestChromeSettingsFindSkipsHidden`, Settings search skips a hidden `[data-find]` button: signed out it offers Sign in and not My API keys, signed in the reverse.
 - `settingsdialog_browser_test.go`: `TestChromeSettingsDialogKeepsScroll`, Manage users opened low in Settings. Opening and closing it leave the scroll position the same, and a real wheel over the scrim (CDP `mouseWheel`) does not scroll the page.
 - `panelundo_browser_test.go`: `TestChromePanelUndoStepsBackThisInstance`, two takes from the page and a take by another instance over REST. Then two Undo presses restore both destinations newest first (the tally over REST), and the status line says Undone. The other instance's route stays and the cell greys.
