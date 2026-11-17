@@ -1,0 +1,5 @@
+- The Grid panel page and its Test it live preview use a smaller text size, 112.5% in place of 125%. More of the grid shows. Other pages and the phone layout do not change.
+- The Grid page's band is lower, and its Filter switch is now the word over the switch, much narrower.
+- Take results and refusals show in a fixed place in the band, over the search boxes. The grid no longer moves when a message shows or clears.
+- A Grid panel can pin any number of sources and destinations. The page pins as many as fit in half the grid, and the rest scroll first.
+- In Test it live, Edit lists opens beside the grid, under the band, so Take stays in reach.

@@ -1,7 +1,7 @@
 // The Grid panel editor's edits of several selected entries at once (editorgridrules.js). Pure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moveRows, stepRows, pinItems, removeItems, itemsArt, edgeRows, edgeListKey, PINS_MAX } from '../editorgridrules.js';
+import { moveRows, stepRows, pinItems, removeItems, itemsArt, edgeRows, edgeListKey } from '../editorgridrules.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const router = namesReply({
@@ -62,16 +62,16 @@ test('stepRows at the top or the end changes nothing', () => {
   assert.equal(stepRows(e, router, null, 'sources', sel(0, 1), 'top'), e);
 });
 
-test('pinItems pins in list order until the pin limit, and unpins all', () => {
+test('pinItems pins in list order with no limit, and unpins all', () => {
   const e = { members: [5, 4, 3, 2, 1, 0], items: { 0: { art: 'icon:mic' } } };
   const one = pinItems(e, router, null, 'sources', sel(0, 3), true);
   assert.deepEqual(one.items, { 3: { pinned: true }, 0: { art: 'icon:mic', pinned: true } });
   assert.deepEqual(pinItems(one, router, null, 'sources', sel(0, 3), false).items, { 0: { art: 'icon:mic' } });
-  let full = { members: 'all', items: {} };
-  for (let n = 0; n < PINS_MAX - 1; n++) full = { ...full, items: { ...full.items, [100 + n]: { pinned: true } } };
-  const last = pinItems(full, router, null, 'sources', sel(4, 2), true);
-  assert.equal(last.items[2]?.pinned, true);
-  assert.equal(last.items[4], undefined);
+  let many = { members: 'all', items: {} };
+  for (let n = 0; n < 50; n++) many = { ...many, items: { ...many.items, [100 + n]: { pinned: true } } };
+  const more = pinItems(many, router, null, 'sources', sel(4, 2), true);
+  assert.equal(more.items[2]?.pinned, true);
+  assert.equal(more.items[4]?.pinned, true);
 });
 
 test('removeItems drops entries from a list, hides them on "all", and unpins them', () => {

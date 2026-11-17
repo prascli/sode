@@ -11,6 +11,39 @@ import (
 // crosspoints that show plus overscan, the names and the pinned bands. All 2500 by 750 would be 1.9 million.
 const gridNodesMax = 4000
 
+// gridSweep scrolls the grid corner to corner in 60 steps. It counts the elements added and removed, the most nodes, the
+// steps with no crosspoint mid-view, and the median and worst step time.
+const gridSweep = `(async () => {
+	const grid = document.getElementById('panel-grid');
+	const sc = grid.querySelector('.sode-gridpanel__scroll');
+	const count = () => grid.querySelectorAll('*').length;
+	let added = 0, removed = 0, most = count();
+	const els = (list) => [...list].filter((n) => n.nodeType === 1).length;
+	const mo = new MutationObserver((recs) => {
+		for (const r of recs) { added += els(r.addedNodes); removed += els(r.removedNodes); }
+	});
+	mo.observe(grid, { childList: true, subtree: true });
+	const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+	const steps = 60, times = [];
+	let missing = 0;
+	for (let i = 1; i <= steps; i++) {
+		const t0 = performance.now();
+		sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) * i / steps;
+		sc.scrollTop = (sc.scrollHeight - sc.clientHeight) * i / steps;
+		await frame();
+		times.push(performance.now() - t0);
+		most = Math.max(most, count());
+		// The crosspoint in the middle of the view is drawn at every step.
+		const r = sc.getBoundingClientRect();
+		const hit = document.elementsFromPoint(r.left + r.width * 0.6, r.top + r.height * 0.6);
+		if (!hit.some((n) => n.classList?.contains('sode-gridpanel__xp'))) missing++;
+	}
+	mo.takeRecords().forEach((r) => { added += els(r.addedNodes); removed += els(r.removedNodes); });
+	mo.disconnect();
+	times.sort((x, y) => x - y);
+	return { added, removed, most, missing, median: times[times.length >> 1], worst: times[times.length - 1] };
+})()`
+
 // A Grid panel on a 2500 by 750 router. The page holds a bounded number of nodes and adds or removes none while
 // it scrolls corner to corner: nodes are moved, never made again. Pinned names stay at the edge. The open time
 // and the time for each scroll step are reported, not asserted.
@@ -59,36 +92,7 @@ func TestChromeGridPanelScale(t *testing.T) {
 		return sc.scrollWidth >= 2500 * xp && sc.scrollHeight >= 750 * xp;
 	})()`)
 
-	sweep, ok := b.eval(`(async () => {
-		const grid = document.getElementById('panel-grid');
-		const sc = grid.querySelector('.sode-gridpanel__scroll');
-		const count = () => grid.querySelectorAll('*').length;
-		let added = 0, removed = 0, most = count();
-		const els = (list) => [...list].filter((n) => n.nodeType === 1).length;
-		const mo = new MutationObserver((recs) => {
-			for (const r of recs) { added += els(r.addedNodes); removed += els(r.removedNodes); }
-		});
-		mo.observe(grid, { childList: true, subtree: true });
-		const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-		const steps = 60, times = [];
-		let missing = 0;
-		for (let i = 1; i <= steps; i++) {
-			const t0 = performance.now();
-			sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) * i / steps;
-			sc.scrollTop = (sc.scrollHeight - sc.clientHeight) * i / steps;
-			await frame();
-			times.push(performance.now() - t0);
-			most = Math.max(most, count());
-			// The crosspoint in the middle of the view is drawn at every step.
-			const r = sc.getBoundingClientRect();
-			const hit = document.elementsFromPoint(r.left + r.width * 0.6, r.top + r.height * 0.6);
-			if (!hit.some((n) => n.classList?.contains('sode-gridpanel__xp'))) missing++;
-		}
-		mo.takeRecords().forEach((r) => { added += els(r.addedNodes); removed += els(r.removedNodes); });
-		mo.disconnect();
-		times.sort((x, y) => x - y);
-		return { added, removed, most, missing, median: times[times.length >> 1], worst: times[times.length - 1] };
-	})()`).(map[string]any)
+	sweep, ok := b.eval(gridSweep).(map[string]any)
 	if !ok {
 		t.Fatal("the sweep returned nothing")
 	}
@@ -199,5 +203,42 @@ func TestChromeGridPanelScale(t *testing.T) {
 	if style > 600 {
 		t.Errorf("3 s with three staged spent %.0f ms on style recalc, want under 600", style)
 	}
+
+	// 50 pins on each edge, with no limit since 2026-11-17. The pinned bands draw only what half the room holds. The
+	// rest scroll first, and the grid keeps its bounds.
+	pins := func(from int) string {
+		p := make([]string, 50)
+		for i := range p {
+			p[i] = fmt.Sprintf(`"%d":{"pinned":true}`, from+i)
+		}
+		return strings.Join(p, ",")
+	}
+	many := makePanel(t, a, ana, `{"name":"Many pins","type":"grid","settings":{"mode":"take","levels":[1]},`+
+		`"sources":{"members":"all","items":{`+pins(100)+`}},"destinations":{"members":"all","items":{`+pins(100)+`}}}`)
+	b.open(srv.URL + "/panels/" + many + "?instance=Desk")
+	b.waitFor("the 50 pinned lead", `document.querySelector('.sode-gridpanel__src[data-src="100"]')?.textContent === 'SRC 101'`)
+	b.waitFor("each pinned band holds fewer than half the view", `(() => {
+		const f = document.querySelector('.sode-gridpanel__field'), sc = document.querySelector('.sode-gridpanel__scroll');
+		const v = (k) => Number(getComputedStyle(f).getPropertyValue(k).trim());
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		const rows = v('--sode-row-pins'), cols = v('--sode-col-pins');
+		return rows >= 1 && rows < 50 && cols >= 1 && cols < 50 && rows * xp <= sc.clientHeight / 2 && cols * xp <= sc.clientWidth / 2;
+	})()`)
+	pinSweep, ok := b.eval(gridSweep).(map[string]any)
+	if !ok {
+		t.Fatal("the sweep with 50 pins returned nothing")
+	}
+	t.Logf("50 pins, scroll sweep: median step %.1f ms, worst %.1f ms, most nodes %v", pinSweep["median"], pinSweep["worst"], pinSweep["most"])
+	if pinSweep["added"].(float64) != 0 || pinSweep["removed"].(float64) != 0 || pinSweep["most"].(float64) > gridNodesMax || pinSweep["missing"].(float64) != 0 {
+		t.Errorf("50 pins, sweep: %v", pinSweep)
+	}
+	// The 40th pin scrolls with the rest, so Find brings it into view.
+	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; return true; })()`)
+	b.eval(`(() => { const i = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input'); i.focus(); document.execCommand('insertText', false, 'src 140'); return true; })()`)
+	b.waitFor("Find brings the 40th pinned source into view", `(() => {
+		const n = document.querySelector('.sode-gridpanel__src[data-src="139"]:not([hidden])'), r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
+		return !!n && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right;
+	})()`)
+	b.shot("scale-pins")
 	b.check()
 }
