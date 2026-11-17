@@ -283,12 +283,14 @@ export async function runEditor() {
     },
     key: onKey,
   });
+  let cellTab = null; // the sidebar's Cell tab, { node, openPicker } (editorside.js)
   const live = createLive($('ed-live-view'), document.querySelector('.sode-ed__body'), $('ed-live'), {
     save: () => save(),
     dirty: () => !readOnly() && dirty(),
     readOnly,
     edges: () => ({ sources: fields().sources, destinations: fields().destinations, rev: loaded?.rev }),
     lists: () => [$('ed-sources-col'), $('ed-destinations-col')],
+    cellTab: () => cellTab,
   });
   fieldWatchers.push(() => live.changed());
   // The menu and its flyouts keep off the sidebar when it sits beside the grid (menuArea).
@@ -780,6 +782,9 @@ export async function runEditor() {
     // Find's fill order, which Wrap follows.
     useFillOrder: (fn) => (fillOrder = fn),
     fillOrder: () => fillOrder(),
+    // The sidebar's Cell tab, which Test it live shows in its drawer; openArt is true when the drawer showed it.
+    useCellTab: (t) => (cellTab = t),
+    openArt: () => live.openArt(),
     onChange: (fn) => changeWatchers.push(fn),
     // The sidebar's panel fields. onFields runs when the panel loads, saves or a field changes.
     fields,

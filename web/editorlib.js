@@ -1,5 +1,5 @@
-// The Choose icon picker's Uploaded section: the Icon library's icons, and an Icon library button that opens the
-// dialog with Upload, Rename, Delete and Rescan. The sidebar is for choosing; the library is changed in the dialog.
+// The Choose icon picker's Uploaded icons section. It has the Icon library's icons, and an Icon library button that
+// opens the dialog with Upload, Rename, Delete and Rescan. The sidebar is for choosing; the library is changed in the dialog.
 // Any editor picks; adding needs a Trusted user or the Advanced Settings PIN, asked for after the first refusal as
 // Default artwork does. Tiles draw through the panel's createArt, so their blob URLs go when the panel does. Rename,
 // Delete and Rescan (the drop-in directory, docs/reference.md) show only to a Trusted user. The server also accepts
@@ -105,11 +105,12 @@ export function createLibSection({ ed, set, gone = () => {} }) {
     e.stopPropagation();
   });
 
-  const open = btn('pb-btn--ghost pb-btn--sm', 'Icon library', () => openDialog());
+  // At the picker's right edge, so its tip opens leftward.
+  const open = btn('pb-btn--ghost pb-btn--sm pb-tip--end', 'Icon library', () => openDialog());
   open.id = 'ed-lib-open';
   open.setAttribute('aria-haspopup', 'dialog');
   open.dataset.pbTip = 'Upload, rename or delete the icons every panel can use';
-  const node = el('div', 'sode-side__lib-sec', el('div', 'sode-side__lib-head', el('span', 'sode-side__col-h', 'Uploaded'), open), grid, empty);
+  const node = el('div', 'sode-side__lib-sec', el('div', 'sode-side__lib-head', el('span', 'sode-side__picker-h', 'Uploaded icons'), open), grid, empty);
 
   const root = el('div', 'pb-modal-backdrop sode__scrim');
   root.id = 'ed-lib-dialog';

@@ -82,7 +82,7 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
 - Grid panels (ADR 0011): the panel fields `type` (`buttons` or `grid`, omitted or empty reads as `buttons`), `sources` and `destinations`. A Grid panel has no `rows`, `cols`, `cells` or `pages`. Each of `sources` and `destinations` is an edge:
   - `members`: the string `all`, or a list of router numbers in order.
   - `hide`: router numbers left out of an `all` edge. It is refused on a list.
-  - `items`: a map from a plain decimal router number to `pinned` (any number for an edge), `art` and `artB`, written as on a cell.
+  - `items`: a map from a plain decimal router number to `pinned` (any number for an edge), `art`, `artB` and `hideText`, written as on a cell.
   Checkpoint and Push layouts carry the same three fields. A layout of the other type is refused.
 - Pages (ADR 0007): `pages` is a list of 1 to 16 Pages in order. Each Page has these fields:
   - `id`: 1 to 16 letters, digits, dashes and underscores. Sode makes 8 hex digits, and a Page sent without one gets one.

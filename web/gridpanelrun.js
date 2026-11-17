@@ -145,6 +145,7 @@ export function gridBody(ctx, first) {
     const art = kind === 'srcs' ? nameArt(panel.sources, 'source', n, defaults) : nameArt(panel.destinations, 'destination', n, defaults);
     if (!art) return null;
     const out = { b: art.b };
+    if (art.hide) out.hide = true;
     if (art.a?.icon) out.icon = art.a.icon;
     else if (art.a) {
       const l = imageOf(art.a.id);
@@ -696,6 +697,8 @@ export function gridBody(ctx, first) {
     if (ui.aside?.contains(e.target)) return;
     if (confirm?.isOpen()) return confirm.key(e);
     if (keyList?.shown()) return listKey(e);
+    // A dialog over the run (the editor's Icon library) keeps its keys; dialogkeys.js stops them only at its root.
+    if (e.target.closest?.('.pb-modal-backdrop:not([hidden])')) return;
     // The page lock's sign-in and dialogs take their keys first.
     if (e.defaultPrevented) return;
     // A search box's own keys come before the grid's, so Esc there clears the box and does not drop picks.

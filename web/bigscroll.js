@@ -21,6 +21,7 @@ export const SCROLLERS = [
   ['.sode__box--levels .sode__levels', 'x'],
   ['.sode-log__scroll', 'x'],
   ['.sode-ed__side', 'y'],
+  ['.sode-live__art', 'y'],
   ['.sode-edge__list', 'y'],
   ['.sode-rlist', 'y'],
   ['.sode-side__icons', 'y'],

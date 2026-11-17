@@ -1,17 +1,19 @@
 // The editor's Test it live: the saved panel runs in place of the grid and sidebar (panelrun.js, embedded), over
 // the editor's own session. It is not an instance of the panel, so it sends no keepalive.
 // A Grid panel gets a bar over it that marks it as a preview. Its drawer holds the editor's own Sources and
-// Destinations lists (editorgridlist.js), moved in for the run and back after it. Their edits show at once.
+// Destinations lists (editorgridlist.js), moved in for the run and back after it. A list's Artwork button shows the
+// Cell tab's artwork over it (editorliveart.js). Their edits show at once.
 import { el, icon } from './core.js';
 import { sessionFetch } from './sessionkey.js';
 import { runPanel } from './panelrun.js';
 import { liveUi } from './panelmount.js';
 import { makeTabs } from './tabs.js';
 import { btn } from './formbits.js';
+import { createLiveArt } from './editorliveart.js';
 
 // host holds the live panel, body is the editor it replaces, button is the toolbar's Test it live. ed is
-// { save, dirty, readOnly, edges, lists }: edges() is { sources, destinations, rev } as the editor has them,
-// lists() the two list columns.
+// { save, dirty, readOnly, edges, lists, cellTab }. edges() is { sources, destinations, rev } as the editor has them.
+// lists() gives the two list columns, and cellTab() the sidebar's Cell tab.
 export function createLive(host, body, button, ed) {
   const label = button.textContent;
   let run = null;
@@ -43,6 +45,8 @@ export function createLive(host, body, button, ed) {
     },
     // The editor's fields or save state changed.
     changed: () => grid?.changed(),
+    // A list's Artwork button: true when the open drawer shows the artwork.
+    openArt: () => !!grid?.openArt(),
   };
   return api;
 }
@@ -62,7 +66,7 @@ function gridParts(ed) {
     paint(err);
   });
   save.id = 'ed-live-save';
-  const open = btn('pb-btn--outline pb-btn--sm', '', () => setOpen(!opened));
+  const open = btn('pb-btn--lg', '', () => setOpen(!opened));
   open.id = 'ed-live-lists';
   open.append(icon('panel-right-open'), el('span', null, 'Edit lists'));
   open.dataset.pbTip = 'Change the order of the sources and destinations, pin, add and remove them';
@@ -101,6 +105,8 @@ function gridParts(ed) {
     'pb-drawer pb-drawer--right pb-drawer--wide sode-live__drawer',
     el('div', 'pb-drawer__body', el('div', 'sode-live__drawer-head', el('h2', 'sode-live__drawer-h', 'Edit lists'), close), tabs.node, ...panes),
   );
+  const art = createLiveArt(ed.cellTab);
+  aside.append(art.node);
   aside.id = 'ed-live-drawer';
   aside.setAttribute('aria-label', 'Sources and destinations');
   // Esc in a list drops its selection (editorgridlist.js); Esc anywhere else in the drawer closes it.
@@ -113,6 +119,7 @@ function gridParts(ed) {
 
   let opened = false;
   function setOpen(on) {
+    if (!on) art.close();
     opened = on;
     aside.classList.toggle('pb-drawer--open', on);
     // A closed drawer is zero wide, but its controls could still take focus.
@@ -145,7 +152,9 @@ function gridParts(ed) {
       // A rev goes with the lists only after a save, so the run marks that copy as seen and shows no banner for it.
       run?.show({ sources: now.sources, destinations: now.destinations, ...(saved ? { rev: now.rev } : {}) });
     },
+    openArt: () => opened && art.open(),
     stop() {
+      art.close();
       home.append(srcs, dsts);
     },
   };

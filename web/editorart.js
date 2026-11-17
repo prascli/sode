@@ -110,9 +110,10 @@ export function createArtControl({ ed, icons = false, set, setB, setHideText }) 
     lib?.filter(find.value);
   });
   for (const p of panes) p.col = column(p.id === 'a' ? 'Icon A' : 'Icon B', p, p.id === 'a' ? find : null);
-  // Uploaded (the Icon library) sits above the vendored icons in Icon A's column.
-  if (lib) panes[0].grid.before(lib.node, el('span', 'sode-side__col-h', 'Icons'));
-  picker.append(...panes.map((p) => p.col));
+  // Default icons (the vendored set and the glyphs) come first, so the Icon A and Icon B lists start level. Uploaded
+  // icons (the Icon library, Icon A only) go under both.
+  const defaults = el('div', 'sode-side__cols', ...panes.map((p) => p.col));
+  picker.append(el('span', 'sode-side__picker-h', 'Default icons'), defaults, ...(lib ? [lib.node] : []));
 
   let hidden = false;
   const hide = btn('pb-btn--outline pb-btn--sm', 'Hide text', () => setHideText(!hidden));
@@ -144,6 +145,9 @@ export function createArtControl({ ed, icons = false, set, setB, setHideText }) 
   let last = null; // update's arguments, so a library delete can draw the preview again
   const control = {
     node,
+    openPicker() {
+      if (picker.hidden && !choose.disabled) choose.click();
+    },
     // drawn: the cell shows artwork, its own or its item's default, so Hide text applies.
     update(o) {
       last = o;
