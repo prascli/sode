@@ -82,5 +82,6 @@ func TestChromeEditorFindHover(t *testing.T) {
 	b.call("Input.dispatchMouseEvent", map[string]any{"type": "mousePressed", "x": x2 + 2, "y": y2, "button": "left", "clickCount": 1})
 	b.call("Input.dispatchMouseEvent", map[string]any{"type": "mouseReleased", "x": x2 + 2, "y": y2, "button": "left", "clickCount": 1})
 	b.waitFor("the click placed that row", fmt.Sprintf(`[...document.querySelectorAll('.sode-ed__sq .sode-ed__text')].some((n) => n.textContent === %q)`, want))
+	b.waitFor("the next result is highlighted and Find keeps the box", `hi() === '3' && document.activeElement === document.querySelector('.sode-find input')`)
 	b.check()
 }

@@ -28,10 +28,19 @@ import {
 } from './panelkeyrules.js';
 import { linkFor } from './panellink.js';
 import { linkBase, shareHostField } from './sharehost.js';
+import { isLoopback } from './sharehostrules.js';
 import { linkRow } from './panellinkrow.js';
 import { isPublic } from './panelsrules.js';
 
 const COPIED_MS = 2000;
+// A link built on a localhost page before an address for other devices was given (sharehost.js).
+const localLink = (link) => {
+  try {
+    return isLoopback(new URL(link, document.baseURI).hostname);
+  } catch {
+    return false;
+  }
+};
 const REFRESH_MS = 5000; // how often the list asks again, so Online follows the instances
 const FAIL = Symbol('failed'); // a call that said why in the note
 
@@ -253,7 +262,11 @@ shareTabs.push(({ panel, api }) => {
         el(
           'div',
           'sode__secret',
-          el('p', 'sode__hint', `Open this link on the device for ${name}.`),
+          el(
+            'p',
+            'sode__hint',
+            `Open this link on the device for ${name}.${localLink(link) ? ' This address works only on this computer. For another device, set its address under Link with key, then copy the link there.' : ''}`,
+          ),
           copyRow(link, { label: `Link for ${name}`, button: 'Copy link', what: 'link' }),
         ),
       ),

@@ -258,6 +258,7 @@ export function initFind(editor) {
     place(i);
   }
   function place(i) {
+    kept = -1;
     const g = editor.grid();
     const plan = planFor(i);
     if (!plan || !plan.slots.length) return;
