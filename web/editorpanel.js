@@ -11,6 +11,7 @@ import { createLevelBoxes } from './editorlevels.js';
 import { createSizeFields } from './editorsize.js';
 import { createFixedField } from './editorfixed.js';
 import { fixedDestsOf } from './panelrules.js';
+import { isGridPanel } from './gridpaneledges.js';
 
 const section = (title, ...kids) => el('section', 'sode-side__sec', el('h3', 'sode-side__h', title), ...kids);
 const select = (id, options) => {
@@ -42,7 +43,15 @@ export function createPanelTab(ed) {
   const linkBox = el('div');
   let linkOf = ''; // id and mode the link row was built for, so a refresh does not rebuild it under a hand
   const sizes = createSizeFields(ed);
-  const identity = section('Identity', field('ed-side-name', 'Name', name), slug.node, sizes.node, linkBox);
+  const type = select('ed-set-type', [
+    ['buttons', 'Buttons'],
+    ['grid', 'Grid'],
+  ]);
+  // Edits of the other type's parts go, so a save never sends a Buttons panel's edges.
+  type.select.addEventListener('change', () => ed.setFields({ type: type.select.value, sources: undefined, destinations: undefined }));
+  const typeNote = el('span', 'sode__hint');
+  const typeField = el('div', 'sode__field', Object.assign(el('label', null, 'Panel type'), { htmlFor: 'ed-set-type' }), type.node, typeNote);
+  const identity = section('Identity', field('ed-side-name', 'Name', name), typeField, slug.node, sizes.node, linkBox);
   identity.firstChild.replaceWith(el('div', 'sode-side__head', el('h3', 'sode-side__h', 'Identity'), ident));
 
   const size = el('input', 'pb-input sode-ed__num');
@@ -108,16 +117,21 @@ export function createPanelTab(ed) {
   const multiNote = el('span', 'sode__hint');
   multiNote.id = 'ed-multi-note';
   multi.append(multiNote);
+  const guardField = el('div', 'sode__field', el('span', 'sode__field-label', 'Take button behavior'), guard.node);
+  const resultText = toggle('resultText', 'Show the result as text on a Destination');
+  const wrapPages = toggle('wrapPages', 'Wrap between Pages', 'Next Page on the last Page goes to the first, and Previous Page on the first goes to the last.');
+  // Settings that only a Buttons panel uses; a Grid panel keeps them stored but does not show them.
+  const buttonsOnly = [sizes.node, guardField, fixed.node, multi, resultText, wrapPages];
   const behavior = section(
     'Behavior',
     el('div', 'sode__field', el('span', 'sode__field-label', 'Mode'), mode.node),
-    el('div', 'sode__field', el('span', 'sode__field-label', 'Take button behavior'), guard.node),
+    guardField,
     fixed.node,
     multi,
     levelField,
-    toggle('resultText', 'Show the result as text on a Destination'),
+    resultText,
     toggle('kiosk', 'Kiosk mode'),
-    toggle('wrapPages', 'Wrap between Pages', 'Next Page on the last Page goes to the first, and Previous Page on the first goes to the last.'),
+    wrapPages,
   );
 
   const feel = featureSupport(navigator);
@@ -147,6 +161,11 @@ export function createPanelTab(ed) {
       if (document.activeElement !== name) name.value = $('ed-name').value;
       name.disabled = ro;
       slug.update();
+      const grid = isGridPanel(ed.fields());
+      type.select.value = grid ? 'grid' : 'buttons';
+      type.select.disabled = ro || !!p;
+      typeNote.textContent = p ? 'The type stays as the panel was made.' : 'You cannot change the type after the first save.';
+      for (const n of buttonsOnly) n.hidden = grid;
       ident.replaceChildren(...(p ? [`Id ${p.id}`, el('br'), `Owned by user "${p.owner}"`] : ['Not saved yet.']));
       const want = p ? `${p.id}|${p.acts}|${p.slug || ''}` : '';
       if (want !== linkOf) {
