@@ -32,10 +32,12 @@ type GridEdge struct {
 	Items map[string]GridItem `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
-// GridItem is the settings of one source or destination on a Grid panel. Art has the form of a cell's art.
+// GridItem is the settings of one source or destination on a Grid panel. Art and ArtB have the form of a cell's.
+// There is no Hide text: a name always shows as text.
 type GridItem struct {
 	Pinned bool   `yaml:"pinned,omitempty" json:"pinned,omitempty"`
 	Art    string `yaml:"art,omitempty" json:"art,omitempty"`
+	ArtB   string `yaml:"artB,omitempty" json:"artB,omitempty"`
 }
 
 // GridMembers is "all" (router order, following the router) or an explicit list of router numbers in panel order.

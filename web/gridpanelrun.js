@@ -3,6 +3,8 @@
 // The rules are pure modules (gridpanel*.js); this file joins them to the DOM.
 import { envFrom, namesFrom } from './panelrules.js';
 import { gridAxes } from './gridpaneledges.js';
+import { nameArt } from './gridpanelart.js';
+import { defaultsBy } from './panellook.js';
 import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
 import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
@@ -57,6 +59,38 @@ export function gridBody(ctx, first) {
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
 
+  // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
+  const images = new Map(); // artwork id -> { url, type }, or null while it loads or after it failed
+  let stopped = false;
+  const imageOf = (id) => {
+    if (!images.has(id)) {
+      images.set(id, null);
+      ctx.art?.look(id).then((l) => {
+        if (!l || stopped) return;
+        images.set(id, l);
+        render();
+      });
+    }
+    return images.get(id);
+  };
+  let defaultsFor = null; // the artDefaults list that defaults was made from
+  let defaults = new Map();
+  function nameArtOf(kind, n) {
+    if (defaultsFor !== panel.artDefaults) {
+      defaultsFor = panel.artDefaults;
+      defaults = defaultsBy(defaultsFor);
+    }
+    const art = nameArt(kind === 'source' ? panel.sources : panel.destinations, kind, n, defaults);
+    if (!art) return null;
+    const out = { b: art.b };
+    if (art.a?.icon) out.icon = art.a.icon;
+    else if (art.a) {
+      const l = imageOf(art.a.id);
+      if (l) out[art.a.lib && l.type.startsWith('image/svg+xml') ? 'mask' : 'url'] = l.url;
+    }
+    return out;
+  }
+
   // What the last polls said, for the staged routes that no longer apply.
   const world = () => ({ env, rights: panel.rights, names: namesReply });
   const staged = (s, d) => st.staged.filter((x) => x.src === s && x.dst === d).map((x) => x.level);
@@ -73,6 +107,7 @@ export function gridBody(ctx, first) {
     picked: (kind, n) => picks[kind].includes(n),
     leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
     protected: (d) => env.protectedDsts.has(d),
+    art: (kind, n) => nameArtOf(kind, n),
     other(d) {
       const o = otherSources(env, d, shownSrcs);
       return { text: otherText(o, names), tip: o.length ? `Not on this panel: ${o.map((x) => names.source(x)).join(', ')}` : '' };
@@ -276,6 +311,7 @@ export function gridBody(ctx, first) {
       render();
     },
     stop() {
+      stopped = true;
       document.removeEventListener('keydown', onKey, true);
       g?.stop();
       count.remove();
