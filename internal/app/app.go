@@ -251,9 +251,10 @@ func (a *App) Run(ctx context.Context) {
 	link, cut := context.WithCancel(context.WithoutCancel(ctx))
 	go a.sw.Run(link)
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 	go func() { defer wg.Done(); a.logSent(link) }()
 	go func() { defer wg.Done(); a.up.Run(link) }()
+	go func() { defer wg.Done(); a.mon.runFile(link) }()
 	defer func() { cut(); wg.Wait(); a.up.Stop() }()
 	a.lateQ = make(chan lateJob, 64)
 	go a.lateWorker(link)
