@@ -85,11 +85,12 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 
 ### Picks, Diagonals and Drawn lines
 
-- A click on a name picks it. Shift-click picks a range, and Cmd or Ctrl-click adds or removes one. Picking stages nothing. The header shows the number of staged routes.
+- A click on a name picks it. Shift-click picks a range, and Cmd or Ctrl-click adds or removes one. A mouse drag along a bar picks the names from the press to the pointer. With Cmd or Ctrl held, it adds them to the picks. Picking stages nothing. The header shows the number of staged routes.
 - A crosspoint press with names picked stages a Diagonal. It pairs the picked sources with the picked destinations in order, from that crosspoint, and stops at the last shown destination. The crosspoints that it will stage show numbered before the press.
 - A Diagonal and a Drawn line skip protected destinations. If every target is protected, the press stages nothing and says why.
-- A Drawn line is a drag across the crosspoints (a long-press and drag on touch, or `v` and the cursor keys). It stages one route for each destination row that it crosses. With no names picked, the line snaps to evenly spaced targets, and the preview shows the snapped line. A line of more than one route always opens the confirm.
+- A Drawn line is a drag across the crosspoints (a long-press and drag on touch, or `v` and the cursor keys). It stages one route for each destination row that it crosses. With no names picked, the line snaps to evenly spaced targets, and the preview shows the snapped line. On release the line goes and its routes stage, as a Diagonal does. Take mode only stages them. Instant mode opens the confirm for more than one route.
 - A live update, or a Filter that changes the shown names, ends a Drawn line in progress.
+- Two or more names can be picked on a bar, with the cursor on one of them. Then a move into the crosspoints goes to the first picked name. So a range picked with Shift moves numbers from its start.
 
 ### Find and Filter
 

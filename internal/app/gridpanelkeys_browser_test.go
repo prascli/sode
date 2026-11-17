@@ -28,8 +28,8 @@ func realKeyMods(b *tab, key, code string, vk, mods int) {
 	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": key, "code": code, "windowsVirtualKeyCode": vk, "modifiers": mods})
 }
 
-// Picks by keys: Space picks a name on the Source bar, Shift+l extends the range, and Space on a crosspoint stages the
-// Diagonal. A focused header button keeps its own Space. ? opens the key list and Esc closes it.
+// Picks by keys: Space picks a name on the Source bar and Shift+l extends the range. j into the grid goes to the
+// range's start, and Space on a crosspoint stages the Diagonal. A focused header button keeps its own Space. ? opens the key list and Esc closes it.
 func TestChromeGridPanelKeys(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -66,10 +66,9 @@ func TestChromeGridPanelKeys(t *testing.T) {
 	b.waitFor("x adds it again", src(3)+`.dataset.picked === ''`)
 	b.shot("picked")
 
+	// The cursor is on the range's end (column 3). Into the grid it goes to the range's start.
 	realKey(b, "j", "KeyJ", 74)
-	realKey(b, "h", "KeyH", 72)
-	realKey(b, "h", "KeyH", 72)
-	gridCursorOn(b, "onto the crosspoints", 0, 1)
+	gridCursorOn(b, "j from the picked range goes to its first column", 0, 1)
 	realKey(b, " ", "Space", 32)
 	staged := func(s, d int) string { return gridXp(s, d) + `.dataset.s === 'staged'` }
 	b.waitFor("Space stages the Diagonal", staged(1, 0)+` && `+staged(2, 1)+` && `+staged(3, 2))
@@ -105,5 +104,20 @@ func TestChromeGridPanelKeys(t *testing.T) {
 	tallyHas(t, a, ana, 0, 1)
 	tallyHas(t, a, ana, 1, 2)
 	tallyHas(t, a, ana, 2, 3)
+
+	// The same on the Destination bar: rows 1 to 3 picked down the bar, and l goes back to row 1.
+	realKey(b, "Escape", "Escape", 27)
+	b.waitFor("Esc drops the picks", `!document.querySelector('[data-picked]')`)
+	realKey(b, "Home", "Home", 36)
+	realKey(b, "j", "KeyJ", 74)
+	realKey(b, "j", "KeyJ", 74)
+	gridCursorOn(b, "on the Destination bar", 1, -1)
+	realKey(b, " ", "Space", 32)
+	realKeyMods(b, "J", "KeyJ", 74, modShift)
+	realKeyMods(b, "J", "KeyJ", 74, modShift)
+	gridCursorOn(b, "Shift+j goes down the bar", 3, -1)
+	b.waitFor("three destinations picked", `document.querySelectorAll('.sode-gridpanel__dst[data-picked]:not([hidden])').length === 3`)
+	realKey(b, "l", "KeyL", 76)
+	gridCursorOn(b, "l from the picked range goes to its first row", 1, 0)
 	b.check()
 }
