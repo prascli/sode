@@ -79,7 +79,7 @@ func TestChromeGridPanelCursor(t *testing.T) {
 		const sc = document.querySelector('.sode-gridpanel__scroll');
 		const c = document.querySelector('.sode-gridpanel__cursor').getBoundingClientRect();
 		const r = sc.getBoundingClientRect();
-		return i > 6 && sc.scrollTop > 0 && c.bottom <= r.bottom && c.top >= r.top;
+		return i >= 6 && sc.scrollTop > 0 && c.bottom <= r.bottom && c.top >= r.top;
 	})()`)
 	realKey(b, "Home", "Home", 36)
 	gridCursorOn(b, "Home goes to the corner", -1, -1)

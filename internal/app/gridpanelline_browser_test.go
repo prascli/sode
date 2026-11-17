@@ -20,6 +20,8 @@ func TestChromeGridPanelLine(t *testing.T) {
 	a.router.protect[3] = map[int]int{1: 9}
 	a.mu.Unlock()
 
+	// Tall enough that destination 4 is clear of the edge zone, where a drag scrolls the grid.
+	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1280, "height": 900, "deviceScaleFactor": 1, "mobile": false})
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(7, 4)+` !== null`)
