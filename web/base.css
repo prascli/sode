@@ -994,10 +994,14 @@ html[data-shift] .sode__next > .sode__next-open {
   padding-top: var(--pb-space-5);
 }
 
-/* An open dialog keeps the page behind it still: wheel and touch over the scrim must not scroll Settings. */
+/* An open dialog keeps the page behind it still: wheel and touch over the scrim must not scroll Settings.
+   The lock goes on body, which passes it to the viewport. Overflow on html would stop that, and body (height:100% in
+   patchbay) would scroll on its own, so the page's scroll range would shrink and Settings would jump up. */
 html:has(.sode__scrim:not([hidden])) {
-  overflow: hidden;
   scrollbar-gutter: stable;
+}
+html:has(.sode__scrim:not([hidden])) > body {
+  overflow-y: hidden;
 }
 .sode__scrim .pb-modal__body {
   overscroll-behavior: contain;
