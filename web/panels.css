@@ -1695,7 +1695,7 @@ body {
 .sode-ed__name-text {
   font-size: var(--pb-text-md);
 }
-/* A Grid panel's picture (panelsrules.js gridThumbCells): the role colours of the grid's bars, a field and routes. */
+/* A Grid panel's picture (panelsrules.js gridThumb): the role colours of the grid's bars, a field and routes. */
 .sode-ov__thumb--grid .sode-ov__k-source {
   background: var(--pb-source);
 }
