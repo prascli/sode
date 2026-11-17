@@ -1,10 +1,10 @@
 // Add from the router, under a Grid panel's Sources or Destinations list: the router's items the panel does not have,
-// narrowed by Find. A click adds one item; Shift-click and Cmd-click select several for Add. Only the rows in view
-// have nodes, since a router can have thousands. Rules are editorgridrules.js.
+// narrowed by Find. One highlight, moved by the arrows; hover does not move it. Only the rows in view have nodes,
+// since a router can have thousands. Rules are editorgridrules.js.
 import { el, icon } from './core.js';
 import { btn } from './formbits.js';
 import { axisSpan, spanMax, OVER } from './gridpanelwindow.js';
-import { routerRows, findRows, selectRows, addItems } from './editorgridrules.js';
+import { routerRows, findRows, addItems } from './editorgridrules.js';
 
 const ROW_REM = 2; // keep in step with .sode-rlist__row in panels.css
 
@@ -15,36 +15,35 @@ export function createRouterList(o) {
   find.id = `ed-${key}-find`;
   find.type = 'search';
   find.autocomplete = 'off';
+  find.spellcheck = false;
   find.placeholder = 'Find: name, 12 or 101-140';
+  find.setAttribute('role', 'combobox');
+  find.setAttribute('aria-expanded', 'true');
+  find.setAttribute('aria-controls', `ed-${key}-router`);
   find.setAttribute('aria-label', `Find ${what}s on the router`);
-  find.dataset.pbTip = 'Numbers are as shown. Enter selects every row shown.';
-  const shownNote = el('p', 'sode__hint');
-  shownNote.id = `ed-${key}-shown`;
+  find.dataset.pbTip = 'Enter adds the highlighted one, Shift+Enter adds every match. Up and Down move the highlight.';
+  const count = el('span', 'sode-edge__count');
+  count.id = `ed-${key}-shown`;
+  const addAll = btn('pb-btn--outline pb-btn--sm', '', () => addMatches());
+  addAll.id = `ed-${key}-add`;
+  addAll.dataset.pbTip = `Adds every match at the end of the list, in router order (Shift+Enter).`;
   const box = el('div', 'sode-rlist');
   box.id = `ed-${key}-router`;
   box.setAttribute('role', 'listbox');
-  box.setAttribute('aria-multiselectable', 'true');
   box.setAttribute('aria-label', `${what[0].toUpperCase()}${what.slice(1)}s on the router`);
   const field = el('div', 'sode-rlist__field');
   box.append(field);
-  const selNote = el('p', 'sode__hint');
-  selNote.id = `ed-${key}-selected`;
-  selNote.setAttribute('role', 'status');
-  const all = btn('pb-btn--outline pb-btn--sm', 'Select shown', () => selectShown());
-  all.id = `ed-${key}-selectshown`;
-  const none = btn('pb-btn--outline pb-btn--sm', 'Select none', () => setSel({ selected: new Set(), anchor: null }));
-  none.id = `ed-${key}-selectnone`;
-  const add = btn('pb-btn--ok pb-btn--sm', 'Add', () => {
-    o.set(addItems(o.edge(), o.router(), sel.selected));
-    setSel({ selected: new Set(), anchor: null });
-  });
-  add.id = `ed-${key}-add`;
-  add.dataset.pbTip = `Adds the selected ${what}s at the end of the panel's list, in router order.`;
-  const tip = el('p', 'sode__hint', `Click a ${what} to add it. Shift-click and Cmd-click select several.`);
-  const node = el('div', 'sode-rlist__wrap', find, shownNote, box, tip, el('div', 'sode-edge__acts', add, all, none), selNote);
+  const search = el('div', 'pb-input-group sode-rlist__find', find, el('span', 'pb-input-group__addon', icon('search')));
+  const node = el(
+    'section',
+    'sode-edge__part sode-edge__add',
+    el('div', 'sode-edge__head', el('h3', 'sode-edge__h3', 'Add from the router', count)),
+    el('div', 'sode-rlist__bar', search, addAll),
+    box,
+  );
 
-  let sel = { selected: new Set(), anchor: null };
   let text = '';
+  let hi = 0; // the highlighted row, an index in shown
   let rows = [];
   let shown = [];
   let rowsKey = [];
@@ -64,6 +63,8 @@ export function createRouterList(o) {
       shownKey = s;
       shown = findRows(rows, text, s[2]);
     }
+    // An add takes the row out, so the next one slides into the highlight.
+    hi = Math.max(0, Math.min(hi, shown.length - 1));
   }
 
   function makeRow() {
@@ -82,20 +83,23 @@ export function createRouterList(o) {
     rowPx = parseFloat(getComputedStyle(document.documentElement).fontSize) * ROW_REM || rowPx;
     const view = box.clientHeight;
     field.style.setProperty('--sode-rows', String(shown.length));
+    find.removeAttribute('aria-activedescendant');
     if (!view || !rowPx) return;
     const axis = { n: shown.length, pins: 0, size: rowPx, head: 0, offset: box.scrollTop, view, over: OVER };
     const need = spanMax(axis);
     while (pool.length < need) pool.push(makeRow());
-    const { lo, hi } = axisSpan(axis);
+    const { lo, hi: end } = axisSpan(axis);
     const off = o.off();
     pool.forEach((r, k) => {
       const i = lo + k;
-      const row = i < hi ? shown[i] : null;
+      const row = i < end ? shown[i] : null;
       r.hidden = !row;
       if (!row) return r.removeAttribute('data-n');
       r.dataset.n = String(row.n);
+      r.id = `ed-${key}-opt-${row.n}`;
       r.style.setProperty('--sode-i', String(i));
-      r.setAttribute('aria-selected', String(sel.selected.has(row.n)));
+      r.setAttribute('aria-selected', String(i === hi));
+      if (i === hi) find.setAttribute('aria-activedescendant', r.id);
       const t = texts.get(r);
       setText(t.num, String(row.n + off));
       setText(t.name, row.name || `${what} ${row.n + off}`);
@@ -104,17 +108,10 @@ export function createRouterList(o) {
   const setText = (t, s) => t.data !== s && (t.data = s);
 
   function drawState() {
-    const ro = o.readOnly();
-    shownNote.textContent = text ? `${shown.length} of ${rows.length} shown.` : `${rows.length} not on the panel.`;
-    const has = new Set(shown.map((r) => r.n));
-    const out = new Set(rows.map((r) => r.n));
-    const hidden = [...sel.selected].filter((n) => !has.has(n)).length;
-    const fresh = [...sel.selected].filter((n) => out.has(n)).length;
-    selNote.textContent = sel.selected.size ? `${sel.selected.size} selected${hidden ? `, ${hidden} not shown` : ''}.` : '';
-    add.textContent = fresh ? `Add ${fresh}` : 'Add';
-    add.disabled = ro || !fresh;
-    all.disabled = !shown.length;
-    none.disabled = !sel.selected.size;
+    count.textContent = text ? `${shown.length} of ${rows.length}` : String(rows.length);
+    addAll.hidden = !text || !shown.length;
+    addAll.textContent = `Add all ${shown.length}`;
+    addAll.disabled = o.readOnly();
   }
 
   function paint() {
@@ -123,39 +120,46 @@ export function createRouterList(o) {
     drawState();
   }
 
-  function setSel(next) {
-    sel = next;
-    drawRows();
-    drawState();
+  const add = (ns) => o.readOnly() || o.set(addItems(o.edge(), o.router(), new Set(ns)));
+  function addMatches() {
+    if (text && shown.length) add(shown.map((r) => r.n));
   }
 
-  function selectShown() {
-    setSel({ selected: new Set([...sel.selected, ...shown.map((r) => r.n)]), anchor: sel.anchor });
+  // Scrolls the least that shows the highlighted row.
+  function reveal() {
+    const top = hi * rowPx;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (top + rowPx > box.scrollTop + box.clientHeight) box.scrollTop = top + rowPx - box.clientHeight;
+    drawRows();
   }
 
   find.addEventListener('input', () => {
     text = find.value;
+    hi = 0;
     box.scrollTop = 0;
     paint();
   });
   find.addEventListener('keydown', (e) => {
+    if (e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+    const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 10, PageUp: -10 }[e.key];
+    if (step && shown.length) {
+      e.preventDefault();
+      hi = Math.max(0, Math.min(shown.length - 1, hi + step));
+      return reveal();
+    }
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    selectShown();
+    if (e.shiftKey) return addMatches();
+    if (shown[hi]) add([shown[hi].n]);
   });
-  // Shift-click would also mark the page's text.
-  box.addEventListener('mousedown', (e) => e.shiftKey && e.preventDefault());
   box.addEventListener('click', (e) => {
     const r = e.target.closest('[data-n]');
     if (!r) return;
-    const n = Number(r.dataset.n);
-    if (e.shiftKey || e.metaKey || e.ctrlKey) return setSel(selectRows(sel, shown, n, { shift: e.shiftKey, toggle: e.metaKey || e.ctrlKey }));
-    if (o.readOnly()) return;
-    o.set(addItems(o.edge(), o.router(), new Set([n])));
-    sel.selected.delete(n);
+    hi = Number(r.style.getPropertyValue('--sode-i')) || 0;
+    add([Number(r.dataset.n)]);
   });
   box.addEventListener('scroll', drawRows, { passive: true });
-  // The tab is hidden until opened, and a hidden list has no height to fill.
+  // A list with no height yet (a Buttons panel, or before layout) draws nothing until it has one.
   new ResizeObserver(drawRows).observe(box);
 
   return { node, paint };

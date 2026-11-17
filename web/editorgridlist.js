@@ -1,7 +1,6 @@
-// A Grid panel's Sources or Destinations list in the editor: the panel's items in list order, each with a grip, Pin,
-// Move and Remove. Add from the router is under it (editorrouterlist.js). Pin, Move and Remove act on every selected
-// row; the Cell tab sets the selected rows' artwork (editorcell.js). Rules are editorgridrules.js; each edit is one
-// ed.setFields of the edge.
+// A Grid panel's Sources or Destinations list in the editor: the panel's items in list order. Each row has a grip,
+// Pin, Move and Remove. Add from the router is under it (editorrouterlist.js). The bar's buttons act on every selected row; the
+// Cell tab sets their artwork through art(). Rules are editorgridrules.js; each edit is one ed.setFields of the edge.
 import { el, icon } from './core.js';
 import { axisSpan, OVER } from './gridpanelwindow.js';
 import { btn } from './formbits.js';
@@ -11,13 +10,29 @@ import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { artNode } from './panelview.js';
 import { plural } from './gridclip.js';
-import { edgeRows, moveRow, clearEdge, followRouter, selectRows, moveRows, stepRows, pinItems, removeItems, edgeListKey, PINS_MAX } from './editorgridrules.js';
+import {
+  edgeRows,
+  moveRow,
+  clearEdge,
+  followRouter,
+  stopFollowing,
+  selectRows,
+  moveRows,
+  stepRows,
+  pinItems,
+  removeItems,
+  itemsArt,
+  drawnOrder,
+  edgeListKey,
+  PINS_MAX,
+} from './editorgridrules.js';
 
 const FIRST = 30; // rows drawn before the list has a height
 const NONE = () => ({ selected: new Set(), anchor: null });
+const MOVE_KEYS = { top: 'Alt+Home', up: 'Alt+Up, Ctrl+Up or Cmd+Shift+Up', down: 'Alt+Down, Ctrl+Down or Cmd+Shift+Down', end: 'Alt+End' };
 
 // key is the panel field and the /names list ('sources' or 'destinations'). rights is the Rights key, what the item
-// word, side the edge of the grid it is drawn on. onPick runs when the selection changes.
+// word, side the edge of the grid it is drawn on. onPick(list) runs when the selection changes.
 export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   const edge = () => ed.fields()[key];
   const router = () => ed.routerNames()?.[key] || [];
@@ -25,19 +40,31 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   const Whats = `${what[0].toUpperCase()}${what.slice(1)}s`;
 
   const count = el('span', 'sode-edge__count');
-  const state = el('p', 'sode__hint');
-  state.id = `ed-${key}-state`;
-  const outside = el('p', 'sode__hint');
-  outside.id = `ed-${key}-outside`;
+  count.id = `ed-${key}-state`;
+  const follow = el('input', 'pb-switch__input');
+  follow.type = 'checkbox';
+  follow.id = `ed-${key}-all`;
+  follow.setAttribute('role', 'switch');
+  follow.addEventListener('change', () => set(follow.checked ? followRouter(edge()) : stopFollowing(edge(), router())));
+  const followBox = el('label', 'pb-check sode-edge__follow', follow, el('span', 'pb-check__label', 'Follow the router (all)'));
+  followBox.dataset.pbTip = `On: every ${what} the router has, in router order, and the ones it adds later. Off: the list keeps what it shows now.`;
   const clear = btn('pb-btn--outline pb-btn--sm', 'Clear', () => set(clearEdge(edge(), myRights(), rights)));
   clear.id = `ed-${key}-clear`;
-  const all = btn('pb-btn--outline pb-btn--sm', 'All (follow router)', () => set(followRouter(edge())));
-  all.id = `ed-${key}-all`;
-  all.dataset.pbTip = `Shows every ${what} the router has, in router order, and the ones the router adds later.`;
+  clear.dataset.pbTip = `Takes every ${what} off the panel.`;
+  const outside = el('p', 'sode__hint');
+  outside.id = `ed-${key}-outside`;
   const list = el('ol', 'sode-pages__list sode-edge__list');
   list.id = `ed-${key}-list`;
   list.tabIndex = 0;
-  list.setAttribute('aria-label', `${Whats} on the panel`);
+  list.setAttribute('aria-label', `${Whats} on the panel, ${side}`);
+  list.setAttribute('aria-multiselectable', 'true');
+  const empty = el(
+    'div',
+    'pb-empty sode-edge__empty',
+    el('p', 'pb-empty__title', `No ${what}s yet`),
+    el('p', 'pb-empty__msg', 'Add them from the router, or switch on Follow the router.'),
+  );
+  empty.id = `ed-${key}-empty`;
   const routerList = createRouterList({
     key,
     what,
@@ -55,20 +82,15 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   let cur = null;
   const many = () => sel.selected;
 
-  const selNote = el('p', 'sode__hint');
+  const selNote = el('span', 'sode-edge__sel');
   selNote.id = `ed-${key}-sel`;
   selNote.setAttribute('role', 'status');
-  const selBtn = (id, text, tip, fn) => {
-    const b = btn('pb-btn--outline pb-btn--sm', text, fn);
-    b.id = `ed-${key}-sel-${id}`;
-    if (tip) b.dataset.pbTip = tip;
-    return b;
-  };
-  const moveBtn = (id, name, tip, dir) => {
-    const b = btn('pb-btn--ghost pb-btn--icon pb-btn--sm', '', () => moveSel(dir));
+  selNote.dataset.pbTip = 'Click selects a row, Shift-click a range, Cmd- or Ctrl-click one more. In the list, Ctrl+A selects all and Esc none.';
+  const barBtn = (id, name, tip, fn) => {
+    const b = btn('pb-btn--ghost pb-btn--icon pb-btn--sm', '', fn);
     b.append(icon(name));
     b.id = `ed-${key}-sel-${id}`;
-    b.setAttribute('aria-label', tip);
+    b.setAttribute('aria-label', tip.replace(/ \(.*\)$/, ''));
     b.dataset.pbTip = tip;
     return b;
   };
@@ -77,38 +99,34 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     set(removeItems(edge(), many()));
     setSel(NONE());
   };
-  const selPin = selBtn('pin', 'Pin', `Pins the selected rows in list order, to at most ${PINS_MAX}.`, () => pinSel(true));
-  const selUnpin = selBtn('unpin', 'Unpin', '', () => pinSel(false));
-  const selRemove = selBtn('remove', 'Remove', 'Takes the selected rows off the panel.', removeSel);
-  const selAll = selBtn('all', 'Select all', 'Ctrl+A in the list.', () => setSel({ selected: new Set(shown.map((r) => r.n)), anchor: sel.anchor }));
-  const selNone = selBtn('none', 'Select none', 'Esc in the list.', () => setSel(NONE()));
+  const selPin = barBtn('pin', 'pin', `Pin, in list order, to at most ${PINS_MAX}`, () => pinSel(true));
+  const selUnpin = barBtn('unpin', 'pin-off', 'Unpin', () => pinSel(false));
   const moves = [
-    moveBtn('top', 'arrow-up-to-line', 'Move to the top (Alt+Home)', 'top'),
-    moveBtn('up', 'arrow-up', 'Move up (Alt+Up or Cmd+Shift+Up)', 'up'),
-    moveBtn('down', 'arrow-down', 'Move down (Alt+Down or Cmd+Shift+Down)', 'down'),
-    moveBtn('end', 'arrow-down-to-line', 'Move to the end (Alt+End)', 'end'),
+    barBtn('top', 'arrow-up-to-line', `Move to the top (${MOVE_KEYS.top})`, () => moveSel('top')),
+    barBtn('up', 'arrow-up', `Move up (${MOVE_KEYS.up})`, () => moveSel('up')),
+    barBtn('down', 'arrow-down', `Move down (${MOVE_KEYS.down})`, () => moveSel('down')),
+    barBtn('end', 'arrow-down-to-line', `Move to the end (${MOVE_KEYS.end})`, () => moveSel('end')),
   ];
-  const head = el(
-    'div',
-    'sode-edge__head',
-    el('h2', 'sode-edge__h', Whats, count),
-    el('span', 'sode__hint', side),
-    el('span', 'sode-panels__spacer'),
-    el('span', 'sode-edge__group', all, clear),
-  );
+  const selRemove = barBtn('remove', 'trash-2', 'Remove from the panel', removeSel);
   const acts = el(
     'div',
     'sode-edge__acts',
-    selAll,
-    selNone,
-    el('span', 'sode-edge__sep'),
+    selNote,
+    el('span', 'sode-panels__spacer'),
     selPin,
     selUnpin,
-    el('span', 'sode-edge__group', ...moves),
+    el('span', 'sode-edge__sep'),
+    ...moves,
+    el('span', 'sode-edge__sep'),
     selRemove,
   );
-  const add = el('section', 'sode-edge__add', el('h3', 'sode-side__h', 'Add from the router'), routerList.node);
-  const node = el('section', 'sode-edge', head, state, outside, acts, selNote, list, add);
+  acts.id = `ed-${key}-acts`;
+  acts.setAttribute('role', 'toolbar');
+  acts.setAttribute('aria-label', `Selected ${what}s`);
+  const head = el('div', 'sode-edge__head', el('h2', 'sode-edge__h', Whats, count), el('span', 'sode-panels__spacer'), followBox, clear);
+  const on = el('section', 'sode-edge__part sode-edge__on', acts, outside, list, empty);
+  on.setAttribute('aria-label', `${Whats} on the panel`);
+  const node = el('section', 'sode-edge', head, on, routerList.node);
   node.id = `ed-${key}-col`;
 
   let shown = [];
@@ -135,7 +153,6 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     },
     dragging: (i) => {
       dragged = i < 0 ? null : dragSet(i);
-      list.classList.toggle('is-dragging', !!dragged);
       for (const li of made.values()) markRow(li);
     },
     remove: (i) => {
@@ -152,7 +169,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     sel = next;
     if (!keepCur) cur = sel.anchor;
     drawSel();
-    onPick?.();
+    onPick?.(api);
   }
   function moveSel(dir) {
     if (!many().size) return;
@@ -164,10 +181,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   function drawSel() {
     const ro = ed.readOnly();
     const n = many().size;
-    selNote.textContent = n ? `${n} selected. The Cell tab sets their artwork.` : `Click a row to select it. Shift-click selects a range, Cmd-click one more.`;
+    selNote.textContent = `${n} selected`;
     for (const b of [selPin, selUnpin, selRemove, ...moves]) b.disabled = ro || !n;
-    selNone.disabled = !n;
-    selAll.disabled = !shown.length || n === shown.length;
     for (const li of made.values()) markRow(li);
   }
   function markRow(li) {
@@ -204,18 +219,19 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     // Rows that left the list leave the selection.
     if ([...sel.selected].some((x) => !at.has(x))) {
       sel = { selected: new Set([...sel.selected].filter((x) => at.has(x))), anchor: at.has(sel.anchor) ? sel.anchor : null };
-      queueMicrotask(() => onPick?.());
+      queueMicrotask(() => onPick?.(api));
     }
     if (!at.has(cur)) cur = sel.anchor;
-    count.textContent = String(v.rows.length);
-    state.textContent =
-      v.rows.length || v.all
-        ? `${plural(v.rows.length, what)}${v.all ? ', all from the router' : ''}. ${v.pins} of ${PINS_MAX} pinned.`
-        : `No ${what}s yet. Add them from the router below, or use All (follow router).`;
-    outside.textContent = v.outside ? `${v.outside} item${v.outside === 1 ? '' : 's'} outside your Rights, kept.` : '';
+    const n = v.rows.length;
+    count.textContent = v.pins ? `${n} · ${v.pins} pinned` : String(n);
+    count.dataset.pbTip = `${plural(n, what)}, ${v.pins} of ${PINS_MAX} pinned`;
+    outside.textContent = v.outside ? `${plural(v.outside, what)} outside your Rights, kept.` : '';
     outside.hidden = !v.outside;
-    clear.disabled = ro || (!v.all && !v.rows.length);
-    all.disabled = ro || v.all;
+    acts.hidden = list.hidden = !n;
+    empty.hidden = !!n;
+    clear.disabled = ro || (!v.all && !n);
+    follow.checked = v.all;
+    follow.disabled = ro;
     shownOff = off;
     shownRo = ro;
     shownFull = v.pins >= PINS_MAX;
@@ -345,14 +361,24 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   }).observe(list);
   onMyRights(() => paint());
 
-  return {
+  const api = {
     node,
-    update: () => paint(),
-    // The selected rows in list order, for the Cell tab.
-    picked: () => shown.filter((r) => many().has(r.n)),
-    edge,
-    set,
     what,
+    update: () => paint(),
+    // The selected rows in the order the panel page draws them, so an Icon B run goes down the page.
+    picked: () => drawnOrder(shown.filter((r) => many().has(r.n))),
+    item: (n) => edge()?.items?.[n] || {},
+    // One artwork choice (arttoolrules.js artRun) on the selected rows. Returns the rows past the end of an Icon B run.
+    art(choice) {
+      const out = itemsArt(
+        edge(),
+        api.picked().map((r) => r.n),
+        choice,
+      );
+      set(out.edge);
+      return out.left;
+    },
     clearPicks: () => many().size && setSel(NONE()),
   };
+  return api;
 }

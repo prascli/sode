@@ -700,19 +700,23 @@ export async function runEditor() {
   on('wsclose', () => note('offline'));
   // Names come from the REST read, which applies the user's Rights. The socket says when the router's names change,
   // so the cells and the Grid lists show a rename at once, as an open panel does.
+  // Returns false when the read was refused; the names already shown stay.
   async function readNames() {
     const next = await sessionFetch('api/v1/names').then((r) => (r.ok ? r.json() : null));
-    if (!next) return;
+    if (!next) return false;
     routerNames = next;
     names = namesFrom(routerNames);
+    return true;
   }
+  const namesFailed = () => say('ed-status', 'The new router names did not load. The editor shows the names it had.');
   on('names', () =>
     readNames()
-      .then(() => {
+      .then((ok) => {
+        if (!ok) return namesFailed();
         refresh();
         fieldsChanged();
       })
-      .catch(() => {}),
+      .catch(namesFailed),
   );
   startSession();
   show(null);

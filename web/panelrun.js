@@ -220,7 +220,9 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   const ctx = {
     ui,
     art,
-    embedded,
+    // The editor's live test gives a Grid panel the page's header parts (panelmount.js liveUi), so the grid runs as
+    // on its own page. The run stays embedded all the same: no key, no instance, no keepalive.
+    embedded: embedded && !(isGridPanel(panel) && ui.name),
     page,
     id,
     call,

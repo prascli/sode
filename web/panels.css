@@ -953,6 +953,21 @@ body {
 .sode-live .sode-panel__offline-title {
   font-size: 3rem;
 }
+/* A Grid panel runs as on /panels/<id>: the editor's own bars hide and the run fills the window. gridpanel.css lays
+   out .sode-panels:has(.sode-gridpanel), which is the editor's main here. */
+.sode-ed:has(> #ed-live-view .sode-gridpanel) {
+  padding-bottom: 0;
+}
+.sode-ed:has(> #ed-live-view .sode-gridpanel) > :not(#ed-live-view) {
+  display: none;
+}
+:is(#ed-live-view, .sode-live):has(.sode-gridpanel) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
 /* The editor's sidebar (editorside.js). Artwork in a square sits dimmed behind its caption, as on the panel page. */
 .sode-ed__body {
   align-items: start;
@@ -986,65 +1001,143 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-/* One list (editorgridlist.js): its head, the selection bar, the panel's items and Add from the router. */
+/* On a desktop the Grid editor is one window high and the page does not scroll. Each list column has fixed shares
+   for the panel's list and Add from the router, each scrolling inside, so an add never moves the rows under the
+   pointer. The status line keeps its height for the same reason. */
+@media (min-width: 64.0625rem) {
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] {
+    box-sizing: border-box;
+    height: 100dvh;
+    padding-bottom: var(--pb-space-5);
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] > #ed-status {
+    min-height: 1lh;
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] > #ed-status[hidden] {
+    display: block;
+    visibility: hidden;
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] .sode-ed__body {
+    align-items: stretch;
+    flex: 1 1 0;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] .sode-ed__lists {
+    align-items: stretch;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] .sode-ed__side {
+    align-self: start;
+    max-height: min(85dvh, 100%);
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] .sode-edge__on {
+    flex: 3 1 0;
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] .sode-edge__add {
+    flex: 2 1 0;
+  }
+  :root:not([data-layout="phone"]) .sode-ed[data-type="grid"] :is(.sode-edge__list, .sode-rlist) {
+    flex: 1 1 0;
+    height: auto;
+    max-height: none;
+  }
+}
+/* One list (editorgridlist.js): its head, the panel's items with their bar, and Add from the router. */
 .sode-edge {
   display: flex;
   flex-direction: column;
-  gap: var(--pb-space-3);
+  gap: var(--pb-space-5);
+  min-height: 0;
   min-width: 0;
 }
 .sode-edge__head {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
+  gap: var(--pb-space-3) var(--pb-space-4);
+  min-height: var(--pb-control-h);
+}
+.sode-edge__h,
+.sode-edge__h3 {
+  align-items: baseline;
+  display: flex;
   gap: var(--pb-space-3);
+  margin: 0;
 }
 .sode-edge__h {
-  align-items: center;
-  display: flex;
   font-size: var(--pb-text-lg);
   font-weight: var(--pb-weight-bold);
-  gap: var(--pb-space-2);
-  margin: 0;
+}
+.sode-edge__h3 {
+  font-size: var(--pb-text-md);
+  font-weight: var(--pb-weight-bold);
 }
 .sode-edge__count {
   color: var(--pb-text-muted);
   font-family: var(--pb-font-num);
   font-size: var(--pb-text-md);
-  font-weight: normal;
+  font-weight: var(--pb-weight-normal);
 }
-.sode-edge__group {
-  display: inline-flex;
-  gap: var(--pb-space-1);
+.sode-edge__follow {
+  font-size: var(--pb-text-sm);
 }
-.sode-edge__sep {
-  border-left: var(--pb-border-w) solid var(--pb-edge-soft);
-  margin-inline: var(--pb-space-1);
+.sode-edge__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-2);
+  min-height: 0;
 }
 .sode-edge__add {
   border-top: var(--pb-border-w) solid var(--pb-edge-soft);
-  display: flex;
-  flex-direction: column;
-  gap: var(--pb-space-2);
   padding-top: var(--pb-space-4);
 }
-.sode-edge__add .sode-side__h {
+/* The bar over the panel's list: the selection count, then icon buttons that act on the selection. */
+.sode-edge__acts {
+  align-items: center;
+  display: flex;
+  gap: var(--pb-space-1);
+}
+.sode-edge__sel {
+  color: var(--pb-text-muted);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-sm);
+}
+.sode-edge__sep {
+  align-self: stretch;
+  border-left: var(--pb-border-w) solid var(--pb-edge-soft);
+  margin-inline: var(--pb-space-1);
+}
+.sode-edge__empty {
+  background: var(--pb-surface-raised);
+  border: var(--pb-border-w) solid var(--pb-edge-soft);
+  flex: 1 1 auto;
+  justify-content: center;
+  text-align: center;
+}
+.sode-edge__empty > p {
   margin: 0;
 }
-.sode-rlist__wrap {
+:is(.sode-edge__acts, .sode-edge__list, .sode-edge__empty)[hidden] {
+  display: none;
+}
+.sode-rlist__bar {
+  align-items: center;
   display: flex;
-  flex-direction: column;
   gap: var(--pb-space-2);
+}
+.sode-rlist__find {
+  flex: 1 1 auto;
   min-width: 0;
 }
 .sode-rlist,
 .sode-edge__list {
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .sode-edge__list {
-  gap: 1px;
-  max-height: 50vh;
-  min-height: 6rem;
+  gap: var(--pb-border-w);
+  max-height: 24rem;
 }
 .sode-rlist {
   background: var(--pb-surface-raised);
@@ -1076,9 +1169,13 @@ body {
 .sode-rlist__row .pb-icon {
   color: var(--pb-text-muted);
 }
-.sode-rlist__row[aria-selected="true"] {
-  background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
+/* The highlight is what Enter adds, so it shows only while Find or the list has focus. */
+.sode-edge__add:focus-within .sode-rlist__row[aria-selected="true"] {
+  background: var(--pb-surface-hover);
   box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-accent);
+}
+.sode-edge__add:focus-within .sode-rlist__row[aria-selected="true"] .pb-icon {
+  color: var(--pb-accent);
 }
 .sode-rlist__row .sode-pages__name {
   flex: 1;
@@ -1149,11 +1246,6 @@ body {
 .sode-edge__list:focus-visible .sode-edge__row.is-cur {
   outline: 2px solid var(--pb-accent);
   outline-offset: -2px;
-}
-.sode-edge__acts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--pb-space-2);
 }
 .sode-ed__main {
   align-items: start;
@@ -1536,6 +1628,18 @@ body {
 }
 .sode-ed__side .sode__tabs {
   gap: var(--pb-space-4);
+}
+/* The level picker as in the main page's Levels box (desktop.css .sode__box--levels): when the sidebar is too narrow
+   for every level, the picks scroll sideways and Select All keeps its size beside them. */
+.sode-ed__side .sode__picker .sode__levels {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: var(--pb-space-1);
+}
+.sode-ed__side .sode__picker > .sode__all {
+  flex: none;
 }
 .sode-side__col-top {
   align-items: center;
