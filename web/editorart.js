@@ -42,7 +42,8 @@ export function artPane(name, choices, draw, pick) {
 }
 
 // opts: {ed, icons, set(value), setB(glyph), setHideText(on)}. update(value, caption, hideText, artB) repaints; the
-// preview shows the artwork row dimmed behind the caption. Hide text shows only when the cell has Icon A or B.
+// preview shows the artwork row dimmed behind the caption. Hide text shows only when the cell has Icon A or B, and
+// never for a hideText of null (a Grid panel's row has none).
 export function createArtControl({ ed, icons = false, set, setB, setHideText }) {
   const preview = el('div', 'sode-side__art');
   const note = el('p', 'sode__hint');
@@ -156,8 +157,8 @@ export function createArtControl({ ed, icons = false, set, setB, setHideText }) 
       const upload = panelImage(value);
       clearImage.disabled = ro || !upload;
       clearIcon.disabled = ro || !(shownB || (value && !upload));
-      hidden = hideText;
-      hide.hidden = !any && !drawn;
+      hidden = !!hideText;
+      hide.hidden = hideText === null || (!any && !drawn);
       hide.disabled = ro;
       hide.textContent = hideText ? 'Show text' : 'Hide text';
       for (const p of panes) for (const b of [p.none, ...p.grid.querySelectorAll('button')]) b.disabled = ro;
@@ -171,12 +172,12 @@ export function createArtControl({ ed, icons = false, set, setB, setHideText }) 
       shown = key;
       preview.replaceChildren();
       preview.hidden = !any;
-      preview.toggleAttribute('data-hide-text', hideText); // full strength, as the cell (panels.css)
+      preview.toggleAttribute('data-hide-text', !!hideText); // full strength, as the cell (panels.css)
       if (!any) return;
       const row = artNode({ art: value, artB: shownB }, ed.art());
       if (!row) return;
       preview.append(row);
-      if (!hideText)
+      if (!hideText && hideText !== null)
         preview.append(el('span', 'sode-side__art-text', caption || (artOf({ art: value })?.icon || artOf({ art: value })?.lib || shownB ? 'Caption' : '')));
     },
   };

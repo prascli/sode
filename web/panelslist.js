@@ -1,6 +1,7 @@
 // The panels page (/panels): a list on the left, the chosen panel on the right. Calls go over /api/v1
 // with the user's session key. The server decides what a user can see and change (canEdit).
 import { $, el, icon, on } from './core.js';
+import { sizeText } from './gridmodel.js';
 import { sessionFetch, jsonCall, startSession, signInAgain, onSessionKey } from './sessionkey.js';
 import { paintOnline, paintOpenNow, openNow, watchBox, MON_POLL_MS } from './panelsmon.js';
 import {
@@ -137,7 +138,7 @@ function detail(p) {
     el(
       'div',
       'sode-ov__big',
-      el('div', '', thumb(p), el('p', 'pb-hint', isGridPanel(p) ? gridSize(p) : `${p.rows} by ${p.cols} grid`)),
+      el('div', '', thumb(p), el('p', 'pb-hint', isGridPanel(p) ? gridSize(p) : sizeText(p.rows, p.cols))),
       el('div', 'sode-ov__pane', bar, kv, watchBox(p, setWatch), openNow(p, { setWatch, setHide, rename })),
     ),
   );

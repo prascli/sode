@@ -8,7 +8,7 @@ The panel page prototype is `git switch prototype/panels && node prototype/panel
 
 A panel is a Buttons panel or a Grid panel. The person who makes it chooses the type, and the type never changes (ADR 0011). A panel with no stored `type` is a Buttons panel. This file is about Buttons panels, except the Grid panels section. Authentication, the panels page, Monitoring and Push cover both types.
 
-A Buttons panel is a saved 4x8 grid of cells on its own URL (`/panels/<id>`, or `/panels/<slug>` when it has a short name). It drives the router through `/api/v1` only. 4x8 is the default size, chosen so that a panel maps one to one onto a hardware key deck later. Rows and columns become user settings, and merged cells stay inside the grid. The panels page `/panels` signs in like the rest of Sode and launches a user's panels. The editor, at `/panels/editor`, edits them live.
+A Buttons panel is a saved grid of cells on its own URL (`/panels/<id>`, or `/panels/<slug>` when it has a short name). The default size is 8 columns by 4 rows. It drives the router through `/api/v1` only. That size was chosen so that a panel maps one to one onto a hardware key deck later. Rows and columns become user settings, and merged cells stay inside the grid. The panels page `/panels` signs in like the rest of Sode and launches a user's panels. The editor, at `/panels/editor`, edits them live.
 
 Pages (ADR 0007): a panel holds `pages`, 1 to 16 Pages in order. Each Page has an id that never changes, an optional name of at most 40 characters, an enabled switch and its own `cells`. A Page with no name shows as "Page N". Every Page has the panel's size and shares its one plan.
 
@@ -120,12 +120,14 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 
 ### The editor
 
-- The Panel tab of a new panel has a Buttons or Grid choice. It is greyed after the first save. A Grid panel has Sources and Destinations tabs in place of the grid, the Cell tab and Templates. The Panel tab hides the settings that a Grid panel does not use. They are size, Take button behavior, Fixed destination, Stage several Destinations, result text and Wrap between Pages.
-- Each tab has the panel's list beside the router list. The panel's list shows the list order, not the drawn order, and marks pinned items with "pinned". Each row has Pin, Move up, Move down, Remove and Artwork. Clear empties the list. All (follow router) sets the edge back to `all`.
+- The Panel tab of a new panel has a Buttons or Grid switch. It is greyed after the first save. A new Grid panel has no sources and no destinations, as a new Buttons panel has no buttons. A Grid panel shows its Sources and Destinations lists side by side in place of the grid and Templates. It keeps the same Cell, Panel and Access sidebar on the right third. The Panel tab hides the settings that a Grid panel does not use. They are size, Take button behavior, Fixed destination, Stage several Destinations, result text and Wrap between Pages.
+- Each list shows the list order, not the drawn order. Each row has a grip, Pin, Move up, Move down and Remove; a drag starts from the grip. Pin, Move and Remove act on every selected row. The Cell tab sets Icon A on the selected rows and runs Icon B down them in list order. It does the same on a Buttons panel's selected cells. Clear empties the list. All (follow router) sets the edge back to `all`.
+- On a Buttons panel the Cell tab edits every selected cell: text, font size, levels, artwork and Hide text. Page and Show appear when the cells are one kind. Icon B runs one glyph per cell in Find's fill order.
 - On an `all` edge, a move turns the edge into a list. Remove hides the item and unpins it. Items that the Rights exclude stay stored and show as a count.
-- The router list is in router order, limited to the Rights. Find narrows it, and a range such as `101-140` uses the numbers as shown. Click, Shift-click and Cmd or Ctrl-click select. Enter in Find selects every row shown. Add puts the selection at the end in router order and skips items that the panel has.
+- Add from the router, under each list, shows the router's items that the panel does not have, in router order, limited to the Rights. Find narrows it, and a range such as `101-140` uses the numbers as shown. A click adds one item. Shift-click and Cmd or Ctrl-click select. Enter in Find selects every row shown. Add puts the selection at the end in router order.
+- Alt+Up and Alt+Down move the selected rows; Cmd+Shift or Ctrl+Shift with Up or Down does the same, since macOS keeps Ctrl+Up and Ctrl+Down. A router rename reaches the open editor at once.
 - Both lists draw only the rows in view, so a Pin, Remove or Move on a list of thousands takes milliseconds.
-- Test it live runs the saved panel in place of the tabs. It has no confirm, so Enter does nothing there in Take mode. It has no key list. The Share button works as for a Buttons panel.
+- Test it live runs the saved panel in place of the lists and the sidebar. It has no confirm, so Enter does nothing there in Take mode. It has no key list. The Share button works as for a Buttons panel.
 
 ## Authentication
 

@@ -7,6 +7,8 @@ import { dropTo, canMove } from './orderedlistrules.js';
 // opts: rowClass, toolsClass, move(from, to), remove(i), removeTip (the button's name, for example 'Delete Page').
 // drop(from, over, after) is opt-in: the drop goes before or after the row under it by the pointer's half, and the
 // caller places it. Without it a drop takes the place of the row under it, as the Pages bar needs.
+// grip(i) is opt-in too. A drag then starts only from a grip handle at the row's start. The browser's drag image is a
+// chip with the text of grip(i), not the row. dragging(i | -1) tells the caller when a drag starts and ends.
 // Buttons carry data-act (the caller's act, or up, down, delete) and data-i, so a caller can put focus back after a repaint.
 export function createOrderedList(opts) {
   let dragFrom = -1;
@@ -40,9 +42,15 @@ export function createOrderedList(opts) {
         return b;
       }),
     );
-    const li = el('li', opts.rowClass, ...(r.body || []), tools);
+    const grip = opts.grip ? el('span', 'sode-grip', icon('grip-vertical')) : null;
+    if (grip) {
+      grip.setAttribute('aria-hidden', 'true');
+      grip.dataset.pbTip = 'Drag to move';
+    }
+    const li = el('li', opts.rowClass, ...(grip ? [grip] : []), ...(r.body || []), tools);
     li.dataset.id = r.id;
-    if (!readOnly) dragRow(li, i);
+    if (!readOnly) dragRow(li, i, grip);
+    else if (grip) grip.classList.add('is-off');
     return li;
   }
 
@@ -52,12 +60,15 @@ export function createOrderedList(opts) {
     return e.clientY > r.top + r.height / 2;
   };
   const unmark = (li) => li.classList.remove('is-drop', 'is-drop-after', 'is-drop-before');
-  function dragRow(li, i) {
-    li.draggable = true;
-    li.addEventListener('dragstart', (e) => {
+  function dragRow(li, i, grip) {
+    const from = grip || li;
+    from.draggable = true;
+    from.addEventListener('dragstart', (e) => {
       dragFrom = i;
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', String(i + 1));
+      if (grip) dragImage(e, opts.grip(i));
+      opts.dragging?.(i);
     });
     li.addEventListener('dragover', (e) => {
       if (dragFrom < 0) return;
@@ -74,10 +85,23 @@ export function createOrderedList(opts) {
       const from = dragFrom;
       dragFrom = -1;
       if (from < 0) return;
+      opts.dragging?.(-1);
       if (opts.drop) opts.drop(from, i, sideOf(li, e));
       else opts.move(from, dropTo(from, i));
     });
-    li.addEventListener('dragend', () => (dragFrom = -1));
+    // A row a scroll redraws is a new node, so the drop, not the old row's dragend, can be the last event.
+    from.addEventListener('dragend', () => {
+      dragFrom = -1;
+      opts.dragging?.(-1);
+    });
+  }
+
+  // The browser draws the drag image from a node in the page at dragstart, so the chip shows for that moment only.
+  function dragImage(e, text) {
+    const chip = el('span', 'pb-chip sode-drag-chip', icon('grip-vertical'), text);
+    document.body.append(chip);
+    e.dataTransfer.setDragImage(chip, 12, 12);
+    setTimeout(() => chip.remove());
   }
 
   return { row };

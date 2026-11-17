@@ -43,14 +43,22 @@ export function createPanelTab(ed) {
   const linkBox = el('div');
   let linkOf = ''; // id and mode the link row was built for, so a refresh does not rebuild it under a hand
   const sizes = createSizeFields(ed);
-  const type = select('ed-set-type', [
-    ['buttons', 'Buttons'],
-    ['grid', 'Grid'],
-  ]);
-  // Edits of the other type's parts go, so a save never sends a Buttons panel's edges.
-  type.select.addEventListener('change', () => ed.setFields({ type: type.select.value, sources: undefined, destinations: undefined }));
+  // A new Grid panel starts with no sources and no destinations, as a Buttons panel starts with no buttons. Edits of
+  // the other type's parts go, so a save never sends a Buttons panel's edges.
+  const type = segmented(
+    'ed-set-type',
+    'Panel type',
+    [
+      ['buttons', 'Buttons'],
+      ['grid', 'Grid'],
+    ],
+    (v) =>
+      ed.setFields(
+        v === 'grid' ? { type: v, sources: { members: [] }, destinations: { members: [] } } : { type: v, sources: undefined, destinations: undefined },
+      ),
+  );
   const typeNote = el('span', 'sode__hint');
-  const typeField = el('div', 'sode__field', Object.assign(el('label', null, 'Panel type'), { htmlFor: 'ed-set-type' }), type.node, typeNote);
+  const typeField = el('div', 'sode__field', el('span', 'sode__field-label', 'Panel type'), type.node, typeNote);
   const identity = section('Identity', field('ed-side-name', 'Name', name), typeField, slug.node, sizes.node, linkBox);
   identity.firstChild.replaceWith(el('div', 'sode-side__head', el('h3', 'sode-side__h', 'Identity'), ident));
 
@@ -162,8 +170,8 @@ export function createPanelTab(ed) {
       name.disabled = ro;
       slug.update();
       const grid = isGridPanel(ed.fields());
-      type.select.value = grid ? 'grid' : 'buttons';
-      type.select.disabled = ro || !!p;
+      type.set(grid ? 'grid' : 'buttons');
+      type.disable(ro || !!p);
       typeNote.textContent = p ? 'The type stays as the panel was made.' : 'You cannot change the type after the first save.';
       for (const n of buttonsOnly) n.hidden = grid;
       ident.replaceChildren(...(p ? [`Id ${p.id}`, el('br'), `Owned by user "${p.owner}"`] : ['Not saved yet.']));
