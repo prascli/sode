@@ -11,12 +11,11 @@ import { prepareArt } from './artcompress.js';
 import { cellAt } from './gridmodel.js';
 import { createOrderPicker } from './editororder.js';
 import { flyoutShift } from './editorrules.js';
-import { artToolPlan, applyArtTool } from './arttoolrules.js';
+import { artToolPlan, applyArtTool, leftNote } from './arttoolrules.js';
+import { plural } from './gridclip.js';
 
 const EDGE_GAP = 8; // keep in step with GAP in editormenu.js and EDGE_GAP in editorfind.js
 const UNSAVED = 'Save the panel before uploading an image.';
-
-const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 // What a plan does, said before (preview) or after (done) it runs.
 function describe(plan, choice, done) {
@@ -31,7 +30,7 @@ function describe(plan, choice, done) {
     const last = plan.slots[n - 1].patch.artB;
     text = `${done ? 'Set' : 'Sets'} Icon B ${n > 1 ? `${first} to ${last}` : first} on ${cells}.`;
   } else text = `${done ? 'Set' : 'Sets'} Icon A on ${cells}.`;
-  if (plan.left) text += ` ${plural(plan.left, 'cell')} left without Icon B.`;
+  if (plan.left) text += ` ${leftNote(plan.left, 'cell')}`;
   if (plan.empty) text += ` ${plural(plan.empty, 'empty square')} skipped.`;
   return text;
 }

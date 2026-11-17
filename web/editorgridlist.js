@@ -10,6 +10,7 @@ import { createRouterList } from './editorrouterlist.js';
 import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { artNode } from './panelview.js';
+import { plural } from './gridclip.js';
 import { edgeRows, moveRow, clearEdge, followRouter, selectRows, moveRows, stepRows, pinItems, removeItems, edgeListKey, PINS_MAX } from './editorgridrules.js';
 
 const FIRST = 30; // rows drawn before the list has a height
@@ -22,7 +23,6 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   const router = () => ed.routerNames()?.[key] || [];
   const set = (next) => next !== edge() && ed.setFields({ [key]: next });
   const Whats = `${what[0].toUpperCase()}${what.slice(1)}s`;
-  const plural = (n) => `${n} ${what}${n === 1 ? '' : 's'}`;
 
   const count = el('span', 'sode-edge__count');
   const state = el('p', 'sode__hint');
@@ -131,7 +131,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     },
     grip: (i) => {
       const ns = dragSet(i);
-      return ns.size > 1 ? plural(ns.size) : shown[i].name || `${what} ${shown[i].n + shownOff}`;
+      return ns.size > 1 ? plural(ns.size, what) : shown[i].name || `${what} ${shown[i].n + shownOff}`;
     },
     dragging: (i) => {
       dragged = i < 0 ? null : dragSet(i);
@@ -210,7 +210,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     count.textContent = String(v.rows.length);
     state.textContent =
       v.rows.length || v.all
-        ? `${plural(v.rows.length)}${v.all ? ', all from the router' : ''}. ${v.pins} of ${PINS_MAX} pinned.`
+        ? `${plural(v.rows.length, what)}${v.all ? ', all from the router' : ''}. ${v.pins} of ${PINS_MAX} pinned.`
         : `No ${what}s yet. Add them from the router below, or use All (follow router).`;
     outside.textContent = v.outside ? `${v.outside} item${v.outside === 1 ? '' : 's'} outside your Rights, kept.` : '';
     outside.hidden = !v.outside;

@@ -1,4 +1,4 @@
-// The Grid panel editor's Sources and Destinations tabs: the rows of an edge and each edit of it. Pure.
+// The Grid panel editor's Sources and Destinations lists: the rows of an edge and each edit of it. Pure.
 // An edge is { members: 'all' | [n, ...], hide, items } (gridpaneledges.js, ADR 0011). An edit gives a new edge, or the
 // same edge when nothing changed.
 import { allowed } from './rightsrules.js';

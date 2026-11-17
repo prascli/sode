@@ -13,7 +13,8 @@ import { createPageTarget } from './editorpagetarget.js';
 import { createShowBoxes } from './editorshow.js';
 import { defaultFor, withDefault } from './panellook.js';
 import { isGridPanel } from './gridpaneledges.js';
-import { artToolPlan, applyArtTool } from './arttoolrules.js';
+import { artToolPlan, applyArtTool, leftNote } from './arttoolrules.js';
+import { plural } from './gridclip.js';
 import { itemsArt } from './editorgridrules.js';
 
 const CAPTION_MAX = 40;
@@ -25,7 +26,6 @@ const put = (input, value, force) => {
 };
 // The value every target has, or '' when they differ.
 const same = (xs, k) => (xs.every((x) => (x[k] ?? '') === (xs[0][k] ?? '')) ? (xs[0][k] ?? '') : '');
-const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
 // picked() gives the Grid panel's list with selected rows ({ list, rows }), or null.
 export function createCellTab(ed, { picked }) {
@@ -118,7 +118,7 @@ export function createCellTab(ed, { picked }) {
       ed.setGrid(applyArtTool(ed.grid(), plan), { what: 'artwork' });
       left = plan.left;
     }
-    artNote.textContent = left ? `${plural(left, unit)} left without Icon B.` : '';
+    artNote.textContent = leftNote(left, unit);
   }
 
   caption.addEventListener('input', () => patch({ caption: caption.value.trim() ? caption.value : undefined }, 'caption'));

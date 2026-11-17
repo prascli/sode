@@ -2,6 +2,7 @@
 // editorarttool.js. Only a cell's own `art`, `artB` and `hideText` change; Default artwork is never written.
 import { rectOf, squareOrder, cellAt, setCell } from './gridmodel.js';
 import { ART_B_CHOICES } from './panellook.js';
+import { plural } from './gridclip.js';
 
 // Icon B runs end at 16 for digits and Z for letters, never wrapping (panellook.js ART_B_CHOICES).
 const runEnd = (i) => (i <= ART_B_CHOICES.indexOf('16') ? ART_B_CHOICES.indexOf('16') : ART_B_CHOICES.length - 1);
@@ -45,6 +46,9 @@ export function artToolPlan(g, choice, order = 'across') {
   }
   return { slots, empty, left };
 }
+
+// What an Icon B run could not reach; unit is 'cell' or 'row'. '' when it reached every target.
+export const leftNote = (left, unit) => (left ? `${plural(left, unit)} left without Icon B.` : '');
 
 export function applyArtTool(g, plan) {
   if (!plan) return g;
