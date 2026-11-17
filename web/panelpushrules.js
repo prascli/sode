@@ -2,6 +2,7 @@
 // what (a panel's canEdit), and refuses the whole Push if any target is not allowed.
 
 import { artLeftOut } from './panelrules.js';
+import { sizeText } from './gridmodel.js';
 
 const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 
@@ -85,7 +86,7 @@ export function checkpointLabel(cp) {
   const when = String(cp.at || '')
     .replace('T', ' ')
     .slice(0, 16);
-  return `${when}, ${cp.by}, ${cp.rows} by ${cp.cols}, ${cp.cells} ${cp.cells === 1 ? 'cell' : 'cells'}`;
+  return `${when}, ${cp.by}, ${sizeText(cp.rows, cp.cols)}, ${cp.cells} ${cp.cells === 1 ? 'cell' : 'cells'}`;
 }
 
 export const scopeLabel = (scope) => (scope === 'everyone' ? 'Everyone' : 'Me');
