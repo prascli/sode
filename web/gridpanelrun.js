@@ -6,7 +6,7 @@ import { arrange } from './gridpanelarrange.js';
 import { nameArt } from './gridpanelart.js';
 import { defaultsBy } from './panellook.js';
 import { createStage, restage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
-import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick } from './gridpanelpick.js';
+import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick, dragPick, enterGrid } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction, findBoxAction, clearAction } from './gridpanelkeys.js';
@@ -247,7 +247,15 @@ export function gridBody(ctx, first) {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
       boxes = findBoxes(g.head, { onText: findText, onMode: findMode });
-      gest = lineGestures(g, { start: lineStart, move: lineMove, end: lineEnd, cancel: dropLine, name: onTouchName });
+      gest = lineGestures(g, {
+        start: lineStart,
+        move: lineMove,
+        end: lineEnd,
+        cancel: dropLine,
+        name: onTouchName,
+        span: onSpan,
+        spanEnd: () => (spanBase = null),
+      });
     }
     setCursor(cur);
   };
@@ -447,7 +455,8 @@ export function gridBody(ctx, first) {
     if (!canStage()) return gest.cancel();
     ctx.touched();
     line = { a, b: a, keys: false };
-    preview();
+    // A full render, so the Clear button can drop the line.
+    render();
   }
 
   function lineMove(b) {
@@ -465,7 +474,7 @@ export function gridBody(ctx, first) {
   function dropLine() {
     if (!line) return;
     line = null;
-    preview();
+    render();
   }
 
   // Esc and the Clear button: act is clearAction's.
@@ -509,6 +518,15 @@ export function gridBody(ctx, first) {
   function onTouchName(kind, n, how) {
     if (how === 'long') onName(kind, n, { shiftKey: true });
     else onJump(kind, n);
+  }
+
+  // A mouse drag along a bar. spanBase is the picks at the press.
+  let spanBase = null;
+  function onSpan(kind, from, to, add) {
+    if (!ctx.ready()) return;
+    spanBase ??= picks;
+    picks = dragPick(spanBase, kind, from, to, add, axes[kind]);
+    render();
   }
 
   function onName(kind, n, e) {
@@ -566,6 +584,7 @@ export function gridBody(ctx, first) {
     let next = moveCursor(cur, move, dims());
     // A v line stays on the crosspoints.
     if (line?.keys) next = { i: Math.max(0, next.i), j: Math.max(0, next.j) };
+    else next = enterGrid(cur, next, picks, axes);
     setCursor(next);
     if (move === 'corner') g.scroll.scrollTo(0, 0);
     else g.reveal(cur);
@@ -653,7 +672,7 @@ export function gridBody(ctx, first) {
       if (pointOf(cur, axes) && canStage()) {
         ctx.touched();
         line = { a: centre(cur), b: centre(cur), keys: true };
-        preview();
+        render();
       }
     } else if (act === 'unline' || act === 'unpick' || act === 'drop') clearStep(act);
     else if (act === 'jump') jumped(jumpFrom(cur));
