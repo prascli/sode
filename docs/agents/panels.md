@@ -149,7 +149,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Panels page
 
-- The panels page draws a Grid panel from `gridThumb` (`panelsrules.js`), and the words are `gridSize`. The picture has three fixed sizes, `small`, `medium` and `large` (`GRID_SQUARES`), chosen from the larger edge by `GRID_MEDIUM_FROM` (13) and `GRID_LARGE_FROM` (65). The count shows as text on the picture (`sode-ov__count`): sources by destinations for a Grid panel, columns by rows for a Buttons panel. An "all" edge reads "all" and counts as `GRID_ALL_ITEMS`, so it is Large, since the page reads no names.
+- The panels page draws a Grid panel from `gridThumb` (`panelsrules.js`), and the words are `gridSize`. The picture has three fixed sizes, `small`, `medium` and `large` (`GRID_SQUARES`), chosen from the larger edge by `GRID_MEDIUM_FROM` (13) and `GRID_LARGE_FROM` (65). Each count has one tile per character (`sode-ov__tile`) in the Source bar and the Destination bar, centred. With an odd number of spare squares a tile moves half a square (`--half`). The Destination bar reads from the bottom up, as the Grid page's Sources label does. Its tiles turn 90 degrees, and the first character is the lowest. The picture has no "N × M" label. A Buttons panel's picture has no bars, so it keeps its columns by rows as text (`sode-ov__count`). An "all" edge reads "all" and counts as `GRID_ALL_ITEMS`, so it is Large, since the page reads no names.
 
 ## Undo cell
 
