@@ -196,7 +196,8 @@
 .sode__hist-route--boxes {
   align-items: center;
   display: flex;
-  gap: var(--pb-space-3);
+  flex-wrap: wrap;
+  gap: var(--pb-space-1) var(--pb-space-3);
 }
 .sode__hist-route--boxes > .sode__end {
   flex: none;
@@ -236,9 +237,10 @@
 }
 .sode__hist-by {
   color: var(--pb-text-muted);
-  flex: none;
   font-size: var(--pb-text-xs);
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .sode-m__recent-route > .sode__hist-by {
   display: block;
