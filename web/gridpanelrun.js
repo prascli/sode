@@ -583,7 +583,8 @@ export function gridBody(ctx, first) {
 
   function setCursor(c) {
     cur = c;
-    g.cursor(c);
+    // The box on a bar is for the keys only; while the pointer leads, the ring and the name outlines are enough.
+    g.cursor(c, !ptr);
     onAt(pointOf(c, axes));
   }
 
@@ -605,7 +606,7 @@ export function gridBody(ctx, first) {
     if (r.c) {
       ptr = null;
       setCursor(r.c);
-      g.reveal(r.c);
+      g.jump(r.c);
     } else {
       note = noteOf(jumpText(r, names, tally?.levels || []));
       render();

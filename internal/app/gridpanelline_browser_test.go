@@ -77,6 +77,11 @@ func TestChromeGridPanelLine(t *testing.T) {
 	mouse("mouseReleased", x0+8, y1)
 	b.waitFor("release stages three routes, takes nothing and the line goes", staged(7, 1)+` && `+staged(7, 2)+` && `+staged(7, 4)+` && !(`+staged(7, 3)+`) && `+lineGone)
 	b.shot("staged")
+	b.waitFor("no square cursor after the release: no focused crosspoint and no box on the cursor or any crosspoint", `(() => {
+		const boxed = (n) => { const c = getComputedStyle(n); return c.outlineStyle !== 'none' && parseFloat(c.outlineWidth) > 0; };
+		const xps = [...document.querySelectorAll('.sode-gridpanel__xp')];
+		return !document.activeElement.closest('.sode-gridpanel__xp') && !boxed(document.querySelector('.sode-gridpanel__cursor')) && !xps.some(boxed);
+	})()`)
 	if !b.eval(`document.getElementById('confirm').hidden`).(bool) {
 		t.Fatal("release opened the confirm in Take mode")
 	}

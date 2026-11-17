@@ -39,6 +39,13 @@ func TestChromeGridPanelUndo(t *testing.T) {
 
 	gridMenu(b, `document.querySelector('.sode-gridpanel__dst[data-dst="2"]')`)
 	gridCursorOn(b, "a right-click on a destination goes to its current source", 2, 5)
+	b.waitFor("the jump pulses the crosspoint and both its names in one phase", `(() => {
+		const xp = document.querySelector('.sode-gridpanel__xp[data-hit][data-src="5"][data-dst="2"]');
+		const s = document.querySelector('.sode-gridpanel__src[data-hit][data-src="5"]'), d = document.querySelector('.sode-gridpanel__dst[data-hit][data-dst="2"]');
+		if (!xp || !s || !d || !(xp.dataset.hit === s.dataset.hit && s.dataset.hit === d.dataset.hit)) return false;
+		const t = [xp.firstElementChild.nextElementSibling, s, d].flatMap((n) => n.getAnimations()).filter((a) => a.animationName.startsWith('sode-gridpanel-hit'));
+		return t.length === 3 && Math.max(...t.map((a) => a.startTime)) - Math.min(...t.map((a) => a.startTime)) < 20;
+	})()`)
 	realKey(b, "j", "KeyJ", 74)
 	realKey(b, "g", "KeyG", 71)
 	gridCursorOn(b, "g goes along the row to the current source", 3, 3)

@@ -268,14 +268,48 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
   let cur = { i: -1, j: -1 }; // The cursor's display position, -1 on a bar.
-  // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
-  // animations. Thus a new glide restarts the pulse on a node that still has the last one.
+  // What g.glide or g.jump went to, { srcs, dsts, seq } with router numbers (null for none), until its pulse ends. The
+  // crosspoint pulses when both are set. seq is 0 or 1 and picks one of two equal animations. Thus a new glide restarts
+  // the pulse on a node that still has the last one. Set when the scroll ends, so every part pulses in one phase.
   let hit = null;
-  let hitEnd = null; // { timer, done } of the pulse in progress
-  const hitOf = (kind, n) => (hit?.kind === kind && hit.n === n ? String(hit.seq) : undefined);
+  let seq = 1;
+  let hitEnd = null; // { timer, done } of the glide or pulse in progress
+  const hitOf = (kind, n) => (hit && hit[kind] === n ? String(hit.seq) : undefined);
+  const hitXp = (s, d) => (hit && hit.srcs === s && hit.dsts === d ? String(hit.seq) : undefined);
   const paintHits = () => {
     for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('srcs', Number(n.dataset.src)));
     for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('dsts', Number(n.dataset.dst)));
+    for (const p of xpPools) for (const n of p.live.values()) setData(n, 'hit', hitXp(Number(n.dataset.src), Number(n.dataset.dst)));
+  };
+  // Scrolls to `to` ({ left, top }, either one) smoothly, then pulses `next` ({ srcs, dsts }) for HIT_MS.
+  const goTo = (to, next) => {
+    const m = read();
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (hitEnd) {
+      clearTimeout(hitEnd.timer);
+      scroll.removeEventListener('scrollend', hitEnd.done);
+    }
+    hit = null;
+    paintHits();
+    const done = () => {
+      scroll.removeEventListener('scrollend', done);
+      clearTimeout(hitEnd.timer);
+      seq = 1 - seq;
+      hit = { ...next, seq };
+      paintHits();
+      hitEnd.timer = setTimeout(() => {
+        hit = null;
+        hitEnd = null;
+        paintHits();
+      }, HIT_MS);
+    };
+    hitEnd = { timer: 0, done };
+    // No scrollend comes for a move under a pixel or on a browser without the event, so a timer ends it too.
+    const still = Object.entries(to).every(([k, v]) => Math.abs(v - (k === 'left' ? m.left : m.top)) < 1);
+    if (still) return done();
+    hitEnd.timer = setTimeout(done, GLIDE_MAX_MS);
+    scroll.addEventListener('scrollend', done);
+    scroll.scrollTo({ ...to, behavior: calm ? 'instant' : 'smooth' });
   };
   let px = { xp: 1, w: 1, h: 1 };
   const listeners = new Set();
@@ -336,6 +370,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     n.dataset.dst = d;
     if (view) paintXp(n, s, d, view);
     markXp(n, s, d);
+    setData(n, 'hit', hitXp(s, d));
   };
   const srcPut = (n, i, j) => {
     place(n, 0, j);
@@ -493,6 +528,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   ro.observe(scroll);
   ro.observe(probe);
   const xpOf = (xp) => ({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
+  // A press does not focus a crosspoint or a name: a focused button would draw its focus box at the next key. Focus
+  // goes to the scroller, so an embedded run still gets its keys.
+  field.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.sode-gridpanel__xp, .sode-gridpanel__src, .sode-gridpanel__dst')) return;
+    e.preventDefault();
+    scroll.focus({ preventScroll: true });
+  });
   field.addEventListener('click', (e) => {
     const xp = e.target.closest('.sode-gridpanel__xp');
     if (xp) return onPress(xpOf(xp), e);
@@ -588,8 +630,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       return i === null || j === null ? null : { i, j };
     },
     // Places the cursor at display cell { i, j }. Only the cursor node changes.
-    cursor(c) {
+    // keys is true when a key moved it: only then does the cursor draw its box on a bar.
+    cursor(c, keys = false) {
       cur = c;
+      setData(cursor, 'keys', keys ? '' : undefined);
       setData(cursor, 'i', String(c.i));
       setData(cursor, 'j', String(c.j));
       placeCursor();
@@ -606,34 +650,21 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true, read()));
       if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false, read()));
     },
-    // Find: scrolls one axis so display item k of kind ('srcs' or 'dsts') is in the middle, smoothly, and pulses its
-    // name. The pulse ends HIT_MS after the scroll does; a node drawn for the name during the scroll pulses then.
+    // Find: scrolls one axis so display item k of kind ('srcs' or 'dsts') is in the middle, smoothly, then pulses its
+    // name.
     glide(kind, k) {
       const cols = kind === 'srcs';
-      const a = axis(cols, read());
-      const to = centreFor(k, a);
-      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      hit = { kind, n: ax[kind][k], seq: hit ? 1 - hit.seq : 0 };
-      paintHits();
-      if (hitEnd) {
-        clearTimeout(hitEnd.timer);
-        scroll.removeEventListener('scrollend', hitEnd.done);
-      }
-      const done = () => {
-        scroll.removeEventListener('scrollend', done);
-        clearTimeout(hitEnd.timer);
-        hitEnd.timer = setTimeout(() => {
-          hit = null;
-          hitEnd = null;
-          paintHits();
-        }, HIT_MS);
-      };
-      hitEnd = { timer: 0, done };
-      // No scrollend comes for a move under a pixel or on a browser without the event, so a timer ends it too.
-      if (Math.abs(to - a.offset) < 1) return done();
-      hitEnd.timer = setTimeout(done, GLIDE_MAX_MS);
-      scroll.addEventListener('scrollend', done);
-      scroll.scrollTo({ [cols ? 'left' : 'top']: to, behavior: calm ? 'instant' : 'smooth' });
+      const to = centreFor(k, axis(cols, read()));
+      goTo({ [cols ? 'left' : 'top']: to }, { srcs: cols ? ax.srcs[k] : null, dsts: cols ? null : ax.dsts[k] });
+    },
+    // A jump: scrolls so display cell { i, j } is in the middle on both axes, smoothly, then pulses the crosspoint and
+    // its two names. A bar (-1) keeps that axis where it is.
+    jump({ i, j }) {
+      const m = read();
+      const to = {};
+      if (j >= 0) to.left = centreFor(j, axis(true, m));
+      if (i >= 0) to.top = centreFor(i, axis(false, m));
+      goTo(to, { srcs: j >= 0 ? ax.srcs[j] : null, dsts: i >= 0 ? ax.dsts[i] : null });
     },
     // The crosspoint under a client point, or null on a name, a gap or outside.
     hit(x, y) {

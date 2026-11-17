@@ -406,7 +406,8 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__cursor[data-band] {
   z-index: 5;
 }
-.sode-gridpanel__cursor[data-bar] {
+/* The box on a bar shows only after a key move (data-keys, gridpanelrun.js setCursor), never for the pointer. */
+.sode-gridpanel__cursor[data-keys][data-bar] {
   outline: calc(var(--pb-border-w) * 3) solid var(--pb-accent);
   outline-offset: calc(var(--pb-border-w) * -3);
 }
@@ -451,8 +452,14 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__dst[data-found]:not([data-picked]) {
   box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-status-warn-fill);
 }
-/* The match Find went to pulses (gridpanelview.js glide; HIT_MS there is 3 x 0.45s). Two equal animations, so a new
-   match restarts the pulse on a node that has the last one. */
+/* What Find or a jump went to pulses (gridpanelview.js goTo; HIT_MS there is 3 x 0.45s): a ring in the strong text
+   colour round each name and round the crosspoint, with no change to their own colours. Two equal animations, so a
+   new hit restarts the pulse on a node that has the last one. All parts get the attribute at once, so one phase. */
+.sode-gridpanel__src[data-hit],
+.sode-gridpanel__dst[data-hit] {
+  outline: calc(var(--pb-border-w) * 3) solid transparent;
+  outline-offset: calc(var(--pb-border-w) * -3);
+}
 .sode-gridpanel__src[data-hit="0"],
 .sode-gridpanel__dst[data-hit="0"] {
   animation: sode-gridpanel-hit-a 0.45s ease-out 3;
@@ -463,18 +470,45 @@ html:has(.sode-gridpanel) {
 }
 @keyframes sode-gridpanel-hit-a {
   50% {
-    filter: brightness(2);
+    outline-color: var(--pb-text-strong);
   }
 }
 @keyframes sode-gridpanel-hit-b {
   50% {
-    filter: brightness(2);
+    outline-color: var(--pb-text-strong);
+  }
+}
+/* On the crosspoint the ring is the staged ring's shape (.sode-gridpanel__stage), in the strong text colour. */
+.sode-gridpanel__xp[data-hit] > .sode-gridpanel__stage {
+  background: var(--pb-text-strong);
+  display: block;
+  opacity: 0;
+}
+.sode-gridpanel__xp[data-hit="0"] > .sode-gridpanel__stage {
+  animation: sode-gridpanel-hit-ring-a 0.45s ease-out 3;
+}
+.sode-gridpanel__xp[data-hit="1"] > .sode-gridpanel__stage {
+  animation: sode-gridpanel-hit-ring-b 0.45s ease-out 3;
+}
+@keyframes sode-gridpanel-hit-ring-a {
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes sode-gridpanel-hit-ring-b {
+  50% {
+    opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .sode-gridpanel__src[data-hit],
   .sode-gridpanel__dst[data-hit] {
     animation: none;
+    outline-color: var(--pb-text-strong);
+  }
+  .sode-gridpanel__xp[data-hit] > .sode-gridpanel__stage {
+    animation: none;
+    opacity: 1;
   }
 }
 /* The corner where the bars meet: the Destinations word, next to its bar, and the search boxes in the editor's live

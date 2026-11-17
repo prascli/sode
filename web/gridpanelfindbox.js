@@ -64,7 +64,12 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   sw.setAttribute('role', 'switch');
   sw.tabIndex = -1;
   sw.addEventListener('change', () => (sw.checked ? 'filter' : 'find') !== now && onMode());
-  const words = el('span', 'pb-check__label', el('span', 'sode-gridpanel__find-word', MODE.filter), el('span', 'sode-gridpanel__find-hint', 'Show only matches'));
+  const words = el(
+    'span',
+    'pb-check__label',
+    el('span', 'sode-gridpanel__find-word', MODE.filter),
+    el('span', 'sode-gridpanel__find-hint', 'Show only matches'),
+  );
   const mode = el('label', 'pb-check sode-gridpanel__find-mode', sw, words);
   mode.dataset.pbTip = 'On: the bars show only the matches. Off: Find marks the matches. Ctrl+/';
   mode.addEventListener('click', () => boxes[last].input.focus());
