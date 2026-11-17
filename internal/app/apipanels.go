@@ -220,20 +220,26 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	apiJSONTaggedBy(w, r, out, readTagOf(out))
 }
 
-// readTagOf is the panel read without the instance fields that move with the clock: seen moves on each
-// keepalive and the uptime window ends now. Online and the uptime changes still move the tag.
+// readTagOf is the panel read without the fields that move with the clock. Seen moves on each keepalive, and a held
+// stream counts as now. The uptime window ends now. Online and uptime changes still move the tag.
 func readTagOf(out map[string]any) map[string]any {
-	rows, ok := out["instances"].([]instOut)
-	if !ok {
-		return out
-	}
-	still := make([]instOut, len(rows))
-	for i, o := range rows {
-		o.Seen, o.Uptime.From, o.Uptime.To = time.Time{}, 0, 0
-		still[i] = o
-	}
 	tag := maps.Clone(out)
-	tag["instances"] = still
+	if rows, ok := out["instances"].([]instOut); ok {
+		still := make([]instOut, len(rows))
+		for i, o := range rows {
+			o.Seen, o.Uptime.From, o.Uptime.To = time.Time{}, 0, 0
+			still[i] = o
+		}
+		tag["instances"] = still
+	}
+	if rows, ok := out["keyless"].([]keylessOut); ok {
+		still := make([]keylessOut, len(rows))
+		for i, o := range rows {
+			o.Seen = time.Time{}
+			still[i] = o
+		}
+		tag["keyless"] = still
+	}
 	return tag
 }
 
