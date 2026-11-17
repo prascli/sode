@@ -61,7 +61,7 @@ Files, all in `internal/app`:
   - `Find`: the search boxes, Find and Filter, with text by CDP `Input.insertText`.
   - `Undo`: the `g` and `G` jumps, the right-click jumps with their pulse, a right-click that unstages, and the staged Undo.
   - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends. A release in Take mode stages, and no line is left after Clear or Esc. It reads the line layer's computed `display`, since an svg has no `hidden` property. A mouse drag along a bar picks names.
-  - `Phone`: touch on the phone layout with CDP touch input, on a 2500 by 750 simulator. Emulate before `b.open`, with `Emulation.setScrollbarsHidden`, since headless Chrome's 14 px bars are not a phone's. It checks the one-screen page, the shown crosspoints, More, the corner ranges, no cursor, and the edge scroll's cap with the finger in the band.
+  - `Phone`: touch on the phone layout with CDP touch input, on a 2500 by 750 simulator. Emulate before `b.open`, with `Emulation.setScrollbarsHidden`, since headless Chrome's 14 px bars are not a phone's. It checks the one-screen page, the title, the shown crosspoints and More. In More it checks the Find and Filter choices and 16 px fields. It also checks the corner ranges, no cursor, and the edge scroll's cap with the finger in the band.
   - `LiveUpdate`: a saved change and a Default artwork change reach an open page, which keeps the search, picks and cursor.
   - `Art`: artwork on names, in the editor's row Artwork button, and no stale artwork after a scroll.
   - `Editor`: make, edit and save a Grid panel, a reopen, Test it live. `EditorChunk` is the router list and the windowed lists.

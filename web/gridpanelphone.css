@@ -1,6 +1,6 @@
 /* A Grid panel page on the phone layout (docs/panels-design.md): the grid comes first. One band holds More, the
-   levels in words, the note, Clear and Take (gridpanelheadview.js). More opens the header, the Levels box and the
-   search boxes under the band; they push the grid down while open. */
+   levels in words, the note, Clear and Take (gridpanelheadview.js), under the title, which always shows. More opens
+   the header's buttons, the Levels box and the search boxes under the band; they push the grid down while open. */
 .sode-gridpanel__more,
 .sode-gridpanel__lv {
   display: none;
@@ -27,7 +27,12 @@
 }
 :root[data-layout="phone"] .sode-gridpanel__deck :is(.sode-gridpanel__more, .sode-gridpanel__lv) {
   display: inline-flex;
-  grid-row: 1;
+}
+/* Row 1 is the title, row 2 the band. Rows 3 on show only while More is open. */
+:root[data-layout="phone"]
+  .sode-gridpanel__deck
+  :is(.sode-gridpanel__more, .sode-gridpanel__lv, .sode-gridpanel__note, .sode-gridpanel__clear, .sode-gridpanel__take) {
+  grid-row: 2;
 }
 :root[data-layout="phone"] .sode-gridpanel__more {
   grid-column: 1;
@@ -47,45 +52,54 @@
 }
 :root[data-layout="phone"] .sode-gridpanel__deck .sode-gridpanel__note {
   grid-column: 3;
-  grid-row: 1;
 }
 :root[data-layout="phone"] .sode-gridpanel__deck .sode-gridpanel__clear {
   align-self: center;
   grid-column: 4;
-  grid-row: 1;
 }
 :root[data-layout="phone"] .sode-gridpanel__deck .sode-gridpanel__take {
   align-self: center;
   grid-column: 5;
-  grid-row: 1;
   min-height: var(--pb-control-h);
   min-width: 5.5rem;
 }
-/* Closed: only the band. */
+/* The title row: one line, cut off with an ellipsis. Its buttons wait for More. */
+:root[data-layout="phone"] .sode-gridpanel__deck .sode-panels__head {
+  flex-wrap: nowrap;
+  gap: var(--pb-space-3);
+  grid-column: 1 / -1;
+  grid-row: 1;
+  margin: 0;
+  min-width: 0;
+}
+:root[data-layout="phone"] .sode-gridpanel__deck .sode-gridpanel__id {
+  overflow: hidden;
+}
+:root[data-layout="phone"] .sode-gridpanel__deck .sode-gridpanel__name {
+  align-items: baseline;
+  gap: var(--pb-space-3);
+  min-width: 0;
+}
+:root[data-layout="phone"] .sode-gridpanel__deck .sode-panels__title {
+  font-size: var(--pb-text-lg);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Closed: the title and the band. */
 :root[data-layout="phone"]
   .sode-gridpanel__deck:not([data-open])
-  :is(.sode-panels__head, .sode__box-head, .sode__input, .sode__levels, .sode__all, .sode-gridpanel__finds) {
+  :is(.sode-gridpanel__tools, .sode__box-head, .sode__input, .sode__levels, .sode__all, .sode-gridpanel__finds) {
   display: none;
 }
-/* Open: the header, the Levels box and the search boxes, each a row under the band. Wide parts scroll or cut off
-   rather than widen the band's columns. */
-:root[data-layout="phone"] .sode-gridpanel__deck[data-open] :is(.sode-panels__head, .sode__box-head, .sode__input, .sode__levels, .sode-gridpanel__finds) {
+/* Open: the Levels box and the search boxes, each a row under the band. Wide parts scroll or cut off rather than
+   widen the band's columns. */
+:root[data-layout="phone"] .sode-gridpanel__deck[data-open] :is(.sode__box-head, .sode__input, .sode__levels, .sode-gridpanel__finds) {
   grid-column: 1 / -1;
   margin: 0;
   max-width: none;
   min-width: 0;
-}
-:root[data-layout="phone"] .sode-gridpanel__deck[data-open] .sode-panels__head {
-  flex-wrap: nowrap;
-  grid-row: 2;
-}
-:root[data-layout="phone"] .sode-gridpanel__deck[data-open] .sode-gridpanel__id {
-  overflow: hidden;
-}
-:root[data-layout="phone"] .sode-gridpanel__deck[data-open] .sode-panels__title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 :root[data-layout="phone"] .sode-gridpanel__deck[data-open] .sode__box-head {
   grid-row: 3;
@@ -105,7 +119,13 @@
 :root[data-layout="phone"] .sode-gridpanel__deck[data-open] .sode-gridpanel__finds {
   grid-row: 6;
 }
-/* The position tracks and the corner ranges (gridpanelpos.js): the phone layout only. */
+/* iOS zooms in when a field under 16 px takes focus and does not zoom back out. This page has no mobile.css, which
+   holds the same rule for the main page. */
+:root[data-layout="phone"] .sode-gridpanel__deck :is(.sode__input, .sode-gridpanel__find-input) {
+  font-size: max(16px, 1rem);
+  height: var(--pb-control-h);
+}
+/* The position strips and the corner ranges (gridpanelpos.js): the phone layout only. */
 .sode-gridpanel__pos,
 .sode-gridpanel__range {
   display: none;
@@ -138,25 +158,6 @@
 }
 .sode-gridpanel__pos--y > .sode-gridpanel__pos-thumb {
   height: auto;
-}
-/* Thumbs: wide enough for a finger, on a faint track, and the browser does not pan under a drag. */
-:root[data-layout="phone"] .sode-gridpanel__pos[data-kind="thumbs"] {
-  --sode-pos-w: 0.75rem;
-  background: color-mix(in oklab, var(--pb-text) 10%, transparent);
-}
-:root[data-layout="phone"] .sode-gridpanel__pos[data-kind="thumbs"] > .sode-gridpanel__pos-thumb {
-  pointer-events: auto;
-  position: relative;
-  touch-action: none;
-}
-/* A larger hit area than the drawn thumb. */
-.sode-gridpanel__pos[data-kind="thumbs"] > .sode-gridpanel__pos-thumb::before {
-  content: "";
-  inset: calc(var(--pb-space-3) * -1);
-  position: absolute;
-}
-:root[data-layout="phone"] .sode-gridpanel__pos[data-drag] > .sode-gridpanel__pos-thumb {
-  background: var(--pb-accent);
 }
 /* The corner on the phone: each word over its range, both read across, since the corner is narrow. */
 :root[data-layout="phone"] .sode-gridpanel__head {
@@ -197,4 +198,29 @@
 }
 :root[data-layout="phone"] .sode-gridpanel__range--dst {
   grid-row: 4;
+}
+/* Find or Filter (gridpanelfindbox.js): on the phone, two named choices and what each does, over the two boxes, in
+   place of the switch. */
+.sode-gridpanel__find-choice {
+  display: none;
+}
+:root[data-layout="phone"] .sode-gridpanel__finds {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-layout="phone"] .sode-gridpanel__finds > .sode-gridpanel__find-mode {
+  display: none;
+}
+:root[data-layout="phone"] .sode-gridpanel__finds > .sode-gridpanel__find-choice {
+  align-items: center;
+  display: flex;
+  gap: var(--pb-space-3);
+  margin-bottom: var(--pb-space-1);
+}
+:root[data-layout="phone"] .sode-gridpanel__find-choice > .pb-btn-group {
+  flex: none;
+}
+:root[data-layout="phone"] .sode-gridpanel__find-says {
+  color: var(--pb-text-muted);
+  font-size: var(--pb-text-xs);
+  line-height: 1.3;
 }

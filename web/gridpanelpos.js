@@ -1,18 +1,15 @@
 // Where the view is in a Grid panel, on the phone layout only. A phone draws its scroll bars only while a scroll
-// runs. The corner gives the shown ranges, and the body's bottom and right edges get a track and a thumb. There are
-// two kinds until the owner picks one on a real phone, set by ?pos= on the page URL. 'strips' are thin and display
-// only. A finger drags 'thumbs' for fast travel. g is the drawn grid (gridpanelview.js), frame its scroller's parent.
-// A scroll writes only thumb transforms and, when a range changes, text node data (TestChromeGridPanelScale).
+// runs. So the corner gives the shown ranges, and the body's bottom and right edges get thin strips, display only.
+// g is the drawn grid (gridpanelview.js), frame its scroller's parent. A scroll writes only thumb transforms and, when
+// a range changes, text node data (TestChromeGridPanelScale).
 import { el, icon } from './core.js';
-import { thumbOf, offsetFor, rangeText } from './gridpanelposrules.js';
+import { thumbOf, rangeText } from './gridpanelposrules.js';
 
-export function gridPosition(g, frame, kind, isPhone) {
-  const thumbs = kind === 'thumbs';
+export function gridPosition(g, frame, isPhone) {
   const bar = (axis) => {
     const thumb = el('div', 'sode-gridpanel__pos-thumb');
     const track = el('div', `sode-gridpanel__pos sode-gridpanel__pos--${axis}`, thumb);
     track.setAttribute('aria-hidden', 'true');
-    track.dataset.kind = kind;
     return { track, thumb, axis, len: 0, key: '', trackKey: '' };
   };
   const bars = { srcs: bar('x'), dsts: bar('y') };
@@ -65,42 +62,12 @@ export function gridPosition(g, frame, kind, isPhone) {
   };
   const off = g.onDraw(place);
 
-  // Thumbs only: a drag moves the view; touch-action none on the thumb keeps the browser from panning under it.
-  let drag = null; // { k, id, start, from }
-  const down = (k) => (e) => {
-    if (!thumbs || !shown) return;
-    e.preventDefault();
-    const b = bars[k];
-    b.thumb.setPointerCapture(e.pointerId);
-    b.track.dataset.drag = '';
-    drag = { k, id: e.pointerId, start: k === 'srcs' ? e.clientX : e.clientY, from: shown[k].offset };
-  };
-  const move = (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const s = shown[drag.k];
-    const d = (drag.k === 'srcs' ? e.clientX : e.clientY) - drag.start;
-    const to = offsetFor(s, bars[drag.k].len, drag.from, d);
-    if (drag.k === 'srcs') g.scroll.scrollLeft = to;
-    else g.scroll.scrollTop = to;
-  };
-  const up = (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    delete bars[drag.k].track.dataset.drag;
-    drag = null;
-  };
-  const listen = [];
-  for (const k of ['srcs', 'dsts']) {
-    const t = bars[k].thumb;
-    listen.push([t, 'pointerdown', down(k)], [t, 'pointermove', move], [t, 'pointerup', up], [t, 'pointercancel', up]);
-  }
-  for (const [t, ev, fn] of listen) t.addEventListener(ev, fn);
   place();
 
   return {
     place,
     stop() {
       off();
-      for (const [t, ev, fn] of listen) t.removeEventListener(ev, fn);
       for (const b of Object.values(bars)) b.track.remove();
       for (const r of Object.values(ranges)) r.n.remove();
     },

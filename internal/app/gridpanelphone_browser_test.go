@@ -30,8 +30,9 @@ func touch(b *tab, expr string, hold time.Duration) {
 func tap(b *tab, expr string) { touch(b, expr, 30*time.Millisecond) }
 
 // A Grid panel on the phone layout, by touch only, on a 2500 by 750 router. The page is one screen high: one band,
-// then the grid, with at least 5 columns and 11 rows of crosspoints. More opens the rest of the band, and the band's
-// levels follow the Levels box. No cursor shows. The corner gives the shown ranges. An edge scroll during a line is
+// then the grid, with at least 5 columns and 10 rows of crosspoints. The title always shows. More opens the rest of
+// the band, with Find and Filter as two named choices and no field under 16 px. The band's levels follow the Levels
+// box. No cursor shows. The corner gives the shown ranges. An edge scroll during a line is
 // capped, even with the finger far past the edge. Taps add names to the picks, a long-press adds a range, and the
 // numbered targets show with no hover. A tap on a crosspoint stages the Diagonal and the Take button opens the
 // confirm. A double-tap on a name jumps and leaves the picks as they were. There is no key list.
@@ -69,9 +70,10 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	})()`).(string)
 	var top, cols, rows int
 	fmt.Sscanf(shown, "%d,%d,%d", &top, &cols, &rows)
-	if top > 64 || cols < 5 || rows < 11 {
-		t.Errorf("grid at top %dpx shows %d by %d crosspoints, want one band over it and at least 5 by 11", top, cols, rows)
+	if top > 104 || cols < 5 || rows < 10 {
+		t.Errorf("grid at top %dpx shows %d by %d crosspoints, want the title and one band over it and at least 5 by 10", top, cols, rows)
 	}
+	b.waitFor("the title shows with More closed", `(() => { const t = document.getElementById('panel-title'); const r = t.getBoundingClientRect(); return t.textContent === 'Phone grid' && r.height > 0 && r.bottom <= document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect().top; })()`)
 	cursorShown := `getComputedStyle(document.querySelector('.sode-gridpanel__cursor')).display !== 'none'`
 	if b.eval(cursorShown) == true {
 		t.Error("the phone shows a cursor at open")
@@ -81,6 +83,14 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	tap(b, `document.getElementById('panel-more')`)
 	b.waitFor("More opens the Find boxes and the Levels box", `!!document.querySelector('.sode-gridpanel__finds').offsetParent && !!document.getElementById('panel-lvl').offsetParent`)
 	b.waitFor("the open band does not widen the page", `document.documentElement.scrollWidth <= innerWidth`)
+	// iOS zooms into a field under 16 px on focus and does not zoom back.
+	b.waitFor("every field in the band is 16 px or more", `[...document.querySelectorAll('.sode-gridpanel__deck input:not([type=checkbox], [type=radio])')].every((i) => !i.offsetParent || parseFloat(getComputedStyle(i).fontSize) >= 16)`)
+	b.waitFor("Find and Filter are two named choices, with no switch", `!!document.getElementById('panel-find-mode').offsetParent && !document.querySelector('.sode-gridpanel__find-mode').offsetParent && document.getElementById('panel-find-mode-find').checked`)
+	b.shot("phone-more")
+	tap(b, `document.querySelector('label[for="panel-find-mode-filter"]')`)
+	b.waitFor("a tap on Filter sets Filter, and focus stays out of the boxes", `document.getElementById('panel-find-mode-filter').checked && document.querySelector('.sode-gridpanel__find-input').placeholder === 'Filter sources' && !document.activeElement.matches('input[type=text]')`)
+	tap(b, `document.querySelector('label[for="panel-find-mode-find"]')`)
+	b.waitFor("and back to Find", `document.querySelector('.sode-gridpanel__find-input').placeholder === 'Find sources'`)
 	lvChip := `document.querySelector('.sode-gridpanel__lv').textContent`
 	b.waitFor("the band shows the levels a press stages", lvChip+` === 'Levels1–2'`)
 	tap(b, `document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]')`)

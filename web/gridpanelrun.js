@@ -45,7 +45,6 @@ import { onLayout } from './layout.js';
 import { gridHead } from './gridpanelheadview.js';
 import { emptyText } from './gridpanelhead.js';
 import { gridPosition } from './gridpanelpos.js';
-import { POS_KINDS } from './gridpanelposrules.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -99,7 +98,7 @@ export function gridBody(ctx, first) {
   let keyed = false; // true after a key move: only then can the cursor draw its box on a bar.
   let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
   let gest = null;
-  let pos = null; // the phone's position tracks (gridpanelpos.js)
+  let pos = null; // the phone's position strips (gridpanelpos.js)
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -283,8 +282,7 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
-      const posKind = new URLSearchParams(location.search).get('pos');
-      if (head) pos = gridPosition(g, g.scroll.parentNode, POS_KINDS.includes(posKind) ? posKind : 'strips', phone);
+      if (head) pos = gridPosition(g, g.scroll.parentNode, phone);
       boxes = findBoxes(head?.finds || g.head, { onText: findText, onMode: findMode, onStep: findStep });
       gest = lineGestures(g, {
         start: lineStart,
