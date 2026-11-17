@@ -520,13 +520,18 @@ export function gridBody(ctx, first) {
     else onJump(kind, n);
   }
 
-  // A mouse drag along a bar. spanBase is the picks at the press.
+  // A mouse drag along a bar. spanBase is the picks at the press. An edge scroll can pass many names in one frame,
+  // so the paint waits for the next frame.
   let spanBase = null;
+  let spanFrame = 0;
   function onSpan(kind, from, to, add) {
     if (!ctx.ready()) return;
     spanBase ??= picks;
     picks = dragPick(spanBase, kind, from, to, add, axes[kind]);
-    render();
+    spanFrame ||= requestAnimationFrame(() => {
+      spanFrame = 0;
+      if (!stopped) render();
+    });
   }
 
   function onName(kind, n, e) {

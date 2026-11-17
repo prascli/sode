@@ -60,7 +60,7 @@ Files, all in `internal/app`:
   - `Cursor` and `Keys`: the one cursor, the moves, the bar picks and the key list. They send real key events (`realKey`, `realKeyMods`).
   - `Find`: the search boxes, Find and Filter, with text by CDP `Input.insertText`.
   - `Undo`: the `g` and `G` jumps, the right-click jumps and the staged Undo.
-  - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends.
+  - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends. A release in Take mode stages, and no line is left after Clear or Esc. It reads the line layer's computed `display`, since an svg has no `hidden` property. A mouse drag along a bar picks names.
   - `Phone`: touch on the phone layout with CDP touch input. Emulate before `b.open`.
   - `LiveUpdate`: a saved change and a Default artwork change reach an open page, which keeps the search, picks and cursor.
   - `Art`: artwork on names, in the editor's row Artwork button, and no stale artwork after a scroll.

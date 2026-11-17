@@ -149,6 +149,9 @@ func TestChromeGridPanelLine(t *testing.T) {
 	if got := b.eval(picked("src")).(string); got != "2,3,4" {
 		t.Fatalf("the release changed the picks to %q", got)
 	}
+	if sel := b.eval(`getSelection().toString()`).(string); sel != "" {
+		t.Errorf("the drag selected text %q", sel)
+	}
 	x0, y0 = name("dst", 0)
 	_, y1 = name("dst", 2)
 	drag(x0, y0, x0, y1)

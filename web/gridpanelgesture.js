@@ -100,8 +100,6 @@ export function lineGestures(g, on) {
     if (name) {
       const kind = name.dataset.src ? 'srcs' : 'dsts';
       const n = Number(name.dataset.src ?? name.dataset.dst);
-      // No text selection while the drag goes across the names. The click still comes.
-      e.preventDefault();
       span = { kind, from: n, to: n, add: e.metaKey || e.ctrlKey, id: e.pointerId, on: false, x: e.clientX, y: e.clientY };
       return;
     }
