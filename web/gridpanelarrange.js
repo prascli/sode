@@ -6,7 +6,7 @@ import { pinsOf } from './gridpanelwindow.js';
 import { followCursor } from './gridpanelcursor.js';
 
 // was is { find, picks, cur, axes }, axes being what the grid showed. full is gridAxes; axes is full less what a
-// Filter hides. matches are in full order. The search is kept as it is; a gone current match falls to the first (currentMatch).
+// Filter hides. matches are best first (findMatches). The search is kept as it is; a gone current match falls to the first (currentMatch).
 export function arrange(panel, namesReply, was) {
   const full = gridAxes(panel, namesReply);
   const off = namesReply.numberOffset || 0;

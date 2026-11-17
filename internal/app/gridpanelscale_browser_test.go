@@ -129,6 +129,51 @@ func TestChromeGridPanelScale(t *testing.T) {
 		t.Errorf("5 s idle wrote the grid %v times, want none", idle)
 	}
 
+	// Find glides across the whole Source bar to SRC 2400: nodes are moved, never made, and it ends with the match in
+	// view. The glide time and its slowest frame are reported, not asserted.
+	b.eval(`document.querySelector('.sode-gridpanel__scroll').scrollLeft = 0; true`)
+	glide, ok := b.eval(`(async () => {
+		const grid = document.getElementById('panel-grid');
+		const sc = grid.querySelector('.sode-gridpanel__scroll');
+		let added = 0, removed = 0;
+		const els = (list) => [...list].filter((n) => n.nodeType === 1).length;
+		const mo = new MutationObserver((recs) => {
+			for (const r of recs) { added += els(r.addedNodes); removed += els(r.removedNodes); }
+		});
+		mo.observe(grid, { childList: true, subtree: true });
+		await new Promise((r) => requestAnimationFrame(r));
+		const input = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input');
+		input.focus();
+		const t0 = performance.now();
+		const ended = new Promise((r) => sc.addEventListener('scrollend', r, { once: true }));
+		document.execCommand('insertText', false, 'src 2400');
+		let last = t0, worst = 0, going = true;
+		const tick = () => { const now = performance.now(); worst = Math.max(worst, now - last); last = now; if (going) requestAnimationFrame(tick); };
+		requestAnimationFrame(tick);
+		await Promise.race([ended, new Promise((r) => setTimeout(r, 5000))]);
+		going = false;
+		const ms = performance.now() - t0;
+		mo.takeRecords().forEach((r) => { added += els(r.addedNodes); removed += els(r.removedNodes); });
+		mo.disconnect();
+		const n = grid.querySelector('.sode-gridpanel__src[data-src="2399"]:not([hidden])');
+		const r = sc.getBoundingClientRect();
+		const shown = !!n && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right;
+		return { added, removed, ms, worst, shown };
+	})()`).(map[string]any)
+	if !ok {
+		t.Fatal("the glide returned nothing")
+	}
+	t.Logf("Find glide to SRC 2400: %.0f ms, slowest frame %.1f ms", glide["ms"], glide["worst"])
+	if glide["added"].(float64) != 0 || glide["removed"].(float64) != 0 {
+		t.Errorf("the glide added %v and removed %v elements, want nodes moved and none made again", glide["added"], glide["removed"])
+	}
+	if glide["shown"] != true {
+		t.Error("after the glide SRC 2400 is not in view")
+	}
+	realKey(b, "Escape", "Escape", 27)
+	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; sc.scrollTop = sc.scrollHeight; return true; })()`)
+	b.waitFor("back at the far corner", gridXp(2499, 749)+` !== null`)
+
 	// A press far from the start still stages.
 	b.eval(gridXp(2499, 749) + `.click()`)
 	b.waitFor("the press stages", gridXp(2499, 749)+`.dataset.s === 'staged'`)

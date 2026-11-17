@@ -1,7 +1,7 @@
 // Which part of a Grid panel is drawn (gridpanelwindow.js): one axis at a time, in px, pinned items at the edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, pinsOf } from '../gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf } from '../gridpanelwindow.js';
 
 // 2500 sources of 70 px after a 220 px name column, in a 1060 px wide view: 12 to 13 columns show.
 const ax = (over = {}) => ({ n: 2500, pins: 0, size: 70, head: 220, offset: 0, view: 1280, over: 0, ...over });
@@ -56,6 +56,19 @@ test('scrollFor brings an item into the view, clear of the name bar and the pinn
   // Before the start: the item's near edge meets the band's.
   assert.equal(scrollFor(100, ax({ offset: 9000 })), 7000);
   assert.equal(scrollFor(100, ax({ pins: 2, offset: 9000 })), 100 * 70 - 2 * 70);
+});
+
+test('centreFor puts an item in the middle of the view past the name bar and the pinned band', () => {
+  // The item's middle (220 + 100 * 70 + 35) meets the middle of 220 to 1280.
+  assert.equal(centreFor(100, ax()), 6505);
+  assert.equal(centreFor(100, ax({ pins: 2, offset: 9000 })), 6435);
+});
+
+test('centreFor stays inside the scroll range and keeps a pinned item where it is', () => {
+  assert.equal(centreFor(3, ax({ offset: 5000 })), 0);
+  assert.equal(centreFor(2499, ax()), 220 + 2500 * 70 - 1280);
+  assert.equal(centreFor(1, ax({ pins: 2, offset: 7000 })), 7000);
+  assert.equal(centreFor(0, ax({ n: 3 })), 0, 'all items show');
 });
 
 test('pinsOf counts the pinned items at the front of display order', () => {
