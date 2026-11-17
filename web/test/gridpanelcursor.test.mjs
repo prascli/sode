@@ -1,7 +1,7 @@
 // The Grid panel cursor (gridpanelcursor.js): where it starts, how keys move it, and how it follows new axes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CORNER, MOVES, moveCursor, cursorAt, followCursor, pointOf, barOf, rangeCursor } from '../gridpanelcursor.js';
+import { CORNER, MOVES, moveCursor, cursorAt, followCursor, pointOf, barOf, rangeCursor, rangeKind } from '../gridpanelcursor.js';
 
 // 10 destination rows by 20 source columns, 4 rows and 6 columns to a screen.
 const dims = { rows: 10, cols: 20, page: { rows: 4, cols: 6 } };
@@ -94,4 +94,13 @@ test('a range move stays on its bar and never reaches the corner', () => {
   assert.deepEqual(rangeCursor({ i: -1, j: 18 }, 'pageRight', dims), { i: -1, j: 19 });
   assert.deepEqual(rangeCursor({ i: 0, j: -1 }, 'up', dims), { i: 0, j: -1 });
   assert.deepEqual(rangeCursor({ i: 4, j: -1 }, 'pageDown', dims), { i: 8, j: -1 });
+});
+
+test('a Shift move on a crosspoint stays on the crosspoints and picks along the move', () => {
+  const dims = { rows: 10, cols: 20, page: { rows: 4, cols: 5 } };
+  assert.deepEqual(rangeCursor({ i: 3, j: 3 }, 'right', dims), { i: 3, j: 4 });
+  assert.deepEqual(rangeCursor({ i: 0, j: 3 }, 'up', dims), { i: 0, j: 3 });
+  assert.equal(rangeKind({ i: 3, j: 3 }, 'left'), 'srcs');
+  assert.equal(rangeKind({ i: 3, j: 3 }, 'pageDown'), 'dsts');
+  assert.equal(rangeKind({ i: -1, j: 3 }, 'down'), 'srcs');
 });

@@ -182,6 +182,11 @@ test('Shift with a move along the Destination bar extends the pick', () => {
   for (const c of ['ArrowLeft', 'ArrowRight', 'KeyH', 'KeyL']) assert.equal(gridKeyAction(shift(c), bar('dsts')), null, c);
 });
 
+test('Shift with a move on a crosspoint extends the pick along the move', () => {
+  const want = { ArrowLeft: 'left', ArrowRight: 'right', KeyH: 'left', KeyL: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyK: 'up', KeyJ: 'down' };
+  for (const [c, m] of Object.entries(want)) assert.equal(gridKeyAction(shift(c), bar(null)), `range:${m}`, c);
+});
+
 test('Shift with a move does nothing on the corner', () => {
   for (const c of ['ArrowDown', 'ArrowRight']) assert.equal(gridKeyAction(shift(c), bar('corner')), null, c);
 });

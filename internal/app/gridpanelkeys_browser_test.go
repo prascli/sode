@@ -119,5 +119,15 @@ func TestChromeGridPanelKeys(t *testing.T) {
 	b.waitFor("three destinations picked", `document.querySelectorAll('.sode-gridpanel__dst[data-picked]:not([hidden])').length === 3`)
 	realKey(b, "l", "KeyL", 76)
 	gridCursorOn(b, "l from the picked range goes to its first row", 1, 0)
+
+	// On a crosspoint, Shift moves pick the names they cross: sources across, destinations down.
+	gridKey(b, "Escape")
+	b.waitFor("Esc drops the picks again", `!document.querySelector('[data-picked]')`)
+	realKeyMods(b, "L", "KeyL", 76, modShift)
+	realKeyMods(b, "ArrowRight", "ArrowRight", 39, modShift)
+	realKeyMods(b, "J", "KeyJ", 74, modShift)
+	gridCursorOn(b, "Shift moves on a crosspoint move the cursor", 2, 2)
+	b.waitFor("and pick three sources across and two destinations down", `document.querySelectorAll('.sode-gridpanel__src[data-picked]:not([hidden])').length === 3 && `+
+		`document.querySelectorAll('.sode-gridpanel__dst[data-picked]:not([hidden])').length === 2`)
 	b.check()
 }

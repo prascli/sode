@@ -30,7 +30,7 @@ import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, joinPulse } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
-import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
+import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor, rangeKind } from './gridpanelcursor.js';
 import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
 import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
@@ -641,7 +641,8 @@ export function gridBody(ctx, first) {
 
   // Space, x and Shift moves on a bar: the same picks as a click, a Cmd-click and a Shift-click.
   function pickAt(act) {
-    const kind = barOf(cur);
+    const ranged = act.startsWith('range:');
+    const kind = ranged ? rangeKind(cur, act.slice('range:'.length)) : barOf(cur);
     const name = (c) => cursorAt(c, axes)[kind === 'srcs' ? 'src' : 'dst'];
     if (!ctx.ready() || !g || (kind !== 'srcs' && kind !== 'dsts')) return;
     if (act === 'pick' || act === 'add') picks = pickName(picks, kind, name(cur), { toggle: act === 'add' }, axes[kind]);

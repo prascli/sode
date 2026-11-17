@@ -49,8 +49,16 @@ export const followCursor = (c, was, now) => ({ i: follow(c.i, was.dsts, now.dst
 // 'srcs' on the Source bar, 'dsts' on the Destination bar, 'corner', or null on a crosspoint.
 export const barOf = (c) => (c.i < 0 ? (c.j < 0 ? 'corner' : 'srcs') : c.j < 0 ? 'dsts' : null);
 
-// A Shift move along a bar (gridpanelkeys.js range actions) stays on that bar's items.
+const ACROSS = new Set(['left', 'right', 'pageLeft', 'pageRight']);
+
+// The names a Shift move picks: the bar's, or on a crosspoint the sources for a move across, else the destinations.
+export const rangeKind = (c, move) => barOf(c) ?? (ACROSS.has(move) ? 'srcs' : 'dsts');
+
+// A Shift move (gridpanelkeys.js range actions) stays on that bar's items, or on the crosspoints.
 export function rangeCursor(c, move, dims) {
   const n = moveCursor(c, move, dims);
-  return barOf(c) === 'srcs' ? { i: -1, j: Math.max(0, n.j) } : { i: Math.max(0, n.i), j: -1 };
+  const bar = barOf(c);
+  if (bar === 'srcs') return { i: -1, j: Math.max(0, n.j) };
+  if (bar === 'dsts') return { i: Math.max(0, n.i), j: -1 };
+  return { i: Math.max(0, n.i), j: Math.max(0, n.j) };
 }
