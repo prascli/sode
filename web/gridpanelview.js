@@ -34,7 +34,7 @@ const setVar = (n, k, v) => {
 function paintXp(xp, s, d, view) {
   const on = view.pie(s, d);
   const fill = pieFill(view.levels, on);
-  const pie = xp.firstChild;
+  const [pie, ring] = xp.children;
   // The browser rewrites a style it reads back, so the last value set is kept on the node.
   if (pie._fill !== fill) {
     pie._fill = fill;
@@ -42,6 +42,15 @@ function paintXp(xp, s, d, view) {
   }
   // data-s staged is the attribute the panel pulse watches (panels.css). A route left out does not pulse.
   const staged = view.staged(s, d);
+  // The staged ring is a pie of the staged levels, in the same slices as the pie.
+  const ringFill = staged.length ? pieFill(view.levels, staged) : '';
+  if (ring._fill !== ringFill) {
+    ring._fill = ringFill;
+    ring.style.background = ringFill;
+  }
+  // A picked row or column is washed in its role colour (gridpanel.css).
+  setData(xp, 'row', view.picked('dsts', d) ? '' : undefined);
+  setData(xp, 'col', view.picked('srcs', s) ? '' : undefined);
   const out = staged.length > 0 && view.leftOut(s, d);
   const prot = view.protected(d);
   const st = out ? 'left-out' : staged.length ? 'staged' : undefined;
@@ -56,7 +65,7 @@ function paintXp(xp, s, d, view) {
 }
 
 const makeXp = () => {
-  const xp = el('button', 'sode-gridpanel__xp', el('span', 'sode-gridpanel__pie'));
+  const xp = el('button', 'sode-gridpanel__xp', el('span', 'sode-gridpanel__pie'), el('span', 'sode-gridpanel__stage'));
   xp.type = 'button';
   xp.tabIndex = -1;
   return xp;
@@ -201,7 +210,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const side = layer('sode-gridpanel__side');
   const corner = layer('sode-gridpanel__corner');
   // Where the bars meet: the run puts the search boxes here (gridpanelfindbox.js).
-  const head = el('div', 'sode-gridpanel__head');
+  // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar.
+  const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, word, icon(arrow));
+  const head = el('div', 'sode-gridpanel__head', label('dst', 'Destinations', 'arrow-down'));
   corner.append(head);
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
@@ -226,7 +237,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const scroll = el('div', 'pb-grid-body sode-gridpanel__scroll', field, probe);
   // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
   scroll.tabIndex = -1;
-  host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
+  // The Sources row over the grid, as in the prototype; it starts where the Source bar does.
+  const bar = el('div', 'sode-gridpanel__bar', label('src', 'Sources', 'arrow-right'), el('span', 'sode-gridpanel__hint', 'Top edge.'));
+  host.append(bar, el('div', 'pb-grid sode-gridpanel__frame', scroll));
 
   let ax = axes;
   let srcAt = new Map(); // router number to display index

@@ -274,3 +274,14 @@ test('each Authentication mode switch says what it does to keys, and only those 
   assert.match(actsSwitch('public', 'api').text, /lose their Public key/);
   assert.equal(actsSwitch('public', 'session').confirm, true);
 });
+
+test('a Grid panel on the list says how many sources and destinations it holds, or all', async () => {
+  const { gridSize, gridThumbCells, GRID_THUMB } = await import('../panelsrules.js');
+  assert.equal(gridSize({ type: 'grid', sources: { members: [1, 2, 3] }, destinations: { members: [4] } }), 'Grid, 3 sources by 1 destination');
+  assert.equal(gridSize({ type: 'grid', sources: { members: 'all', hide: [2] } }), 'Grid, all sources by all destinations');
+  // The picture: a Source bar across the top, a Destination bar down the side and a diagonal of routes.
+  const cells = gridThumbCells();
+  assert.equal(cells.filter((c) => c.kind === 'source').length, GRID_THUMB.cols - 1);
+  assert.equal(cells.filter((c) => c.kind === 'destination').length, GRID_THUMB.rows - 1);
+  assert.ok(cells.filter((c) => c.kind === 'on').every((c) => c.r - 1 === c.c - 1));
+});

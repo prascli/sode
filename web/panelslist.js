@@ -8,6 +8,9 @@ import {
   actionsFor,
   deleteStep,
   thumbCells,
+  gridThumbCells,
+  gridSize,
+  GRID_THUMB,
   actsLabel,
   actsShort,
   launchNote,
@@ -24,6 +27,7 @@ import { openPush } from './panelpush.js';
 import { artLeftOut } from './panelrules.js';
 import { openAssign, askName } from './panelassign.js';
 import { clashOf, renameRefusal } from './panelassignrules.js';
+import { isGridPanel } from './gridpaneledges.js';
 
 const DISARM_MS = 5000;
 const S = { panels: [], cur: '', armed: '', filter: '', me: '', trusted: false, loaded: false };
@@ -40,16 +44,20 @@ const api = jsonCall(sessionFetch, { failed: (s) => `Sode answered ${s}` });
 function thumb(p, small) {
   const box = el('div', `sode-ov__thumb${small ? ' sode-ov__thumb--sm' : ''}`);
   box.setAttribute('aria-hidden', 'true');
-  box.style.gridTemplate = `repeat(${p.rows}, 1fr) / repeat(${p.cols}, 1fr)`;
-  box.style.aspectRatio = `${p.cols} / ${p.rows}`;
-  for (let r = 1; r <= p.rows; r++) {
-    for (let c = 1; c <= p.cols; c++) {
+  const grid = isGridPanel(p);
+  const { rows, cols } = grid ? GRID_THUMB : p;
+  box.style.gridTemplate = `repeat(${rows}, 1fr) / repeat(${cols}, 1fr)`;
+  box.style.aspectRatio = `${cols} / ${rows}`;
+  if (grid) box.classList.add('sode-ov__thumb--grid');
+  for (let r = 1; r <= rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      if (grid && r === 1 && c === 1) continue;
       const i = el('i');
       i.style.gridArea = `${r} / ${c}`;
       box.append(i);
     }
   }
-  for (const c of thumbCells(p)) {
+  for (const c of grid ? gridThumbCells() : thumbCells(p)) {
     const i = el('i', `sode-ov__k-${c.kind}`);
     i.style.gridArea = `${c.r} / ${c.c} / span ${c.rs} / span ${c.cs}`;
     box.append(i);
@@ -129,7 +137,7 @@ function detail(p) {
     el(
       'div',
       'sode-ov__big',
-      el('div', '', thumb(p), el('p', 'pb-hint', `${p.rows} by ${p.cols} grid`)),
+      el('div', '', thumb(p), el('p', 'pb-hint', isGridPanel(p) ? gridSize(p) : `${p.rows} by ${p.cols} grid`)),
       el('div', 'sode-ov__pane', bar, kv, watchBox(p, setWatch), openNow(p, { setWatch, setHide, rename })),
     ),
   );

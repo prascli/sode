@@ -98,6 +98,20 @@ export function deleteStep(armed, id) {
 
 export const thumbCells = (p) => cellsIn(p).map(({ r, c, rs, cs, kind }) => ({ r, c, rs, cs, kind }));
 
+// A Grid panel has no cells. Its picture is a Source bar across the top, a Destination bar down the side and a
+// diagonal of routes. The box has GRID_THUMB rows and columns.
+export const GRID_THUMB = { rows: 5, cols: 7 };
+export function gridThumbCells() {
+  const out = [];
+  for (let c = 2; c <= GRID_THUMB.cols; c++) out.push({ r: 1, c, rs: 1, cs: 1, kind: 'source' });
+  for (let r = 2; r <= GRID_THUMB.rows; r++) out.push({ r, c: 1, rs: 1, cs: 1, kind: 'destination' }, { r, c: r, rs: 1, cs: 1, kind: 'on' });
+  return out;
+}
+
+// The words under a Grid panel's picture. An "all" edge counts the router's items, which the list page does not read.
+const edgeSize = (edge, one) => (Array.isArray(edge?.members) ? `${edge.members.length} ${one}${edge.members.length === 1 ? '' : 's'}` : `all ${one}s`);
+export const gridSize = (p) => `Grid, ${edgeSize(p.sources, 'source')} by ${edgeSize(p.destinations, 'destination')}`;
+
 // `acts` `api`, `both` and `public` own an API client and hold keys. `both` falls back to Session mode when the page has
 // no key, and `public` gets a short-lived key for any page. Keep in step with actsHasClient in internal/app/panelstore.go.
 export const hasClient = (p) => p?.acts === 'api' || p?.acts === 'both' || p?.acts === 'public';
