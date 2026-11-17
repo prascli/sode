@@ -136,6 +136,8 @@ export function gridBody(ctx, first) {
     const { routes, undoId } = plan;
     const undo = undoId !== undefined;
     const word = undo ? 'undo' : 'take';
+    // An Undo answer asked before this send names the take before it.
+    undoAsk++;
     st = startSend(st);
     render();
     let failed = null;
@@ -165,14 +167,15 @@ export function gridBody(ctx, first) {
     ctx.touched();
     const ask = ++undoAsk;
     let next;
+    let failed = null;
     try {
       next = (await ctx.callJSON(`api/v1/panels/${ctx.id}/undo`)).undo;
     } catch (e) {
-      next = e;
+      failed = e;
     }
     if (ask !== undoAsk || stopped || st.busy || confirm.isOpen()) return;
-    if (next instanceof Error) {
-      note = { text: next.status === undefined ? 'Sode did not answer' : next.message || 'Undo is refused', at: Date.now(), ok: false };
+    if (failed) {
+      note = { text: failed.status === undefined ? 'Sode did not answer' : failed.message || 'Undo is refused', at: Date.now(), ok: false };
       return render();
     }
     const staged = st.undoId === null ? stagedCount(st) : 0;
@@ -304,12 +307,15 @@ export function gridBody(ctx, first) {
   }
   const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels());
 
-  // A right-click on a source steps on from the cursor while the cursor is in its column.
+  // Right-clicks on one source step on from the last one. The pointer on the name moves the cursor off that row.
+  let lastStep = null; // { src, dst } of the last right-click step
   function onJump(kind, n) {
     if (kind === 'xp') return jumped(jumpFrom({ i: axes.dsts.indexOf(n.dst), j: axes.srcs.indexOf(n.src) }));
     if (kind === 'dsts') return jumped(jumpFrom({ i: axes.dsts.indexOf(n), j: -1 }));
     const j = axes.srcs.indexOf(n);
-    jumped(holderJump({ i: cur.j === j ? cur.i : -1, j }, axes, env));
+    const r = holderJump({ i: lastStep?.src === n ? axes.dsts.indexOf(lastStep.dst) : cur.j === j ? cur.i : -1, j }, axes, env);
+    lastStep = r?.c ? { src: n, dst: axes.dsts[r.c.i] } : null;
+    jumped(r);
   }
 
   function moveTo(move) {
@@ -332,7 +338,7 @@ export function gridBody(ctx, first) {
     if (e.defaultPrevented) return;
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
     if (!act) return;
-    const moves = MOVES.has(act) || act === 'press' || act === 'jump' || act === 'step';
+    const moves = MOVES.has(act) || ['press', 'jump', 'step', 'undo'].includes(act);
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.

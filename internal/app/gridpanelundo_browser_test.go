@@ -43,9 +43,16 @@ func TestChromeGridPanelUndo(t *testing.T) {
 	realKey(b, "g", "KeyG", 71)
 	gridCursorOn(b, "g goes along the row to the current source", 3, 3)
 
+	// Real mouse clicks with a small move between them, which puts the cursor back on the name.
 	src5 := `document.querySelector('.sode-gridpanel__src[data-src="5"]')`
-	for _, i := range []int{2, 5, 2} {
-		gridMenu(b, src5)
+	at := b.eval(`(() => { const r = ` + src5 + `.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()`).([]any)
+	y := at[1].(float64)
+	for k, i := range []int{2, 5, 2} {
+		x := at[0].(float64) + float64(k)
+		b.call("Input.dispatchMouseEvent", map[string]any{"type": "mouseMoved", "x": x, "y": y})
+		for _, typ := range []string{"mousePressed", "mouseReleased"} {
+			b.call("Input.dispatchMouseEvent", map[string]any{"type": typ, "x": x, "y": y, "button": "right", "clickCount": 1})
+		}
 		gridCursorOn(b, fmt.Sprintf("a right-click on a source steps to row %d", i), i, 5)
 	}
 	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyDown", "key": "G", "code": "KeyG", "windowsVirtualKeyCode": 71, "modifiers": 8, "text": "G"})
