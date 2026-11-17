@@ -25,6 +25,8 @@ import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
 import { shortcutList } from './shortcuts.js';
+import { restPoint, takeButton, tapMods } from './gridpanelphone.js';
+import { onLayout } from './layout.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -75,6 +77,18 @@ export function gridBody(ctx, first) {
   count.hidden = true;
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
+  const phone = () => document.documentElement.dataset.layout === 'phone';
+  // The Take button (gridpanelphone.js) at the end of the Levels box, as in the prototype; Kiosk mode hides the
+  // header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
+  const takeCount = el('span', 'sode-gridpanel__take-n');
+  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--commit sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
+  if (take) {
+    take.type = 'button';
+    take.id = 'panel-take';
+    take.hidden = true;
+    take.addEventListener('click', () => openConfirm());
+    document.getElementById('panel-levels')?.append(take);
+  }
 
   // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
   const images = new Map(); // artwork id -> { url, type }, or null while it loads or after it failed
@@ -145,7 +159,8 @@ export function gridBody(ctx, first) {
     return { pairs, kept: pairs.filter((x) => !r.skipped.includes(x)), r };
   };
 
-  // Numbered targets only while names are picked; a press with none is the crosspoint itself.
+  // Numbered targets only while names are picked; a press with none is the crosspoint itself. A phone has no hover,
+  // so with no crosspoint under the cursor the targets show from the picks' rest point.
   const preview = () => {
     if (line) {
       const { kept, r } = lineDry();
@@ -153,7 +168,8 @@ export function gridBody(ctx, first) {
       return previewGridPanel(g, kept, r.over, r.skipped);
     }
     g.line(null);
-    const pairs = at && pickCount(picks) ? pairsAt(at) : [];
+    const from = at || (phone() && restPoint(picks, axes, cur));
+    const pairs = from && pickCount(picks) ? pairsAt(from) : [];
     previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
   };
 
@@ -165,6 +181,13 @@ export function gridBody(ctx, first) {
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
+    if (take) {
+      const t = takeButton({ mode: st.mode, staged: n, busy: st.busy });
+      if (take.hidden === t.shown) take.hidden = !t.shown;
+      if (take.disabled !== t.disabled) take.disabled = t.disabled;
+      take.classList.toggle('sode-panel__take--armed', t.armed);
+      say(takeCount, t.count);
+    }
     boxes?.paint(find, countsOf());
     const text =
       stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
@@ -193,7 +216,7 @@ export function gridBody(ctx, first) {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
       boxes = findBoxes(g.head, { onText: findText, onMode: findMode });
-      gest = lineGestures(g, { start: lineStart, move: lineMove, end: lineEnd, cancel: dropLine });
+      gest = lineGestures(g, { start: lineStart, move: lineMove, end: lineEnd, cancel: dropLine, name: onTouchName });
     }
     setCursor(cur);
   };
@@ -432,9 +455,17 @@ export function gridBody(ctx, first) {
 
   const centre = (c) => ({ x: c.j + 0.5, y: c.i + 0.5 });
 
+  // A long-press on a name adds the range from the last pick, as a Shift-click does; a double-tap jumps, as a
+  // right-click does.
+  function onTouchName(kind, n, how) {
+    if (how === 'long') onName(kind, n, { shiftKey: true });
+    else onJump(kind, n);
+  }
+
   function onName(kind, n, e) {
     if (!ctx.ready()) return;
-    picks = pickName(picks, kind, n, { range: e.shiftKey, toggle: e.metaKey || e.ctrlKey }, axes[kind]);
+    // A finger has no modifier keys on any layout, so a touch tap adds or removes too.
+    picks = pickName(picks, kind, n, tapMods(e, phone() || e.pointerType === 'touch'), axes[kind]);
     render();
   }
 
@@ -547,7 +578,8 @@ export function gridBody(ctx, first) {
     }
     const finding = !!find[find.last].text.trim();
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding, line: !!line });
-    if (!act || (act === 'keys' && !keyList)) return;
+    // A phone has no key list.
+    if (!act || (act === 'keys' && (!keyList || phone()))) return;
     const moves =
       MOVES.has(act) ||
       act === 'pick' ||
@@ -600,6 +632,8 @@ export function gridBody(ctx, first) {
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);
+  // A turned phone or a changed Layout setting shows or hides the rest-point targets.
+  const offLayout = onLayout(render);
 
   return {
     render,
@@ -639,6 +673,8 @@ export function gridBody(ctx, first) {
       gest?.stop();
       g?.stop();
       count.remove();
+      take?.remove();
+      offLayout();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();
       if (keyList?.shown()) keyList.close();

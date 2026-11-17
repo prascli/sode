@@ -1,11 +1,14 @@
 // Drawn line gestures on a Grid panel (spec #432): a mouse or pen drag on the crosspoints, or a touch long-press.
-// g is the drawn grid (gridpanelview.js). on: { start(a), move(b), end(b), cancel() }, points in crosspoint units.
+// Also the touch gestures on names: a long-press adds a range and a double-tap jumps. g is the drawn grid
+// (gridpanelview.js). on: { start(a), move(b), end(b), cancel(), name(kind, n, how) }, points in crosspoint units;
+// kind is 'srcs' or 'dsts' and how 'long' or 'double'.
 // Touch is way A of the prototype on branch prototype/panels (grid/touch.html). touch-action cannot change after
 // pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
 // timer. A plain touch drag stays a native scroll.
 import { isLine } from './gridpanelline.js';
 
 const LONG_MS = 450;
+const DOUBLE_MS = 350; // the most time between the two taps of a double-tap.
 const SLOP_PX = 10; // a touch that moves this far before the timer is a scroll
 const EDGE_SPEED = 0.25; // auto-scroll px per frame for each px inside the edge zone
 
@@ -14,7 +17,10 @@ export function lineGestures(g, on) {
   let down = null; // { a, id }: a mouse or pen press on a crosspoint, not yet past the click threshold.
   let active = null; // { kind: 'pointer' | 'touch', x, y }: a line draws; x and y are the last client point.
   let timer = 0;
-  let touchAt = null; // the client point of a pending long-press
+  let touchAt = null; // the client point of a pending long-press.
+  let nameAt = null; // { kind, n } of a pending long-press on a name.
+  let held = false; // a long-press on a name fired, so its touchend must not click.
+  let lastTap = null; // { kind, n, t } of the last tap on a name, for a double-tap.
   let eat = false; // the click that follows a line's release
   let raf = 0;
 
@@ -30,6 +36,7 @@ export function lineGestures(g, on) {
     clearTimeout(timer);
     timer = 0;
     touchAt = null;
+    nameAt = null;
     cancelAnimationFrame(raf);
   };
   const moveTo = (x, y) => {
@@ -104,11 +111,21 @@ export function lineGestures(g, on) {
     if (stylus(e)) return;
     if (e.touches.length !== 1) return cancel();
     const t = e.touches[0];
-    if (active || !g.hit(t.clientX, t.clientY)) return;
+    held = false;
+    if (active) return;
+    // A name node moves to another item on a scroll, so the item is read at the touch.
+    const xp = g.hit(t.clientX, t.clientY);
+    const name = !xp && e.target.closest?.('.sode-gridpanel__src, .sode-gridpanel__dst');
+    if (!xp && !name) return;
     touchAt = { x: t.clientX, y: t.clientY };
+    nameAt = name ? { kind: name.dataset.src ? 'srcs' : 'dsts', n: Number(name.dataset.src ?? name.dataset.dst) } : null;
     timer = setTimeout(() => {
       timer = 0;
-      if (touchAt) begin('touch', units(touchAt.x, touchAt.y), touchAt.x, touchAt.y);
+      if (nameAt) {
+        held = true;
+        lastTap = null;
+        on.name(nameAt.kind, nameAt.n, 'long');
+      } else if (touchAt) begin('touch', units(touchAt.x, touchAt.y), touchAt.x, touchAt.y);
     }, LONG_MS);
   };
   // Non-passive, so it costs a scroll on every touch move: it returns at once when nothing is pending.
@@ -127,12 +144,28 @@ export function lineGestures(g, on) {
       clearTimeout(timer);
       timer = 0;
       touchAt = null;
+      nameAt = null;
     }
   };
   const onTouchEnd = (e) => {
+    const tapped = timer && nameAt;
     clearTimeout(timer);
     timer = 0;
     touchAt = null;
+    nameAt = null;
+    // The long-press already picked; its click would pick again.
+    if (held) {
+      held = false;
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+    // Both taps still click, so a double-tap leaves the picks as they were.
+    if (tapped) {
+      const now = e.timeStamp;
+      const twice = lastTap && lastTap.kind === tapped.kind && lastTap.n === tapped.n && now - lastTap.t < DOUBLE_MS;
+      lastTap = twice ? null : { ...tapped, t: now };
+      if (twice) on.name(tapped.kind, tapped.n, 'double');
+    }
     if (active?.kind !== 'touch') return;
     // No compatibility mouse events and click after a line.
     if (e.cancelable) e.preventDefault();
@@ -140,11 +173,12 @@ export function lineGestures(g, on) {
     finish(t.clientX, t.clientY);
   };
   const onTouchCancel = () => {
+    held = false;
     if (timer || active?.kind === 'touch') cancel();
   };
-  // A long-press opens the context menu on Android; while one is pending or drawing, it is the line's.
+  // A long-press opens the context menu on Android; while one is pending, drawing or held, it is the grid's.
   const onMenu = (e) => {
-    if (timer || active?.kind === 'touch') e.preventDefault();
+    if (timer || held || active?.kind === 'touch') e.preventDefault();
   };
 
   const listen = [

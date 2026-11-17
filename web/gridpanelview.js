@@ -400,6 +400,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   });
   // Nodes move between items on a scroll, so the item is read from the node at the click.
   field.addEventListener('contextmenu', (e) => {
+    // Android sends a long-press as a menu; on touch a long-press is a line or a range (gridpanelgesture.js).
+    if (e.pointerType === 'touch') return e.preventDefault();
     const xp = e.target.closest('.sode-gridpanel__xp');
     const name = !xp && e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
     if (!xp && !name) return;
@@ -412,7 +414,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     if (e.shiftKey && !head.contains(e.target)) e.preventDefault();
   });
   // Over the search boxes the cursor stays where Find put it.
-  const onMove = (e) => head.contains(e.target) || onPoint(e.clientX, e.clientY);
+  // A finger has no hover: its moves are a scroll or a line, so the cursor stays and the targets show from the picks.
+  const onMove = (e) => e.pointerType === 'touch' || head.contains(e.target) || onPoint(e.clientX, e.clientY);
   scroll.addEventListener('pointermove', onMove, { passive: true });
   measure();
   setAxes(axes);
