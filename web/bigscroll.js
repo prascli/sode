@@ -270,15 +270,16 @@ export function bigScroll(scroller, axis = 'y') {
 // own bar. A scroller taken out of the page loses its bar.
 export function bigScrollAll(root = document.body) {
   bigScroll(document.scrollingElement, 'y');
+  // One query per added or removed node: match lists and History redraw many rows per keystroke.
+  const all = SCROLLERS.map(([sel]) => sel).join(',');
+  const attach = (m) => bigScroll(m, SCROLLERS.find(([sel]) => m.matches(sel))[1]);
   const scan = (n) => {
-    for (const [sel, axis] of SCROLLERS) {
-      if (n.matches(sel)) bigScroll(n, axis);
-      for (const m of n.querySelectorAll(sel)) bigScroll(m, axis);
-    }
+    if (n.matches(all)) attach(n);
+    if (n.firstElementChild) for (const m of n.querySelectorAll(all)) attach(m);
   };
   const drop = (n) => {
     bars.get(n)?.stop();
-    for (const m of n.querySelectorAll('[data-bigscroll]')) bars.get(m)?.stop();
+    if (n.firstElementChild) for (const m of n.querySelectorAll('[data-bigscroll]')) bars.get(m)?.stop();
   };
   scan(root);
   new MutationObserver((list) => {
