@@ -42,7 +42,14 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const src = document.querySelector('.sode-gridpanel__label--src').getBoundingClientRect();
 		const dst = document.querySelector('.sode-gridpanel__head > .sode-gridpanel__label--dst');
 		const scroll = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
-		return Math.abs(src.left - 208) < 1 && src.bottom <= scroll.top && dst?.textContent === 'Destinations' && document.querySelector('.sode-gridpanel__head').lastChild === dst;
+		return Math.abs(src.left - 224) < 1 && src.bottom <= scroll.top && dst?.textContent === 'Destinations' && document.querySelector('.sode-gridpanel__head').lastChild === dst;
+	})()`)
+
+	b.waitFor("80 px crosspoints with 16 px names, under one raised deck", `(() => {
+		const bg = (s) => getComputedStyle(document.querySelector(s)).backgroundColor;
+		return Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 80 &&
+			getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '16.25px' &&
+			bg('#panel-levels') === bg('.sode-panels__head') && bg('.sode-gridpanel__bar') === bg('.sode-panels__head');
 	})()`)
 
 	b.eval(`document.querySelector('.sode-gridpanel__dst[data-dst="2"]').click(); document.querySelector('.sode-gridpanel__src[data-src="4"]').click(); true`)
@@ -58,10 +65,13 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const bg = r.style.background;
 		return `+gridXp(5, 3)+`.dataset.s === 'staged' && getComputedStyle(r).display === 'block' && bg.includes('conic-gradient') && (bg.match(/transparent/g) || []).length > 3;
 	})()`)
-	b.waitFor("Take is 192 by 64 px at the right of the Levels band", `(() => {
+	b.waitFor("Take is 192 px wide at the right of the Levels band, and Take and Clear are as tall as the picks", `(() => {
 		const t = document.getElementById('panel-take').getBoundingClientRect();
+		const c = document.getElementById('panel-clear').getBoundingClientRect();
+		const p = document.getElementById('panel-lvl-pick').getBoundingClientRect();
 		const band = document.getElementById('panel-levels').getBoundingClientRect();
-		return Math.round(t.width) === 192 && Math.round(t.height) === 64 && innerWidth - t.right < 12 && t.top >= band.top && t.bottom <= band.bottom && document.getElementById('panel-take').textContent === 'Take 1';
+		const same = (r) => Math.abs(r.top - p.top) < 1 && Math.abs(r.height - p.height) < 1;
+		return Math.round(t.width) === 192 && same(t) && same(c) && innerWidth - t.right < 12 && t.bottom <= band.bottom && document.getElementById('panel-take').textContent === 'Take 1';
 	})()`)
 	b.waitFor("the V pick is two by two picks, filled when on", `(() => {
 		const [v, two] = document.querySelectorAll('#panel-lvl-pick > .sode__pick');

@@ -93,7 +93,8 @@ const makeArt = () => {
   row.hidden = true;
   const [svg, img, mask] = row.children;
   svg.setAttribute('class', 'pb-icon sode-gridpanel__art-a');
-  svg.hidden = img.hidden = mask.hidden = true;
+  img.hidden = mask.hidden = true;
+  svg.setAttribute('hidden', '');
   img.alt = '';
   return row;
 };
@@ -114,8 +115,9 @@ const makeDst = () => {
   return n;
 };
 
+// The attribute, not the property: the art row's svg has no hidden property.
 const show = (n, on) => {
-  if (n.hidden === on) n.hidden = !on;
+  if (n.hasAttribute('hidden') === on) n.toggleAttribute('hidden', !on);
 };
 // art is { icon, url, mask, b } from view.art (a part can be missing), or null.
 function paintArt(row, art) {
@@ -255,6 +257,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
+  let cur = { i: -1, j: -1 }; // The cursor's display position, -1 on a bar.
   // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
   // animations. Thus a new glide restarts the pulse on a node that still has the last one.
   let hit = null;
@@ -284,6 +287,14 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     else marked.add(n);
   };
   const markName = (n, on) => setData(n, 'target', on ? '' : undefined);
+  // The names of the crosspoint under the cursor; none while the cursor is on a bar.
+  const cueOf = () => (cur.i >= 0 && cur.j >= 0 ? { src: ax.srcs[cur.j], dst: ax.dsts[cur.i] } : {});
+  const cueName = (n, on) => setData(n, 'cue', on ? '' : undefined);
+  const cueNames = () => {
+    const c = cueOf();
+    for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) cueName(n, Number(n.dataset.src) === c.src);
+    for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) cueName(n, Number(n.dataset.dst) === c.dst);
+  };
   const paintSrc = (n, s) => {
     if (view) {
       setText(n, view.names.source(s));
@@ -292,6 +303,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintArt(n.lastChild, view.art('srcs', s));
     }
     markName(n, mark.srcs.has(s));
+    cueName(n, cueOf().src === s);
     setData(n, 'hit', hitOf('srcs', s));
   };
   const paintDst = (n, d) => {
@@ -303,6 +315,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintArt(n.lastChild, view.art('dsts', d));
     }
     markName(n, mark.dsts.has(d));
+    cueName(n, cueOf().dst === d);
     setData(n, 'hit', hitOf('dsts', d));
   };
   const xpPut = (n, i, j) => {
@@ -365,8 +378,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // A client point in scroller px, from its padding edge.
   const local = (x, y, m = metricsNow()) => ({ x: x - m.x, y: y - m.y });
 
-  // Display position { i, j } of the cursor, -1 on a bar. A bar or pinned item is sticky, so each draw places it again.
-  let cur = { i: -1, j: -1 };
+  // A bar or pinned item is sticky, so each draw places the cursor again.
   let curKey = '';
   const placeCursor = () => {
     const m = metricsNow();
@@ -544,6 +556,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       setData(cursor, 'i', String(c.i));
       setData(cursor, 'j', String(c.j));
       placeCursor();
+      cueNames();
     },
     // Whole scrolling rows and columns one screen shows.
     page() {
@@ -629,6 +642,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.has(Number(n.dataset.src)));
       for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.has(Number(n.dataset.dst)));
       setData(field, 'over', over && pairs.length ? '' : undefined);
+      setData(field, 'marked', mark.srcs.size || mark.dsts.size ? '' : undefined);
     },
     previewing: () => mark.xps.size > 0 || mark.srcs.size > 0 || mark.skip.size > 0,
     stop() {

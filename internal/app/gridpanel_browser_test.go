@@ -37,6 +37,8 @@ func gridShow(b *tab, src, dst int) {
 		sc.scrollTop = Math.max(0, %d - 1) * xp;
 		return true;
 	})()`, src, dst))
+	// The scroll draws on its event, after this; without the wait a node drawn before the scroll would pass.
+	b.eval(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))`)
 	b.waitFor(fmt.Sprintf("crosspoint %d, %d drawn", src, dst), gridXp(src, dst)+` !== null && !`+gridXp(src, dst)+`.hidden`)
 }
 
@@ -180,6 +182,8 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 		t.Errorf("a Shift-click selected text %q", got)
 	}
 
+	// The pointer must be inside the scroller: at 1280 by 713, row 4 is below it.
+	gridShow(b, 11, 4)
 	b.eval(`(() => {
 		const r = ` + gridXp(11, 4) + `.getBoundingClientRect();
 		const at = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
