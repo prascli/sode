@@ -65,7 +65,6 @@ export function gridBody(ctx, first) {
   count.hidden = true;
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
-  let stopped = false;
 
   // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
   const images = new Map(); // artwork id -> { url, type }, or null while it loads or after it failed
@@ -139,7 +138,8 @@ export function gridBody(ctx, first) {
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
-    const text = stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const text =
+      stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
