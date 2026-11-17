@@ -2510,7 +2510,7 @@ components:
               type: object
               description: |
                 Output only, on `GET /panels/{id}`. The server's take confirm settings, for a panel page
-                that has no socket. `lockoutMs` is the time before the confirm key works; `enter` lets Enter confirm.
+                whose socket hello is late or never comes. `lockoutMs` is the time before the confirm key works; `enter` lets Enter confirm.
               properties:
                 lockoutMs: { type: integer }
                 enter: { type: boolean }
