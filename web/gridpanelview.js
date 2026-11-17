@@ -7,6 +7,7 @@ import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
 import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor } from './gridpanelwindow.js';
 
+const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
 const OVER = 4; // items drawn past each end of the view, so a fast scroll shows fewer blank crosspoints
 
 // A name node keeps one Text child, so a rename or a move is not a childList change.
@@ -41,7 +42,10 @@ function paintXp(xp, s, d, view) {
   const staged = view.staged(s, d);
   const out = staged.length > 0 && view.leftOut(s, d);
   const prot = view.protected(d);
-  setData(xp, 's', out ? 'left-out' : staged.length ? 'staged' : undefined);
+  const st = out ? 'left-out' : staged.length ? 'staged' : undefined;
+  // A staged crosspoint runs the pulse itself (gridpanel.css). The delay puts it in step with the others.
+  if (st === 'staged' && xp.dataset.s !== 'staged') xp.style.animationDelay = `${-(document.timeline.currentTime % PULSE_MS)}ms`;
+  setData(xp, 's', st);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
   if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
   const state = out ? ', staged, left out of the take' : staged.length ? ', staged' : '';
