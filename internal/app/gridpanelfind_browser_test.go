@@ -17,9 +17,9 @@ func gridFound(kind string) string {
 }
 
 // s and d go to the bars' search boxes in the corner. Find marks matches in place and moves the cursor to the first;
-// Enter and Shift+Enter step. Ctrl+/ switches to Filter, which shows only matches. Esc clears the box, keeps its mode
-// and gives the keys back to the grid with the cursor on the last match. Tab goes to the other box, and n and N on the
-// grid step the box last typed in.
+// Enter and Shift+Enter step. Ctrl+/ switches to Filter, which shows only matches. Tab goes to the other box, which
+// has the same mode. n and N on the grid step the box last typed in. Esc clears the box, keeps the mode and gives the
+// keys back to the grid with the cursor on the last match.
 func TestChromeGridPanelFind(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -68,24 +68,32 @@ func TestChromeGridPanelFind(t *testing.T) {
 
 	realKey(b, "Tab", "Tab", 9)
 	b.waitFor("Tab goes to the Destination bar box", `document.activeElement === `+gridFindBox("dsts"))
+	b.waitFor("the Destination bar box has the same mode", `document.querySelector('.sode-gridpanel__find[data-kind="dsts"]').dataset.mode === 'filter'`)
 	b.call("Input.insertText", map[string]any{"text": "dsm"})
 	// DSM1 to DSM5 are destinations 2 to 6.
-	gridCursorOn(b, "Find on the Destination bar moves the cursor down to the first match", 2, 0)
+	rows := `getComputedStyle(document.querySelector('.sode-gridpanel__field')).getPropertyValue('--sode-rows').trim()`
+	b.waitFor("the Destination bar box filters too", rows+` === '5'`)
+	gridCursorOn(b, "the cursor goes to the first match", 0, 0)
 	b.eval(`document.activeElement.blur(); true`)
 	realKey(b, "n", "KeyN", 78)
-	gridCursorOn(b, "n on the grid steps the box last typed in", 3, 0)
+	gridCursorOn(b, "n on the grid steps the box last typed in", 1, 0)
 	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyDown", "key": "N", "code": "KeyN", "windowsVirtualKeyCode": 78, "modifiers": 8})
 	b.call("Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": "N", "code": "KeyN", "windowsVirtualKeyCode": 78, "modifiers": 8})
-	gridCursorOn(b, "N steps back", 2, 0)
+	gridCursorOn(b, "N steps back", 0, 0)
 
 	realKey(b, "s", "KeyS", 83)
+	// A blank makes this box the one typed in last.
+	b.call("Input.insertText", map[string]any{"text": " "})
 	realKey(b, "Escape", "Escape", 27)
 	b.waitFor("Esc clears the box and leaves it", ``+gridFindBox("srcs")+`.value === '' && document.activeElement !== `+gridFindBox("srcs"))
 	b.waitFor("every source shows again", cols+` === '200'`)
-	gridCursorOn(b, "the cursor stays on the source it was on", 2, 12)
+	gridCursorOn(b, "the cursor stays on the source it was on", 0, 12)
 	b.waitFor("the box keeps Filter for the visit", `document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').dataset.mode === 'filter'`)
+	b.waitFor("the Destination bar keeps its Filter", rows+` === '5'`)
+	realKey(b, "n", "KeyN", 78)
+	gridCursorOn(b, "with the Source bar box empty, n steps the other box", 1, 12)
 	realKey(b, "j", "KeyJ", 74)
-	gridCursorOn(b, "the keys move the cursor again", 3, 12)
+	gridCursorOn(b, "the keys move the cursor again", 2, 12)
 
 	realKey(b, "s", "KeyS", 83)
 	b.call("Input.insertText", map[string]any{"text": "zz"})

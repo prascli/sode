@@ -15,8 +15,8 @@ export function arrange(panel, namesReply, was) {
     dsts: findMatches(full.dsts, namesReply.destinations, was.find.dsts.text, off),
   };
   const axes = {
-    srcs: shownOrder(full.srcs, pinsOf(panel.sources, full.srcs), was.find.srcs, matches.srcs),
-    dsts: shownOrder(full.dsts, pinsOf(panel.destinations, full.dsts), was.find.dsts, matches.dsts),
+    srcs: shownOrder(full.srcs, pinsOf(panel.sources, full.srcs), was.find, 'srcs', matches.srcs),
+    dsts: shownOrder(full.dsts, pinsOf(panel.destinations, full.dsts), was.find, 'dsts', matches.dsts),
   };
   // Picks on names that left the panel go; picks a Filter hides stay.
   const picks = { ...was.picks, srcs: was.picks.srcs.filter((n) => full.srcs.includes(n)), dsts: was.picks.dsts.filter((n) => full.dsts.includes(n)) };

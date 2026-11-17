@@ -1,7 +1,7 @@
 // Find and Filter on a Grid panel's bars (gridpanelfind.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFind, findMatches, typed, currentMatch, stepMatch, switchMode, clearFind, shownOrder } from '../gridpanelfind.js';
+import { createFind, findMatches, typed, currentMatch, stepMatch, switchMode, clearFind, shownOrder, stepBox } from '../gridpanelfind.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const names = namesReply({
@@ -17,7 +17,8 @@ const names = namesReply({
 
 test('a new search is empty and in Find mode on both bars', () => {
   const f = createFind();
-  for (const k of ['srcs', 'dsts']) assert.deepEqual(f[k], { text: '', mode: 'find', at: null });
+  for (const k of ['srcs', 'dsts']) assert.deepEqual(f[k], { text: '', at: null });
+  assert.equal(f.mode, 'find');
 });
 
 test('matches keep panel order, not score order, with no cut-off', () => {
@@ -45,7 +46,7 @@ test('typing starts at the first match and makes that box the one n and N step',
   f = { ...f, srcs: { ...f.srcs, at: 3 } };
   f = typed(f, 'dsts', 'mon');
   assert.equal(f.last, 'dsts');
-  assert.deepEqual(f.dsts, { text: 'mon', mode: 'find', at: null });
+  assert.deepEqual(f.dsts, { text: 'mon', at: null });
   assert.equal(currentMatch(f, 'dsts', [5, 7]), 5);
   assert.equal(f.srcs.at, 3);
 });
@@ -62,7 +63,7 @@ test('steps go forward and back through the matches and wrap at each end', () =>
 });
 
 test('a current match that is gone gives the first match, and a step goes on from there', () => {
-  const f = { ...createFind(), srcs: { text: 'cam', mode: 'find', at: 9 } };
+  const f = { ...createFind(), srcs: { text: 'cam', at: 9 } };
   const m = [4, 3, 1];
   assert.equal(currentMatch(f, 'srcs', m), 4);
   assert.equal(currentMatch(stepMatch(f, 'srcs', m, 1), 'srcs', m), 3);
@@ -75,26 +76,37 @@ test('no matches: no current match and a step does nothing', () => {
   assert.deepEqual(stepMatch(f, 'srcs', [], 1), f);
 });
 
-test('the mode switches per box and stays when the box is cleared', () => {
-  let f = switchMode(typed(createFind(), 'srcs', 'cam'), 'srcs');
-  assert.equal(f.srcs.mode, 'filter');
-  assert.equal(f.dsts.mode, 'find');
-  f = clearFind(f, 'srcs');
-  assert.deepEqual(f.srcs, { text: '', mode: 'filter', at: null });
-  assert.equal(switchMode(f, 'srcs').srcs.mode, 'find');
+test('one mode serves both boxes and stays when a box is cleared', () => {
+  let f = switchMode(typed(createFind(), 'srcs', 'cam'));
+  assert.equal(f.mode, 'filter');
+  f = clearFind(typed(f, 'dsts', 'mon'), 'srcs');
+  assert.deepEqual(f.srcs, { text: '', at: null });
+  assert.equal(f.mode, 'filter');
+  assert.equal(switchMode(f).mode, 'find');
+});
+
+test('n and N step the box typed in last; if it is empty, the other box', () => {
+  let f = typed(typed(createFind(), 'srcs', 'cam'), 'dsts', 'mon');
+  assert.equal(stepBox(f), 'dsts');
+  f = clearFind(f, 'dsts');
+  assert.equal(stepBox(f), 'srcs');
+  f = stepMatch(typed(f, 'dsts', 'mon'), 'srcs', [1, 3], 1);
+  assert.equal(stepBox(f), 'srcs', 'a step makes its box the last one');
+  assert.equal(stepBox(clearFind(clearFind(f, 'srcs'), 'dsts')), null);
+  assert.equal(stepBox(typed(createFind(), 'dsts', '  ')), null);
 });
 
 test('Find shows every item; Filter shows the pinned items and the matches, in panel order', () => {
   const order = [9, 8, 0, 1, 2, 3, 4]; // 9 and 8 pinned
   let f = typed(createFind(), 'srcs', 'cam');
   const m = findMatches(order, names.sources, 'cam', 1);
-  assert.deepEqual(shownOrder(order, 2, f.srcs, m), order);
-  f = switchMode(f, 'srcs');
-  assert.deepEqual(shownOrder(order, 2, f.srcs, m), [9, 8, 1, 3, 4]);
-  assert.deepEqual(shownOrder(order, 2, clearFind(f, 'srcs').srcs, []), order);
+  assert.deepEqual(shownOrder(order, 2, f, 'srcs', m), order);
+  f = switchMode(f);
+  assert.deepEqual(shownOrder(order, 2, f, 'srcs', m), [9, 8, 1, 3, 4]);
+  assert.deepEqual(shownOrder(order, 2, clearFind(f, 'srcs'), 'srcs', []), order);
 });
 
 test('Filter with no match shows only the pinned items', () => {
-  const f = switchMode(typed(createFind(), 'srcs', 'zz'), 'srcs');
-  assert.deepEqual(shownOrder([9, 0, 1], 1, f.srcs, []), [9]);
+  const f = switchMode(typed(createFind(), 'srcs', 'zz'));
+  assert.deepEqual(shownOrder([9, 0, 1], 1, f, 'srcs', []), [9]);
 });

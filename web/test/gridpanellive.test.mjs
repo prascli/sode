@@ -44,16 +44,16 @@ test('an update keeps the Find text, its mode and the current match', () => {
 
 test('an update keeps a Filter, which shows only matches from the new members', () => {
   let v = open(gridPanel());
-  v = { ...v, find: switchMode(typed(v.find, 'srcs', 'cam'), 'srcs') };
+  v = { ...v, find: switchMode(typed(v.find, 'srcs', 'cam')) };
   v = open(gridPanel({ sources: { members: [1, 2, 3] } }), v);
-  assert.equal(v.find.srcs.mode, 'filter');
+  assert.equal(v.find.mode, 'filter');
   assert.deepEqual(v.axes.srcs, [1, 3]);
   assert.deepEqual(v.full.srcs, [1, 2, 3]);
 });
 
 test('picks on names that left the panel go; picks still on it stay, also when a Filter hides them', () => {
   let v = open(gridPanel());
-  v = { ...v, picks: { ...v.picks, srcs: [0, 2], dsts: [1, 2] }, find: switchMode(typed(v.find, 'srcs', 'cam'), 'srcs') };
+  v = { ...v, picks: { ...v.picks, srcs: [0, 2], dsts: [1, 2] }, find: switchMode(typed(v.find, 'srcs', 'cam')) };
   v = open(gridPanel({ sources: { members: [1, 2, 3] }, destinations: { members: [0, 1] } }), v);
   assert.deepEqual(v.picks.srcs, [2], 'VT 1 is hidden by the Filter but stays picked');
   assert.deepEqual(v.picks.dsts, [1]);

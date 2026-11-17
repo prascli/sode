@@ -12,7 +12,7 @@ import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, lef
 import { gridKeyAction, findBoxAction } from './gridpanelkeys.js';
 import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
 import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
-import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind } from './gridpanelfind.js';
+import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind, stepBox } from './gridpanelfind.js';
 import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
@@ -137,7 +137,7 @@ export function gridBody(ctx, first) {
     staged,
     picked: (kind, n) => picks[kind].includes(n),
     // Filter shows only matches, so only Find marks them.
-    found: (kind, n) => find[kind].mode === 'find' && matches[kind].includes(n),
+    found: (kind, n) => find.mode === 'find' && matches[kind].includes(n),
     leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
     protected: (d) => env.protectedDsts.has(d),
     art: (kind, n) => nameArtOf(kind, n),
@@ -243,14 +243,14 @@ export function gridBody(ctx, first) {
     render();
   }
 
-  function findMode(kind) {
-    find = switchMode(find, kind);
+  function findMode() {
+    find = switchMode(find);
     rebuild();
     render();
   }
 
   function findStep(kind, dir) {
-    if (!find[kind].text.trim()) return;
+    if (!kind || !find[kind].text.trim()) return;
     find = stepMatch(find, kind, matches[kind], dir);
     toMatch(kind);
     render();
@@ -578,7 +578,7 @@ export function gridBody(ctx, first) {
       e.stopPropagation();
       return findBox(box, boxAct);
     }
-    const finding = !!find[find.last].text.trim();
+    const finding = stepBox(find) !== null;
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding, line: !!line });
     // A phone has no key list.
     if (!act || (act === 'keys' && (!keyList || phone()))) return;
@@ -629,8 +629,8 @@ export function gridBody(ctx, first) {
       const i = boxes?.input(act === 'findSrcs' ? 'srcs' : 'dsts');
       i?.focus();
       i?.select();
-    } else if (act === 'nextMatch') findStep(find.last, 1);
-    else if (act === 'prevMatch') findStep(find.last, -1);
+    } else if (act === 'nextMatch') findStep(stepBox(find), 1);
+    else if (act === 'prevMatch') findStep(stepBox(find), -1);
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);

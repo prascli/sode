@@ -47,8 +47,8 @@ export function findBoxes(host, { onText, onMode }) {
         const b = boxes[k];
         const box = find[k];
         if (b.input.value !== box.text) b.input.value = box.text;
-        if (b.wrap.dataset.mode !== box.mode) b.wrap.dataset.mode = box.mode;
-        if (b.mode.firstChild.data !== MODE[box.mode]) b.mode.firstChild.data = MODE[box.mode];
+        if (b.wrap.dataset.mode !== find.mode) b.wrap.dataset.mode = find.mode;
+        if (b.mode.firstChild.data !== MODE[find.mode]) b.mode.firstChild.data = MODE[find.mode];
         const c = counts[k];
         const text = !box.text.trim() ? '' : c.n ? `${c.at} of ${c.n}` : 'No match';
         if (b.count.firstChild.data !== text) b.count.firstChild.data = text;
