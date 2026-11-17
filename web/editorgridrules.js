@@ -2,6 +2,7 @@
 // An edge is { members: 'all' | [n, ...], hide, items } (gridpaneledges.js, ADR 0011). An edit gives a new edge, or the
 // same edge when nothing changed.
 import { allowed } from './rightsrules.js';
+import { filterFn } from './filter.js';
 
 export const PINS_MAX = 8; // per edge; keep in step with gridPinsMax in internal/app/panelgrid.go
 
@@ -91,3 +92,46 @@ export function clearEdge(edge, rights, kind) {
 }
 
 export const followRouter = (edge) => ({ ...withoutHide(edge), members: 'all' });
+
+// The router list beside the panel's list: router order, within the Rights, each marked when the panel has it.
+export function routerRows(router, edge, rights, kind) {
+  const has = new Set(membersOf(edge, router));
+  return (router || [])
+    .filter((x) => allowed(rights, kind, x.n))
+    .sort((a, b) => a.n - b.n)
+    .map((x) => ({ n: x.n, name: x.name ?? '', in: has.has(x.n) }));
+}
+
+// Find uses the main page's filter language on the numbers as shown (off is numberOffset). Text it cannot read
+// matches nothing.
+export function findRows(rows, text, off) {
+  const f = filterFn(text, { fuzzy: true });
+  return f ? rows.filter((r) => f(r.n + off, r.name)) : [];
+}
+
+// s is { selected: Set of router numbers, anchor }. They are router numbers, so they stay when Find changes. Shift adds
+// the rows in shown from the anchor to n; with the anchor out of shown it adds n alone.
+export function selectRows(s, shown, n, { shift = false, toggle = false } = {}) {
+  const at = shown.findIndex((r) => r.n === n);
+  const from = shown.findIndex((r) => r.n === s.anchor);
+  if (shift && at >= 0 && from >= 0) {
+    const selected = new Set(s.selected);
+    for (let i = Math.min(at, from); i <= Math.max(at, from); i++) selected.add(shown[i].n);
+    return { selected, anchor: s.anchor };
+  }
+  if (toggle) {
+    const selected = new Set(s.selected);
+    if (!selected.delete(n)) selected.add(n);
+    return { selected, anchor: n };
+  }
+  return { selected: shift ? new Set([...s.selected, n]) : new Set([n]), anchor: n };
+}
+
+// Appends the selected items in router order, less the members the edge has. An "all" edge becomes a list first.
+export function addItems(edge, router, selected) {
+  const list = membersOf(edge, router);
+  const has = new Set(list);
+  const add = [...selected].filter((n) => !has.has(n)).sort((a, b) => a - b);
+  if (!add.length) return edge;
+  return { ...withoutHide(edge), members: [...list, ...add] };
+}
