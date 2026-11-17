@@ -64,6 +64,50 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	b.waitFor("keys in the drawer never move the grid's cursor", `cursorAt() === cursorWas`)
 	b.waitFor("Esc in a list drops its selection and keeps the drawer open", `document.getElementById('ed-sources-sel').textContent === '0 selected' && document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open')`)
 
+	// The owner's case: Shift-click a run of sources, then the Artwork panel gives each a camera and a number at once.
+	b.eval(`window.shift = (n) => n.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true, cancelable: true }));
+		row('sources', 0).querySelector('.sode-pages__name').click(); shift(row('sources', 9).querySelector('.sode-pages__name')); true`)
+	b.waitFor("Shift-click in the drawer selects the range in drawn order", `document.getElementById('ed-sources-sel').textContent === '9 selected' && !document.getElementById('ed-sources-sel-art').disabled`)
+	b.eval(`document.getElementById('ed-sources-sel-art').click(); true`)
+	b.waitFor("Artwork opens over the drawer with the Cell tab's own picker open, Default icons first, Icon A and Icon B level", `(() => {
+		const p = document.getElementById('ed-live-art'), a = p.querySelector('.sode-side__icons[aria-label="Icon A"]'), bb = p.querySelector('.sode-side__icons[aria-label="Icon B"]');
+		return !p.hidden && p.contains(document.getElementById('ed-cell-kind')) && document.getElementById('ed-cell-kind').textContent === '9 sources selected'
+			&& !!a?.offsetParent && Math.abs(a.getBoundingClientRect().top - bb.getBoundingClientRect().top) < 2 && document.activeElement === document.getElementById('ed-live-art-done');
+	})()`)
+	b.shot("art")
+	b.eval(`{ const p = document.getElementById('ed-live-art');
+		p.querySelector('.sode-side__icons[aria-label="Icon A"] [aria-label="camera"]').click();
+		p.querySelector('.sode-side__icons[aria-label="Icon B"] [aria-label="1"]').click(); } true`)
+	b.waitFor("the live grid shows the camera and the numbers at once", `(() => {
+		const art = (n) => document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="' + n + '"]:not([hidden]) .sode-gridpanel__art:not([hidden])');
+		const b = (n) => art(n)?.querySelector('.sode-gridpanel__art-b')?.textContent;
+		return b(0) === '1' && b(4) === '4' && !!art(0).querySelector('svg.sode-gridpanel__art-a:not([hidden])') && !art(3);
+	})()`)
+	b.eval(`{ const f = document.querySelector('#ed-live-art .sode-side__find'); f.focus(); key(f, 'ArrowRight'); key(f, 'ArrowDown'); key(f, 's'); } true`)
+	b.waitFor("keys in the Artwork panel never reach the grid", `cursorAt() === cursorWas && document.activeElement === document.querySelector('#ed-live-art .sode-side__find')`)
+	// The Icon library dialog sits on the body, outside the drawer. The run's guard for shown dialogs leaves its keys to it,
+	// so its Esc does not drop a staged route on the grid first.
+	b.eval(gridXp(5, 1) + `.click(); true`)
+	b.waitFor("a route is staged on the live grid", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
+	b.eval(`document.getElementById('ed-lib-open').click(); true`)
+	b.waitFor("the Icon library dialog opens with its name box focused", `!document.getElementById('ed-lib-dialog').hidden && document.activeElement === document.getElementById('ed-lib-name')`)
+	b.eval(`{ const c = document.getElementById('ed-lib-close'); c.focus(); key(c, 'ArrowRight'); key(c, 'ArrowDown'); key(c, 's'); } true`)
+	b.waitFor("keys in the Icon library dialog never reach the grid", `cursorAt() === cursorWas && document.activeElement === document.getElementById('ed-lib-close')`)
+	b.eval(`key(document.getElementById('ed-lib-close'), 'Escape'); true`)
+	b.waitFor("Esc closes only the Icon library dialog, and the staged route stays", `document.getElementById('ed-lib-dialog').hidden && !document.getElementById('ed-live-art').hidden && !!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
+	b.eval(`document.getElementById('panel-clear').click(); true`)
+	b.waitFor("Clear drops it", `!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
+	b.eval(`[...document.querySelectorAll('#ed-live-art .pb-btn')].find((x) => x.textContent === 'Hide text').click(); true`)
+	b.waitFor("Hide text hides the names on the live grid and keeps their words", `(() => {
+		const n = document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="0"]:not([hidden])');
+		return n?.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize === '0px' && n.textContent.includes('Black') && !document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="3"][data-hide-text]');
+	})()`)
+	b.shot("hidden")
+	b.eval(`key(document.querySelector('#ed-live-art .sode-side__find'), 'Escape'); true`)
+	b.waitFor("Esc closes only the Artwork panel and puts the Cell tab back", `document.getElementById('ed-live-art').hidden && document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open') && document.getElementById('panel-ed-cell').contains(document.getElementById('ed-cell-kind'))`)
+	b.eval(`{ const l = document.getElementById('ed-sources-list'); l.focus(); key(l, 'Escape'); } true`)
+	b.waitFor("the selection goes", `document.getElementById('ed-sources-sel').textContent === '0 selected'`)
+
 	// Add from the router: source 2 goes and comes back at the end. A spare pooled name can keep its number while hidden.
 	b.eval(`row('sources', 2).querySelector('[data-act="delete"]').click(); true`)
 	b.waitFor("source 2 leaves the live grid and shows under Add from the router", `!document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="2"]:not([hidden])') && !!document.querySelector('#ed-sources-col .sode-rlist [data-n="2"]')?.offsetParent`)
@@ -91,6 +135,16 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	}
 	if members[len(members)-1] != float64(2) {
 		t.Errorf("source 2 is not saved at the end: %v", members)
+	}
+	items, _ := srcs["items"].(map[string]any)
+	for n, want := range map[string]string{"0": "1", "1": "2", "4": "4", "9": "9"} {
+		it, _ := items[n].(map[string]any)
+		if it["art"] != "icon:camera" || it["artB"] != want || it["hideText"] != true {
+			t.Errorf("source %s saved %v, want the camera, Icon B %s and Hide text", n, it, want)
+		}
+	}
+	if _, ok := items["3"]; ok {
+		t.Errorf("source 3 has artwork: %v", items["3"])
 	}
 	// One panel check every 5 s: past it, the saved copy must not show as a change from somewhere else.
 	time.Sleep(6 * time.Second)

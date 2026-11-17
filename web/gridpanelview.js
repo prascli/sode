@@ -156,7 +156,8 @@ const makeDst = () => {
 const show = (n, on) => {
   if (n.hasAttribute('hidden') === on) n.toggleAttribute('hidden', !on);
 };
-// art is { icon, url, mask, b } from view.art (a part can be missing), or null.
+// art is { icon, url, mask, b, hide } from view.art (a part can be missing), or null. hide marks the name, so CSS
+// hides its text and keeps it for screen readers.
 function paintArt(row, art) {
   const [svg, img, mask, b] = row.children;
   setText(b, art?.b || '');
@@ -174,7 +175,9 @@ function paintArt(row, art) {
     mask.dataset.u = art.mask;
     mask.style.maskImage = `url("${art.mask}")`;
   }
-  show(row, !!(art && (art.icon || art.url || art.mask || art.b)));
+  const any = !!(art && (art.icon || art.url || art.mask || art.b));
+  show(row, any);
+  setData(row.parentNode, 'hideText', any && art.hide ? '' : undefined);
 }
 
 // A mark not shown is hidden and has empty text, so the node's text is the name alone.
@@ -804,7 +807,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
     // staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }.
     // view.held(dst) is true when a route to dst is staged.
-    // view.other(dst) is { text, tip }, and view.art(kind, n) is { icon, url, mask, b } or null.
+    // view.other(dst) is { text, tip }, and view.art(kind, n) is { icon, url, mask, b, hide } or null.
     // kind is 'srcs' or 'dsts'. Only drawn nodes are painted.
     paint(v) {
       view = v;

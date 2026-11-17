@@ -15,17 +15,22 @@ test('an item shows its own artwork', () => {
   assert.deepEqual(nameArt(edge, 'source', 1, defaults), { a: { icon: 'camera' }, b: '2' });
 });
 
-test('an item with no artwork of its own shows its Default artwork', () => {
-  assert.deepEqual(nameArt(edge, 'source', 3, defaults), { a: { icon: 'mic' }, b: '9' });
+test('an item with no artwork of its own shows its Default artwork, Hide text included', () => {
+  assert.deepEqual(nameArt(edge, 'source', 3, defaults), { a: { icon: 'mic' }, b: '9', hide: true });
   assert.deepEqual(nameArt(edge, 'destination', 3, defaults), { a: { icon: 'monitor' }, b: '' });
 });
 
 test('own artwork wins whole: its Icon B alone hides the default Icon A', () => {
-  assert.deepEqual(nameArt(edge, 'source', 2, defaults), { a: null, b: 'A' });
+  assert.deepEqual(nameArt(edge, 'source', 2, defaults), { a: null, b: 'A', hide: true });
 });
 
-test('hide text never hides a name', () => {
-  assert.equal('hideText' in nameArt(edge, 'source', 3, defaults), false);
+test('Hide text is the item own true or false, else the default, and needs artwork', () => {
+  const own = { members: 'all', items: { 1: { art: 'icon:camera', hideText: true }, 3: { hideText: false }, 4: { hideText: true } } };
+  assert.equal(nameArt(own, 'source', 1, defaults).hide, true);
+  assert.equal('hide' in nameArt(own, 'source', 3, defaults), false);
+  assert.equal(nameArt(own, 'source', 4, defaults), null);
+  assert.equal('hide' in nameArt(edge, 'source', 1, defaults), false);
+  assert.notEqual(nameArtKey({ a: null, b: '1', hide: true }), nameArtKey({ a: null, b: '1' }));
 });
 
 test('an item with neither gives null, whatever the edge or defaults are', () => {

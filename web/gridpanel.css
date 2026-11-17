@@ -332,6 +332,10 @@ html:has(.sode-gridpanel) {
   flex-basis: 100%;
   margin: 0;
 }
+/* Hide text hides the whole name, its number too; the artwork stands for it. */
+:root:not([data-layout="phone"]) :is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-num][data-hide-text]::before {
+  content: none;
+}
 /* Protected, or the current sources the grid does not show (gridpanelview.js paintDstMarks). */
 .sode-gridpanel__prot,
 .sode-gridpanel__other {
@@ -382,6 +386,18 @@ html:has(.sode-gridpanel) {
   font-family: var(--pb-font-num);
   font-weight: var(--pb-weight-bold);
   line-height: 1;
+}
+/* Hide text (gridpanelview.js paintArt): the name's Text child has no box of its own, so it goes to no size and stays
+   for screen readers. The artwork grows into the room; the marks keep their size. */
+:is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-hide-text] {
+  font-size: 0;
+}
+[data-hide-text] > .sode-gridpanel__art {
+  font-size: var(--pb-text-lg);
+  height: 2.25rem;
+}
+[data-hide-text] > .sode-gridpanel__art .sode-gridpanel__art-a {
+  width: 2.25rem;
 }
 .sode-gridpanel__xp {
   background: transparent;

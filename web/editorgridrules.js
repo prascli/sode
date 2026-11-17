@@ -223,7 +223,7 @@ export function removeItems(edge, ns) {
   return { ...e, hide: [...hide, ...[...ns].filter((n) => !had.has(n))], items };
 }
 
-const ITEM_ART = ['art', 'artB']; // the artwork keys a Grid item stores; a cell's other keys (hideText) do not apply
+const ITEM_ART = ['art', 'artB', 'hideText']; // the artwork keys a Grid item stores, as a cell's
 
 // The order the panel page draws the rows in: pinned first, each part in list order. Keep in step with gridpaneledges.js
 // pinnedFirst.
@@ -251,4 +251,24 @@ export function itemsArt(edge, ns, choice) {
     changed = true;
   }
   return { edge: changed ? { ...e, items } : edge, left };
+}
+
+// Hide text on the rows ns, as the Cell tab sets it on a cell. Off is false where hasDefault(n) says a Default artwork
+// could hide the name, else removed (panellook.js withDefault). The edge is the same when nothing changes.
+export function itemsHideText(edge, ns, hide, hasDefault) {
+  const e = edge || { members: 'all' };
+  const items = { ...(e.items || {}) };
+  let changed = false;
+  for (const n of ns) {
+    const v = hide ? true : hasDefault(n) ? false : undefined;
+    const was = items[n] || {};
+    if (was.hideText === v) continue;
+    const it = { ...was };
+    if (v === undefined) delete it.hideText;
+    else it.hideText = v;
+    if (Object.keys(it).length) items[n] = it;
+    else delete items[n];
+    changed = true;
+  }
+  return changed ? { ...e, items } : edge;
 }

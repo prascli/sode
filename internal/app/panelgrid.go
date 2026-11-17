@@ -29,12 +29,13 @@ type GridEdge struct {
 	Items map[string]GridItem `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
-// GridItem is the settings of one source or destination on a Grid panel. Art and ArtB have the form of a cell's.
-// There is no Hide text: a name always shows as text.
+// GridItem is the settings of one source or destination on a Grid panel. Art, ArtB and HideText have the form of a
+// cell's. HideText false is kept: it shows the name against a Default artwork that hides it.
 type GridItem struct {
-	Pinned bool   `yaml:"pinned,omitempty" json:"pinned,omitempty"`
-	Art    string `yaml:"art,omitempty" json:"art,omitempty"`
-	ArtB   string `yaml:"artB,omitempty" json:"artB,omitempty"`
+	Pinned   bool   `yaml:"pinned,omitempty" json:"pinned,omitempty"`
+	Art      string `yaml:"art,omitempty" json:"art,omitempty"`
+	ArtB     string `yaml:"artB,omitempty" json:"artB,omitempty"`
+	HideText *bool  `yaml:"hideText,omitempty" json:"hideText,omitempty"`
 }
 
 // GridMembers is "all" (router order, following the router) or an explicit list of router numbers in panel order.
