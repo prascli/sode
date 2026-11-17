@@ -7,14 +7,15 @@ import (
 	"testing"
 )
 
-// asGrid makes the new panel open in the editor a Grid panel, by the Panel type switch. all fills both lists from
-// the router (the Follow the router switch), since a new Grid panel starts with none.
+// asGrid makes the new panel open in the editor a Grid panel, by the Panel type switch. A new Grid panel starts with
+// no items. all fills both lists with every router item: Follow the router on, then off, so the rows can move.
 func asGrid(b *tab, all bool) {
 	b.waitFor("the type switch is built", `!!document.getElementById('ed-set-type-grid')`)
 	b.eval(`document.getElementById('ed-set-type-grid').click(); true`)
 	b.waitFor("the lists show", `!!document.getElementById('ed-sources-col')?.offsetParent`)
 	if all {
-		b.eval(`document.getElementById('ed-sources-all').click(); document.getElementById('ed-destinations-all').click(); true`)
+		b.eval(`for (const k of ['sources', 'destinations']) { const s = document.getElementById('ed-' + k + '-all'); s.click(); s.click(); } true`)
+		b.waitFor("both lists hold every router item, not following", `!document.getElementById('ed-sources-all').checked && !document.getElementById('ed-destinations-all').checked && document.getElementById('ed-sources-following').hidden`)
 	}
 }
 
@@ -93,8 +94,8 @@ func TestChromeGridPanelEditorSelect(t *testing.T) {
 	if n := b.eval(`window.draggedDuring`); n != 5.0 {
 		t.Errorf("%v rows marked as dragged, want the five selected", n)
 	}
-	if b.eval(`li(2).draggable || !li(2).querySelector('.sode-grip').draggable`) != false {
-		t.Errorf("a drag starts on the row itself, want only on its grip")
+	if b.eval(`li(2).draggable || !li(2).querySelector('.sode-grip').draggable || !li(2).querySelector('.sode-pages__head').draggable || li(2).querySelector('[data-act="pin"]').draggable`) != false {
+		t.Errorf("a drag starts on the row itself or a button, want only on its grip and its text")
 	}
 
 	// From the keyboard: Alt+Down and Cmd+Shift+Down move the block down a row each; Ctrl+Shift+Up moves it back.
@@ -168,8 +169,9 @@ func TestChromeGridPanelEditorSelect(t *testing.T) {
 	srcs, _ := readPanel(t, a, ana, id)["sources"].(map[string]any)
 	members, _ := srcs["members"].([]any)
 	head, _ := json.Marshal(members[:6])
-	if len(members) != 2498 || string(head) != `[2,3,8,0,1,6]` {
-		t.Errorf("members start %s (%d), want [2,3,8,0,1,6] of 2498", head, len(members))
+	// Row 1 went to the top when pinned and stayed there when unpinned.
+	if len(members) != 2498 || string(head) != `[1,2,3,8,0,6]` {
+		t.Errorf("members start %s (%d), want [1,2,3,8,0,6] of 2498", head, len(members))
 	}
 	items, _ := srcs["items"].(map[string]any)
 	if it, _ := items["8"].(map[string]any); it["art"] != "icon:camera" || it["artB"] != "11" {

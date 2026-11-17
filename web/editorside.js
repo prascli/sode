@@ -80,4 +80,13 @@ export function initSidebar(ed) {
   on('hello', readLevels);
   paint();
   readLevels();
+  return {
+    // The toolbar's Rename (editorname.js): the Panel tab's Name field, where the name is edited.
+    renameField() {
+      tabs.select('ed-panel');
+      const name = $('ed-side-name');
+      name.focus();
+      name.select();
+    },
+  };
 }

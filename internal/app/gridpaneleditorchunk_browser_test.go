@@ -9,8 +9,8 @@ import (
 
 // A Grid panel's Sources list at 2500 sources. Add from the router draws only the rows in view. It lists only what
 // the panel does not have. A typed range uses the numbers as shown (offset 1), and Shift+Enter or Add all appends
-// every match. A click adds one item. Enter adds the highlighted match, the arrows move the highlight, and the next
-// match slides into it. Save keeps the list.
+// every match. A click selects (Shift-click a range, Ctrl-click one more) and + adds the selection. Enter adds the
+// highlighted match, the arrows move the highlight, and the next match slides into it. Save keeps the list.
 func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t, "SIM_SOURCES=2500", "SIM_DESTS=750")
@@ -59,6 +59,9 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b.eval(`const l = document.getElementById('ed-sources-list'); l.scrollTop = l.scrollHeight; true`)
 	b.waitFor("the last source shows at the end of the panel's list", `!!document.querySelector('#ed-sources-list li[data-id="2499"]')`)
 
+	b.waitFor("Clear is off while the list follows the router", `document.getElementById('ed-sources-clear').disabled`)
+	b.eval(`document.getElementById('ed-sources-all').click(); true`)
+	b.waitFor("Follow the router off keeps every source as the panel's own list", `!document.getElementById('ed-sources-all').checked && document.getElementById('ed-sources-state').textContent === '2500' && !document.getElementById('ed-sources-clear').disabled && !document.getElementById('ed-sources-find').disabled`)
 	b.eval(`document.getElementById('ed-sources-clear').click(); true`)
 	b.waitFor("Clear empties the panel's list and shows the empty state", `document.querySelectorAll('#ed-sources-list li').length === 0 && !document.getElementById('ed-sources-empty').hidden && document.getElementById('ed-sources-acts').hidden && !document.getElementById('ed-sources-all').checked`)
 
@@ -109,17 +112,29 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	find("bars")
 	b.waitFor("Find shows Bars", rows+`.length === 1`)
 	click(1, "")
-	b.waitFor("a click adds Bars at the end", `(async () => (await `+members+`) === '`+span(100, 149)+`,1')()`)
+	b.waitFor("a click selects Bars and adds nothing", `document.getElementById('ed-sources-rsel').textContent === '1 selected' && document.querySelector('#ed-sources-router [data-n="1"]').getAttribute('aria-selected') === 'true' && document.getElementById('ed-sources-state').textContent === '50'`)
+	b.eval(`document.getElementById('ed-sources-add-sel').click(); true`)
+	b.waitFor("+ adds Bars at the end", `(async () => (await `+members+`) === '`+span(100, 149)+`,1')()`)
 	find("cam 1")
 	b.waitFor("Find shows four cameras, the first highlighted", rows+`.length === 4 && document.getElementById('ed-sources-find').getAttribute('aria-activedescendant') === 'ed-sources-opt-12'`)
 	key("Enter", "")
 	b.waitFor("Enter adds the highlighted camera, and the next one slides into the highlight", `(async () => (await `+members+`) === '`+span(100, 149)+`,1,12' && document.getElementById('ed-sources-find').getAttribute('aria-activedescendant') === 'ed-sources-opt-21')()`)
 	key("ArrowDown", "")
-	b.waitFor("Down moves the highlight, and one row is marked", `document.getElementById('ed-sources-find').getAttribute('aria-activedescendant') === 'ed-sources-opt-22' && document.querySelectorAll('#ed-sources-router [aria-selected="true"]:not([hidden])').length === 1`)
+	b.waitFor("Down moves the highlight, and one row is marked", `document.getElementById('ed-sources-find').getAttribute('aria-activedescendant') === 'ed-sources-opt-22' && document.querySelectorAll('#ed-sources-router .is-cur:not([hidden])').length === 1`)
 	b.shot("highlight")
 	key("Enter", "")
 	b.waitFor("Enter adds it, and Find keeps its text and the focus", `(async () => (await `+members+`) === '`+span(100, 149)+`,1,12,22' && document.activeElement.id === 'ed-sources-find')()`)
 	b.waitFor("what the panel has leaves Add from the router", `!document.querySelector('#ed-sources-router [data-n="12"]:not([hidden])') && `+rows+`.length === 2`)
+
+	// CAM 2, Shift-click CAM 4, Ctrl-click CAM 6, then + adds the four in router order.
+	find("14-21")
+	b.waitFor("Find shows the cameras left", `!!document.querySelector('#ed-sources-router [data-n="17"]:not([hidden])')`)
+	click(13, "")
+	click(15, "shiftKey: true")
+	click(17, "ctrlKey: true")
+	b.waitFor("four are selected", `document.getElementById('ed-sources-rsel').textContent === '4 selected'`)
+	b.eval(`document.getElementById('ed-sources-add-sel').click(); true`)
+	b.waitFor("+ adds them as a group, and the selection empties", `(async () => (await `+members+`) === '`+span(100, 149)+`,1,12,22,13,14,15,17' && document.getElementById('ed-sources-rsel').textContent === '0 selected')()`)
 	b.shot("chunk")
 
 	b.eval(`document.getElementById('ed-name').value = 'Chunk grid'; document.getElementById('ed-name').dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('ed-save').click(); true`)
@@ -127,7 +142,7 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	id := regexp.MustCompile(`panel=([\w-]+)`).FindStringSubmatch(b.eval(`location.search`).(string))[1]
 	srcs, _ := readPanel(t, a, ana, id)["sources"].(map[string]any)
 	got, _ := json.Marshal(srcs["members"])
-	if want := "[" + span(100, 149) + ",1,12,22]"; string(got) != want {
+	if want := "[" + span(100, 149) + ",1,12,22,13,14,15,17]"; string(got) != want {
 		t.Errorf("members %s, want %s", got, want)
 	}
 	b.check()

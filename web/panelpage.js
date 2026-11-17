@@ -29,10 +29,9 @@ if (id) runPanel(id);
 else if (document.getElementById('ed-grid'))
   runEditor().then((editor) => {
     initArtTool(editor, initFind(editor));
-    initNameEdit();
     initTemplates(editor);
     initGrip(editor);
-    initSidebar(editor);
+    initNameEdit(initSidebar(editor).renameField);
   });
 else runPanelsList();
 

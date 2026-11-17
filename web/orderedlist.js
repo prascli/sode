@@ -7,9 +7,12 @@ import { dropTo, canMove } from './orderedlistrules.js';
 // opts: rowClass, toolsClass, move(from, to), remove(i), removeTip (the button's name, for example 'Delete Page').
 // drop(from, over, after) is opt-in: the drop goes before or after the row under it by the pointer's half, and the
 // caller places it. Without it a drop takes the place of the row under it, as the Pages bar needs.
-// grip(i) is opt-in too. A drag then starts only from a grip handle at the row's start. The browser's drag image is a
-// chip with the text of grip(i), not the row. dragging(i | -1) tells the caller when a drag starts and ends.
+// grip(i) is opt-in too. A drag then starts only from a grip handle at the row's start or from the row's body. The
+// browser's drag image is a chip with the text of grip(i), not the row. dragging(i | -1) tells the caller when a drag
+// starts and ends.
 // Buttons carry data-act (the caller's act, or up, down, delete) and data-i, so a caller can put focus back after a repaint.
+const DRAG_AT = 12; // px from the chip's top left corner to the pointer
+
 export function createOrderedList(opts) {
   let dragFrom = -1;
 
@@ -23,9 +26,10 @@ export function createOrderedList(opts) {
   };
 
   // r: i, n (rows in the list), id, readOnly, body (nodes above the buttons), actions ([{ icon, tip, act, run, off }]).
-  // removeOff keeps Remove off, for example on a row the list must keep.
+  // removeOff keeps Remove off, for example on a row the list must keep; upOff and downOff keep a Move off. fixed
+  // turns off Move, Remove and the drag but leaves the caller's actions on, with fixed as the tip of each one off.
   function row(r) {
-    const { i, n, readOnly } = r;
+    const { i, n, readOnly, fixed } = r;
     const can = canMove(i, n);
     const own = (r.actions || []).map((a) => [iconBtn(a.icon, a.tip, a.act, () => a.run(i)), a.off]);
     const tools = el(
@@ -33,23 +37,26 @@ export function createOrderedList(opts) {
       opts.toolsClass,
       ...[
         ...own,
-        [iconBtn('arrow-up', 'Move up', 'up', () => opts.move(i, i - 1)), !can.up],
-        [iconBtn('arrow-down', 'Move down', 'down', () => opts.move(i, i + 1)), !can.down],
-        [iconBtn('trash-2', opts.removeTip, 'delete', () => opts.remove(i)), r.removeOff],
-      ].map(([b, off]) => {
+        [iconBtn('arrow-up', 'Move up', 'up', () => opts.move(i, i - 1)), !can.up || r.upOff, true],
+        [iconBtn('arrow-down', 'Move down', 'down', () => opts.move(i, i + 1)), !can.down || r.downOff, true],
+        [iconBtn('trash-2', opts.removeTip, 'delete', () => opts.remove(i)), r.removeOff, true],
+      ].map(([b, off, ours]) => {
         b.dataset.i = String(i);
-        b.disabled = !!(readOnly || off);
+        b.disabled = !!(readOnly || off || (ours && fixed));
+        if (ours && fixed) b.dataset.pbTip = fixed;
         return b;
       }),
     );
     const grip = opts.grip ? el('span', 'sode-grip', icon('grip-vertical')) : null;
     if (grip) {
       grip.setAttribute('aria-hidden', 'true');
-      grip.dataset.pbTip = 'Drag to move';
+      // From the start, since the grip sits at the list's left edge and a centred tip would leave the window.
+      grip.classList.add('pb-tip--start');
+      grip.dataset.pbTip = fixed || 'Drag to move';
     }
     const li = el('li', opts.rowClass, ...(grip ? [grip] : []), ...(r.body || []), tools);
     li.dataset.id = r.id;
-    if (!readOnly) dragRow(li, i, grip);
+    if (!readOnly && !fixed) dragRow(li, i, grip && [grip, ...(r.body || [])]);
     else if (grip) grip.classList.add('is-off');
     return li;
   }
@@ -60,16 +67,23 @@ export function createOrderedList(opts) {
     return e.clientY > r.top + r.height / 2;
   };
   const unmark = (li) => li.classList.remove('is-drop', 'is-drop-after', 'is-drop-before');
-  function dragRow(li, i, grip) {
-    const from = grip || li;
-    from.draggable = true;
-    from.addEventListener('dragstart', (e) => {
-      dragFrom = i;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', String(i + 1));
-      if (grip) dragImage(e, opts.grip(i));
-      opts.dragging?.(i);
-    });
+  // handles: the nodes a drag starts from in grip mode, or null for the whole row.
+  function dragRow(li, i, handles) {
+    for (const from of handles || [li]) {
+      from.draggable = true;
+      from.addEventListener('dragstart', (e) => {
+        dragFrom = i;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i + 1));
+        if (handles) dragImage(e, opts.grip(i));
+        opts.dragging?.(i);
+      });
+      // A row a scroll redraws is a new node, so the drop, not the old row's dragend, can be the last event.
+      from.addEventListener('dragend', () => {
+        dragFrom = -1;
+        opts.dragging?.(-1);
+      });
+    }
     li.addEventListener('dragover', (e) => {
       if (dragFrom < 0) return;
       e.preventDefault();
@@ -89,18 +103,19 @@ export function createOrderedList(opts) {
       if (opts.drop) opts.drop(from, i, sideOf(li, e));
       else opts.move(from, dropTo(from, i));
     });
-    // A row a scroll redraws is a new node, so the drop, not the old row's dragend, can be the last event.
-    from.addEventListener('dragend', () => {
-      dragFrom = -1;
-      opts.dragging?.(-1);
-    });
   }
 
   // The browser draws the drag image from a node in the page at dragstart, so the chip shows for that moment only.
+  // Chrome cuts the image at the window's edge, so the chip is drawn in the window, under the pointer, where the
+  // image goes anyway.
   function dragImage(e, text) {
     const chip = el('span', 'pb-chip sode-drag-chip', icon('grip-vertical'), text);
+    const x = Math.max(0, e.clientX - DRAG_AT);
+    const y = Math.max(0, e.clientY - DRAG_AT);
+    chip.style.left = `${x}px`;
+    chip.style.top = `${y}px`;
     document.body.append(chip);
-    e.dataTransfer.setDragImage(chip, 12, 12);
+    e.dataTransfer.setDragImage(chip, e.clientX - x, e.clientY - y);
     setTimeout(() => chip.remove());
   }
 

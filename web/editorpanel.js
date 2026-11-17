@@ -12,6 +12,7 @@ import { createSizeFields } from './editorsize.js';
 import { createFixedField } from './editorfixed.js';
 import { fixedDestsOf } from './panelrules.js';
 import { isGridPanel } from './gridpaneledges.js';
+import { followRouter, stopFollowing } from './editorgridrules.js';
 
 const section = (title, ...kids) => el('section', 'sode-side__sec', el('h3', 'sode-side__h', title), ...kids);
 const select = (id, options) => {
@@ -142,6 +143,25 @@ export function createPanelTab(ed) {
     wrapPages,
   );
 
+  // A Grid panel's edges: each one is the router's list, or holds its own. One section for the router, so a
+  // choice per router has a place if Sode gets more than one.
+  const followSwitches = ['sources', 'destinations'].map((key) => {
+    const what = key === 'sources' ? 'source' : 'destination';
+    const input = el('input', 'pb-switch__input');
+    input.type = 'checkbox';
+    input.id = `ed-${key}-all`;
+    input.setAttribute('role', 'switch');
+    input.addEventListener('change', () => {
+      const edge = ed.fields()[key];
+      const next = input.checked ? followRouter(edge) : stopFollowing(edge, ed.routerNames()?.[key] || []);
+      if (next !== edge) ed.setFields({ [key]: next });
+    });
+    const label = el('label', 'pb-check', input, el('span', 'pb-check__label', `${what[0].toUpperCase()}${what.slice(1)}s follow the router`));
+    const hint = `On: every ${what} the router has, in router order, and the ones it adds later. Pin and artwork still apply. Off: the list keeps what it shows now.`;
+    return { key, input, node: el('div', 'sode__field', label, el('span', 'sode__hint', hint)) };
+  });
+  const router = section('Router', ...followSwitches.map((f) => f.node));
+
   const feel = featureSupport(navigator);
   const fullscreenField = toggle('fullscreen', 'Automatically enter fullscreen');
   const fullscreenHint = el('span', 'sode__hint');
@@ -157,7 +177,7 @@ export function createPanelTab(ed) {
   const deviceNote = el('p', 'sode__hint');
   device.append(deviceNote);
 
-  node.append(identity, appearance, behavior, device);
+  node.append(identity, router, appearance, behavior, device);
 
   return {
     node,
@@ -174,6 +194,11 @@ export function createPanelTab(ed) {
       type.disable(ro || !!p);
       typeNote.textContent = p ? 'The type stays as the panel was made.' : 'You cannot change the type after the first save.';
       for (const n of buttonsOnly) n.hidden = grid;
+      router.hidden = !grid;
+      for (const f of followSwitches) {
+        f.input.checked = grid && !Array.isArray(ed.fields()[f.key]?.members);
+        f.input.disabled = ro;
+      }
       ident.replaceChildren(...(p ? [`Id ${p.id}`, el('br'), `Owned by user "${p.owner}"`] : ['Not saved yet.']));
       const want = p ? `${p.id}|${p.acts}|${p.slug || ''}` : '';
       if (want !== linkOf) {
