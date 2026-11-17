@@ -1,7 +1,8 @@
 // Drawn line gestures on a Grid panel: a mouse or pen drag on the crosspoints, or a touch long-press.
-// Also the touch gestures on names: a long-press adds a range and a double-tap jumps. g is the drawn grid
-// (gridpanelview.js). on: { start(a), move(b), end(b), cancel(), name(kind, n, how) }, points in crosspoint units;
-// kind is 'srcs' or 'dsts' and how 'long' or 'double'.
+// Also the touch gestures on names: a long-press adds a range and a double-tap jumps. A mouse or pen drag along a
+// bar picks the names it passes. g is the drawn grid (gridpanelview.js). on: { start(a), move(b), end(b), cancel(),
+// name(kind, n, how), span(kind, from, to, add), spanEnd() }. Points are in crosspoint units. kind is 'srcs' or
+// 'dsts' and how is 'long' or 'double'. add is true with Cmd or Ctrl held.
 // touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
 // timer. A plain touch drag stays a native scroll.
 import { isLine } from './gridpanelline.js';
@@ -15,6 +16,7 @@ export function lineGestures(g, on) {
   const { scroll } = g;
   let down = null; // { a, id }: a mouse or pen press on a crosspoint, not yet past the click threshold.
   let active = null; // { kind: 'pointer' | 'touch', x, y }: a line draws; x and y are the last client point.
+  let span = null; // { kind, from, to, add, id, on, x, y }: a mouse or pen press on a name; on is true once it left that name.
   let timer = 0;
   let touchAt = null; // the client point of a pending long-press.
   let nameAt = null; // { kind, n } of a pending long-press on a name.
@@ -29,7 +31,24 @@ export function lineGestures(g, on) {
     on.start(a);
     raf = requestAnimationFrame(edge);
   };
+  // The name of a bar at a client point, clamped to the bar's ends, so the drag can leave the bar.
+  const barName = (kind, x, y) => {
+    const u = units(x, y);
+    const list = g.axes[kind];
+    return list[Math.max(0, Math.min(list.length - 1, Math.floor(kind === 'srcs' ? u.x : u.y)))];
+  };
+  const spanTo = (x, y) => {
+    span.x = x;
+    span.y = y;
+    const to = barName(span.kind, x, y);
+    if (to === span.to) return;
+    span.to = to;
+    span.on = true;
+    on.span(span.kind, span.from, to, span.add);
+  };
   const stop = () => {
+    if (span?.on) on.spanEnd();
+    span = null;
     active = null;
     down = null;
     clearTimeout(timer);
@@ -54,17 +73,20 @@ export function lineGestures(g, on) {
     if (was) on.cancel();
   };
 
-  // Near an edge of the body the grid scrolls, faster the further in; the end point is read again after it.
+  // Near an edge of the body the grid scrolls, faster the further in; the end point is read again after it. A drag on
+  // a bar scrolls only along that bar.
   function edge() {
-    if (!active) return;
+    const at = active || span;
+    if (!at) return;
     const box = g.bodyBox();
     const zone = g.metrics().xp;
     const by = (p, lo, hi) => (p < lo + zone ? -(lo + zone - p) : p > hi - zone ? p - (hi - zone) : 0) * EDGE_SPEED;
-    const dx = by(active.x, box.left, box.right);
-    const dy = by(active.y, box.top, box.bottom);
+    const dx = span?.kind === 'dsts' ? 0 : by(at.x, box.left, box.right);
+    const dy = span?.kind === 'srcs' ? 0 : by(at.y, box.top, box.bottom);
     if (dx || dy) {
       scroll.scrollBy(dx, dy);
-      on.move(units(active.x, active.y));
+      if (active) on.move(units(active.x, active.y));
+      else spanTo(span.x, span.y);
     }
     raf = requestAnimationFrame(edge);
   }
@@ -73,11 +95,28 @@ export function lineGestures(g, on) {
   // plain press must not have it.
   const onDown = (e) => {
     eat = false;
-    if (e.pointerType === 'touch' || e.button !== 0 || active || !g.hit(e.clientX, e.clientY)) return;
+    if (e.pointerType === 'touch' || e.button !== 0 || active || span) return;
+    const name = !g.head.contains(e.target) && e.target.closest?.('.sode-gridpanel__src, .sode-gridpanel__dst');
+    if (name) {
+      const kind = name.dataset.src ? 'srcs' : 'dsts';
+      const n = Number(name.dataset.src ?? name.dataset.dst);
+      span = { kind, from: n, to: n, add: e.metaKey || e.ctrlKey, id: e.pointerId, on: false, x: e.clientX, y: e.clientY };
+      return;
+    }
+    if (!g.hit(e.clientX, e.clientY)) return;
     down = { a: units(e.clientX, e.clientY), id: e.pointerId };
   };
   const onMove = (e) => {
     if (active?.kind === 'pointer') return moveTo(e.clientX, e.clientY);
+    if (span && e.pointerId === span.id) {
+      const was = span.on;
+      spanTo(e.clientX, e.clientY);
+      if (span.on && !was) {
+        scroll.setPointerCapture(e.pointerId);
+        raf = requestAnimationFrame(edge);
+      }
+      return;
+    }
     if (!down || e.pointerId !== down.id) return;
     if (!isLine(down.a, units(e.clientX, e.clientY))) return;
     scroll.setPointerCapture(e.pointerId);
@@ -88,6 +127,10 @@ export function lineGestures(g, on) {
   };
   const onUp = (e) => {
     down = null;
+    if (span) {
+      eat = span.on;
+      return stop();
+    }
     if (active?.kind !== 'pointer') return;
     eat = true;
     finish(e.clientX, e.clientY);
@@ -95,6 +138,7 @@ export function lineGestures(g, on) {
   const onPointerCancel = (e) => {
     if (e.pointerType === 'touch') return;
     down = null;
+    if (span) return stop();
     if (active?.kind === 'pointer') cancel();
   };
   const onClick = (e) => {

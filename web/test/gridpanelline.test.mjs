@@ -147,15 +147,20 @@ test('a line skips protected rows and says which', () => {
     r.st.staged.map((x) => x.dst),
     [7, 5],
   );
-  assert.equal(r.confirm, true);
 });
 
-test('a line of more than one route confirms in Take mode as well as Instant mode', () => {
+test('a line of more than one route stages in Take mode and confirms in Instant mode', () => {
   const pairs = [
     { src: 1, dst: 7 },
     { src: 1, dst: 3 },
   ];
-  assert.equal(lineStage(createStage(), pairs, env(), [1]).confirm, true);
+  const take = lineStage(createStage(), pairs, env(), [1]);
+  assert.equal(take.confirm, false);
+  assert.equal(take.send, null);
+  assert.deepEqual(
+    take.st.staged.map((x) => x.dst),
+    [7, 3],
+  );
   const inst = lineStage(createStage({ mode: 'instant' }), pairs, env(), [1]);
   assert.equal(inst.confirm, true);
   assert.equal(inst.send, null);
