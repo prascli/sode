@@ -1,2 +1,2 @@
-- The Last and Next chips above the boxes now have the same edge, text size and padding as the destination chips under the Destination box.
+- On the desktop, the Last and Next chips above the boxes now have the same edge, text size and padding as the destination chips under the Destination box. On a phone they get the same edge and keep their size.
 - Ctrl-click a destination in History, in a Followed by list or in the Destination match list to add it as + does. On a Mac, Cmd-click also adds it. A click without Ctrl fills the box as before.
