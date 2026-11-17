@@ -36,7 +36,7 @@ test('f focuses the Levels box, unless a field already has focus', () => {
 });
 
 test('other keys do nothing yet', () => {
-  assert.equal(gridKeyAction(key('x'), ctx()), null);
+  assert.equal(gridKeyAction(key('q', { code: 'KeyQ' }), ctx()), null);
 });
 
 const code = (c, over = {}) => key(c.startsWith('Key') ? c.slice(3).toLowerCase() : c, { code: c, ...over });
@@ -84,4 +84,58 @@ test('browser chords such as Cmd+R and Ctrl+L are not the grid’s', () => {
   assert.equal(gridKeyAction(code('KeyR', { metaKey: true }), ctx()), null);
   assert.equal(gridKeyAction(code('KeyL', { ctrlKey: true }), ctx()), null);
   assert.equal(gridKeyAction(code('KeyJ', { altKey: true }), ctx()), null);
+});
+
+const bar = (b, over = {}) => ctx({ staged: 0, bar: b, ...over });
+const shift = (c) => code(c, { shiftKey: true });
+
+test('Space on a bar picks the name; on a crosspoint it presses; on the corner it does nothing', () => {
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), bar('srcs')), 'pick');
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), bar('dsts')), 'pick');
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), bar(null)), 'press');
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), bar('corner')), null);
+});
+
+test('x on a bar adds one name; in the grid it does nothing', () => {
+  assert.equal(gridKeyAction(code('KeyX'), bar('srcs')), 'add');
+  assert.equal(gridKeyAction(code('KeyX'), bar('dsts')), 'add');
+  assert.equal(gridKeyAction(code('KeyX'), bar(null)), null);
+  assert.equal(gridKeyAction(code('KeyX'), bar('corner')), null);
+});
+
+test('Shift with a move along the Source bar extends the pick', () => {
+  const want = { ArrowLeft: 'left', ArrowRight: 'right', KeyH: 'left', KeyL: 'right' };
+  for (const [c, m] of Object.entries(want)) assert.equal(gridKeyAction(shift(c), bar('srcs')), `range:${m}`, c);
+  assert.equal(gridKeyAction(code('ArrowLeft', { shiftKey: true, altKey: true }), bar('srcs')), 'range:pageLeft');
+  assert.equal(gridKeyAction(code('ArrowRight', { shiftKey: true, altKey: true }), bar('srcs')), 'range:pageRight');
+  for (const c of ['ArrowUp', 'ArrowDown', 'KeyJ', 'KeyK', 'PageDown']) assert.equal(gridKeyAction(shift(c), bar('srcs')), null, c);
+});
+
+test('Shift with a move along the Destination bar extends the pick', () => {
+  const want = { ArrowUp: 'up', ArrowDown: 'down', KeyK: 'up', KeyJ: 'down', PageUp: 'pageUp', PageDown: 'pageDown' };
+  for (const [c, m] of Object.entries(want)) assert.equal(gridKeyAction(shift(c), bar('dsts')), `range:${m}`, c);
+  assert.equal(gridKeyAction(code('ArrowDown', { shiftKey: true, altKey: true }), bar('dsts')), 'range:pageDown');
+  for (const c of ['ArrowLeft', 'ArrowRight', 'KeyH', 'KeyL']) assert.equal(gridKeyAction(shift(c), bar('dsts')), null, c);
+});
+
+test('Shift with a move does nothing on the corner', () => {
+  for (const c of ['ArrowDown', 'ArrowRight']) assert.equal(gridKeyAction(shift(c), bar('corner')), null, c);
+});
+
+test('picks leave a focused field or header button its own keys', () => {
+  for (const b of ['srcs', 'dsts']) {
+    assert.equal(gridKeyAction(key(' ', { code: 'Space' }), bar(b, { inControl: true })), null);
+    assert.equal(gridKeyAction(code('KeyX'), bar(b, { inControl: true })), null);
+    assert.equal(gridKeyAction(shift(b === 'srcs' ? 'ArrowRight' : 'ArrowDown'), bar(b, { inControl: true })), null);
+  }
+});
+
+test('? opens the key list, but not from a field; Ctrl+? opens it from anywhere', () => {
+  const q = (over = {}) => key('?', { code: 'Slash', shiftKey: true, ...over });
+  assert.equal(gridKeyAction(q(), ctx()), 'keys');
+  assert.equal(gridKeyAction(q(), ctx({ inControl: true })), null);
+  assert.equal(gridKeyAction(q({ ctrlKey: true }), ctx({ inControl: true })), 'keys');
+  // Some browsers report the / key without Shift's character under Ctrl.
+  assert.equal(gridKeyAction(key('/', { code: 'Slash', shiftKey: true, ctrlKey: true }), ctx({ inControl: true })), 'keys');
+  assert.equal(gridKeyAction(q({ metaKey: true }), ctx()), null);
 });
