@@ -7,7 +7,9 @@ import { createStage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dr
 import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
-import { gridKeyAction } from './gridpanelkeys.js';
+import { gridKeyAction, findBoxAction } from './gridpanelkeys.js';
+import { createFind, findMatches, typed, currentMatch, stepMatch, switchMode, clearFind, shownOrder } from './gridpanelfind.js';
+import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
@@ -18,6 +20,8 @@ import { levelBox } from './levelbox.js';
 import { el } from './core.js';
 
 const NOTE_MS = 4000;
+// Like the moves, these work in an embedded run only with focus in the grid.
+const FIND_KEYS = new Set(['findSrcs', 'findDsts', 'nextMatch', 'prevMatch']);
 
 const say = (n, text) => {
   if (n.textContent !== text) n.textContent = text;
@@ -30,10 +34,11 @@ const stateOf = (p, was) => {
   return was && st.mode === 'take' ? { ...st, staged: was.staged, busy: was.busy } : { ...st, busy: !!was?.busy };
 };
 
-// A focused field or header button keeps its own Enter; the crosspoints are the grid's.
+// A focused field or header button keeps its own Enter; the crosspoints are the grid's, the search boxes are not.
 const inControl = (grid) => {
   const a = document.activeElement;
-  return !!a && a !== document.body && !grid.contains(a) && a.matches('button, input, select, textarea, a[href], [contenteditable]');
+  const own = grid.contains(a) && !a.closest('.sode-gridpanel__find');
+  return !!a && a !== document.body && !own && a.matches('button, input, select, textarea, a[href], [contenteditable]');
 };
 
 export function gridBody(ctx, first) {
@@ -45,7 +50,13 @@ export function gridBody(ctx, first) {
   let names = namesFrom({});
   let namesReply = {};
   let axesKey = '';
+  // Picks and other sources use full (gridAxes). The grid shows axes: full less what a Filter hides.
   let axes = { srcs: [], dsts: [] };
+  let full = { srcs: [], dsts: [] };
+  // A load starts with no search. A live update keeps the search.
+  let find = createFind();
+  let matches = { srcs: [], dsts: [] }; // findMatches for each box, in full order
+  let boxes = null;
   let shownSrcs = new Set();
   let out = []; // staged routes left out (gridpanelrights.js), as of the last render
   let g = null;
@@ -75,6 +86,8 @@ export function gridBody(ctx, first) {
     pie: (s, d) => pieOn(env, s, d),
     staged,
     picked: (kind, n) => picks[kind].includes(n),
+    // Filter shows only matches, so only Find marks them.
+    found: (kind, n) => find[kind].mode === 'find' && matches[kind].includes(n),
     leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
     protected: (d) => env.protectedDsts.has(d),
     other(d) {
@@ -83,8 +96,10 @@ export function gridBody(ctx, first) {
     },
   };
 
+  // Picks hidden by a Filter still count; the downward run uses what shows.
+  const diagonalAt = (xp) => diagonal(picks, xp, { srcs: full.srcs, dsts: full.dsts, shownDsts: axes.dsts });
   // A Diagonal skips protected rows.
-  const pairsAt = (xp) => stageable(diagonal(picks, xp, axes), env).pairs;
+  const pairsAt = (xp) => stageable(diagonalAt(xp), env).pairs;
 
   // Numbered targets only while names are picked; a press with none is the crosspoint itself.
   const preview = () => {
@@ -100,6 +115,7 @@ export function gridBody(ctx, first) {
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
+    boxes?.paint(find, countsOf());
     const text = stageText(st.error) || refusalText(st.error, names) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
@@ -107,24 +123,83 @@ export function gridBody(ctx, first) {
 
   // The view moves its nodes to the new items only when the shown sources or destinations change.
   const rebuild = () => {
-    const next = gridAxes(panel, namesReply);
-    const key = JSON.stringify(next);
+    const whole = gridAxes(panel, namesReply);
+    const off = namesReply.numberOffset || 0;
+    matches = {
+      srcs: findMatches(whole.srcs, namesReply.sources, find.srcs.text, off),
+      dsts: findMatches(whole.dsts, namesReply.destinations, find.dsts.text, off),
+    };
+    const next = {
+      srcs: shownOrder(whole.srcs, pinsOf(panel.sources, whole.srcs), find.srcs, matches.srcs),
+      dsts: shownOrder(whole.dsts, pinsOf(panel.destinations, whole.dsts), find.dsts, matches.dsts),
+    };
+    const key = JSON.stringify([whole, next]);
     if (key === axesKey) return;
     axesKey = key;
     cur = followCursor(cur, axes, next);
     axes = next;
-    shownSrcs = new Set(next.srcs);
-    // Picks on names that left the panel go.
-    picks = { ...picks, srcs: picks.srcs.filter((n) => next.srcs.includes(n)), dsts: picks.dsts.filter((n) => next.dsts.includes(n)) };
+    full = whole;
+    shownSrcs = new Set(whole.srcs);
+    // Picks on names that left the panel go; picks a Filter hides stay.
+    picks = { ...picks, srcs: picks.srcs.filter((n) => whole.srcs.includes(n)), dsts: picks.dsts.filter((n) => whole.dsts.includes(n)) };
     at = null;
     const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
     if (g) g.setAxes(all);
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
+      boxes = findBoxes(g.head, { onText: findText, onMode: findMode });
     }
     setCursor(cur);
   };
+
+  const countsOf = () => {
+    const c = (k) => ({ n: matches[k].length, at: matches[k].indexOf(currentMatch(find, k, matches[k])) + 1 });
+    return { srcs: c('srcs'), dsts: c('dsts') };
+  };
+
+  // Puts the cursor on the current match of a box, on the same row or column, and scrolls to it.
+  function toMatch(kind) {
+    const k = axes[kind].indexOf(currentMatch(find, kind, matches[kind]));
+    if (k < 0 || !g) return;
+    ptr = null;
+    setCursor(kind === 'srcs' ? { i: cur.i, j: k } : { i: k, j: cur.j });
+    g.revealCell(cur);
+  }
+
+  function findText(kind, text) {
+    find = typed(find, kind, text);
+    rebuild();
+    toMatch(kind);
+    render();
+  }
+
+  function findMode(kind) {
+    find = switchMode(find, kind);
+    rebuild();
+    render();
+  }
+
+  function findStep(kind, dir) {
+    if (!find[kind].text.trim()) return;
+    find = stepMatch(find, kind, matches[kind], dir);
+    toMatch(kind);
+    render();
+  }
+
+  function findBox(kind, act) {
+    if (act === 'nextMatch') findStep(kind, 1);
+    else if (act === 'prevMatch') findStep(kind, -1);
+    else if (act === 'mode') findMode(kind);
+    else if (act === 'swap') boxes.input(kind === 'srcs' ? 'dsts' : 'srcs').focus();
+    else if (act === 'clear') {
+      find = clearFind(find, kind);
+      rebuild();
+      render();
+      // Back to the cursor. An embedded run takes its keys only with focus in the grid.
+      g.scroll.focus({ preventScroll: true });
+    }
+  }
 
   async function send(routes) {
     st = startSend(st);
@@ -205,7 +280,7 @@ export function gridBody(ctx, first) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
     st = keepLive(st, world());
-    const { pairs, err } = stageable(diagonal(picks, xp, axes), env);
+    const { pairs, err } = stageable(diagonalAt(xp), env);
     if (err) {
       st = { ...st, error: err };
       return render();
@@ -258,9 +333,19 @@ export function gridBody(ctx, first) {
     if (confirm?.isOpen()) return confirm.key(e);
     // The page lock's sign-in and dialogs take their keys first.
     if (e.defaultPrevented) return;
-    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
+    // A search box's own keys come before the grid's, so Esc there clears the box and does not drop picks.
+    const box = boxes?.kindOf(e.target);
+    if (box) {
+      const boxAct = findBoxAction(e);
+      if (!boxAct) return;
+      e.preventDefault();
+      e.stopPropagation();
+      return findBox(box, boxAct);
+    }
+    const finding = !!find[find.last].text.trim();
+    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), finding });
     if (!act) return;
-    const moves = MOVES.has(act) || act === 'press';
+    const moves = MOVES.has(act) || act === 'press' || FIND_KEYS.has(act);
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
@@ -282,7 +367,12 @@ export function gridBody(ctx, first) {
     } else if (act === 'drop') {
       st = dropStaged(st);
       render();
-    }
+    } else if (act === 'findSrcs' || act === 'findDsts') {
+      const i = boxes?.input(act === 'findSrcs' ? 'srcs' : 'dsts');
+      i?.focus();
+      i?.select();
+    } else if (act === 'nextMatch') findStep(find.last, 1);
+    else if (act === 'prevMatch') findStep(find.last, -1);
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);

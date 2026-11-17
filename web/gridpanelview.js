@@ -144,6 +144,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
   const top = layer('sode-gridpanel__top');
   const side = layer('sode-gridpanel__side');
   const corner = layer('sode-gridpanel__corner');
+  // Where the bars meet: the run puts the search boxes here (gridpanelfindbox.js).
+  const head = el('div', 'sode-gridpanel__head');
+  corner.append(head);
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
   const cursor = el('div', 'sode-gridpanel__cursor', el('span', 'sode-gridpanel__ring'));
@@ -156,6 +159,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
   const probeXp = el('div', 'sode-gridpanel__probe-xp');
   const probe = el('div', 'sode-gridpanel__probe', probeXp);
   const scroll = el('div', 'pb-grid-body sode-gridpanel__scroll', field, probe);
+  // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
+  scroll.tabIndex = -1;
   host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
 
   let ax = axes;
@@ -187,6 +192,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
     if (view) {
       setText(n, view.names.source(s));
       pick(n, view.picked('srcs', s));
+      setData(n, 'found', view.found('srcs', s) ? '' : undefined);
     }
     markName(n, mark.srcs.has(s));
   };
@@ -194,6 +200,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
     if (view) {
       setText(n, view.names.destination(d));
       pick(n, view.picked('dsts', d));
+      setData(n, 'found', view.found('dsts', d) ? '' : undefined);
       paintDstMarks(n, d, view);
     }
     markName(n, mark.dsts.has(d));
@@ -330,9 +337,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
   });
   // A Shift-click would otherwise extend a text selection on the page.
   field.addEventListener('mousedown', (e) => {
-    if (e.shiftKey) e.preventDefault();
+    if (e.shiftKey && !head.contains(e.target)) e.preventDefault();
   });
-  const onMove = (e) => onPoint(e.clientX, e.clientY);
+  // Over the search boxes the cursor stays where Find put it.
+  const onMove = (e) => head.contains(e.target) || onPoint(e.clientX, e.clientY);
   scroll.addEventListener('pointermove', onMove, { passive: true });
   measure();
   setAxes(axes);
@@ -350,6 +358,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
     scroll,
     field,
     overlay,
+    head,
     get axes() {
       return ax;
     },
@@ -438,7 +447,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
 }
 
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged, picked(kind, n), leftOut(src, dst), protected(dst) }. Only drawn nodes are painted.
+// staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }. Only drawn nodes are painted.
 // view.other(dst) is { text, tip } for the current sources that the grid does not show.
 export function paintGridPanel(g, view) {
   g.paint(view);

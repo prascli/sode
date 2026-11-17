@@ -254,6 +254,76 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__dst[data-picked] {
   box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-accent);
 }
+/* Find matches (gridpanelfind.js): an amber wash and bar, apart from a pick's accent. Picked wins where both apply. */
+.sode-gridpanel__src[data-found]:not([data-picked]),
+.sode-gridpanel__dst[data-found]:not([data-picked]) {
+  background: color-mix(in oklab, var(--pb-status-warn-fill) 35%, var(--pb-surface-raised));
+  box-shadow: inset 0 calc(var(--pb-border-w) * -4) 0 var(--pb-status-warn-fill);
+}
+.sode-gridpanel__dst[data-found]:not([data-picked]) {
+  box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-status-warn-fill);
+}
+/* The search boxes, in the corner where the bars meet (gridpanelfindbox.js). A role bar ties each to its bar. */
+.sode-gridpanel__head {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-1);
+  height: var(--sode-name-h);
+  justify-content: center;
+  left: 0;
+  padding: var(--pb-space-1);
+  position: absolute;
+  top: 0;
+  width: var(--sode-name-w);
+}
+.sode-gridpanel__find {
+  align-items: center;
+  display: flex;
+  gap: var(--pb-space-1);
+}
+.sode-gridpanel__find-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+.sode-gridpanel__find-input {
+  font-size: var(--pb-text-sm);
+  height: var(--pb-control-h-sm);
+  -webkit-user-select: text;
+  user-select: text;
+  width: 100%;
+}
+.sode-gridpanel__find[data-kind="srcs"] .sode-gridpanel__find-input {
+  border-left: var(--pb-rolebar-w) solid var(--pb-source);
+}
+.sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-input {
+  border-left: var(--pb-rolebar-w) solid var(--pb-dest);
+}
+.sode-gridpanel__find-count {
+  color: var(--pb-text);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-xs);
+  pointer-events: none;
+  position: absolute;
+  right: var(--pb-space-2);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.sode-gridpanel__find[data-counted] .sode-gridpanel__find-input {
+  padding-inline-end: 4rem;
+}
+/* One width for Find and Filter, so the box does not move when the mode changes. */
+.sode-gridpanel__find-mode {
+  flex: none;
+  justify-content: center;
+  min-width: 3.5rem;
+  padding-inline: var(--pb-space-1);
+}
+/* The cursor shows where focus is; the scroller takes focus only so an embedded run gets its keys back. */
+.sode-gridpanel__scroll:focus {
+  outline: none;
+}
 /* The names and numbered crosspoints that the press under the pointer stages. A crosspoint is absolute, so its
    number needs no position of its own. */
 .sode-gridpanel__src[data-target],
