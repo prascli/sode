@@ -5,12 +5,11 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, OVER } from './gridpanelwindow.js';
 
 const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
 // A newly pulsing node starts in step with the others. All count from time zero.
 export const pulseDelay = () => `${-(document.timeline.currentTime % PULSE_MS)}ms`;
-const OVER = 4; // items drawn past each end of the view, so a fast scroll shows fewer blank crosspoints
 
 // A name node keeps one Text child, so a rename or a move is not a childList change.
 const setText = (n, t) => {
@@ -232,7 +231,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let srcAt = new Map(); // router number to display index
   let dstAt = new Map();
   let view = null;
-  // The press preview (previewGridPanel): numbered crosspoints by "s:d" and outlined names.
+  // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
   let px = { xp: 1, w: 1, h: 1 };
@@ -260,7 +259,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       setText(n, view.names.source(s));
       pick(n, view.picked('srcs', s));
       setData(n, 'found', view.found('srcs', s) ? '' : undefined);
-      paintArt(n.lastChild, view.art('source', s));
+      paintArt(n.lastChild, view.art('srcs', s));
     }
     markName(n, mark.srcs.has(s));
   };
@@ -270,7 +269,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       pick(n, view.picked('dsts', d));
       setData(n, 'found', view.found('dsts', d) ? '' : undefined);
       paintDstMarks(n, d, view);
-      paintArt(n.lastChild, view.art('destination', d));
+      paintArt(n.lastChild, view.art('dsts', d));
     }
     markName(n, mark.dsts.has(d));
   };
@@ -307,23 +306,40 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   };
   const xpPools = [pools.body, pools.top, pools.side, pools.corner];
 
-  const axis = (cols) => ({
+  // The scroller's metrics. Each read can force a layout, so a draw reads them once (frame) and all it calls share them.
+  let frame = null;
+  const read = () => {
+    const r = scroll.getBoundingClientRect();
+    return {
+      left: scroll.scrollLeft,
+      top: scroll.scrollTop,
+      cw: scroll.clientWidth,
+      ch: scroll.clientHeight,
+      x: r.left + scroll.clientLeft,
+      y: r.top + scroll.clientTop,
+    };
+  };
+  const metricsNow = () => frame || read();
+  const axis = (cols, m = metricsNow()) => ({
     n: cols ? ax.srcs.length : ax.dsts.length,
     pins: (cols ? ax.srcPins : ax.dstPins) || 0,
     size: px.xp,
     head: cols ? px.w : px.h,
-    offset: cols ? scroll.scrollLeft : scroll.scrollTop,
-    view: cols ? scroll.clientWidth : scroll.clientHeight,
+    offset: cols ? m.left : m.top,
+    view: cols ? m.cw : m.ch,
     over: OVER,
   });
-  const spans = () => ({ rows: axisSpan(axis(false)), cols: axisSpan(axis(true)) });
+  const spans = (m = metricsNow()) => ({ rows: axisSpan(axis(false, m)), cols: axisSpan(axis(true, m)) });
+  // A client point in scroller px, from its padding edge.
+  const local = (x, y, m = metricsNow()) => ({ x: x - m.x, y: y - m.y });
 
   // Display position { i, j } of the cursor, -1 on a bar. A bar or pinned item is sticky, so each draw places it again.
   let cur = { i: -1, j: -1 };
   let curKey = '';
   const placeCursor = () => {
-    const ra = axis(false);
-    const ca = axis(true);
+    const m = metricsNow();
+    const ra = axis(false, m);
+    const ca = axis(true, m);
     const x = placeAt(cur.j, ca);
     const y = placeAt(cur.i, ra);
     const w = cur.j < 0 ? px.w : px.xp;
@@ -344,8 +360,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   };
 
   const reserve = () => {
-    const r = spanMax(axis(false));
-    const c = spanMax(axis(true));
+    const m = metricsNow();
+    const r = spanMax(axis(false, m));
+    const c = spanMax(axis(true, m));
     const rp = ax.dstPins || 0;
     const cp = ax.srcPins || 0;
     pools.body.reserve(r * c);
@@ -356,6 +373,14 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   };
 
   const draw = () => {
+    frame = read();
+    try {
+      drawIn();
+    } finally {
+      frame = null;
+    }
+  };
+  const drawIn = () => {
     const { rows, cols } = spans();
     const rs = range(rows.lo, rows.hi);
     const cs = range(cols.lo, cols.hi);
@@ -449,19 +474,18 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     spans,
     // A client point in crosspoint units (gridpanelline.js), display order. A pinned band does not scroll.
     unitsAt(x, y) {
-      const r = scroll.getBoundingClientRect();
-      const unit = (p, a) => {
-        const k = (p - a.head) / a.size;
+      const m = metricsNow();
+      const p = local(x, y, m);
+      const unit = (v, a) => {
+        const k = (v - a.head) / a.size;
         return k < a.pins ? k : k + a.offset / a.size;
       };
-      return { x: unit(x - r.left - scroll.clientLeft, axis(true)), y: unit(y - r.top - scroll.clientTop, axis(false)) };
+      return { x: unit(p.x, axis(true, m)), y: unit(p.y, axis(false, m)) };
     },
     // The scroller's body in client px: past the name bars and the pinned bands, inside the scrollbars.
     bodyBox() {
-      const r = scroll.getBoundingClientRect();
-      const left = r.left + scroll.clientLeft + px.w + (ax.srcPins || 0) * px.xp;
-      const top = r.top + scroll.clientTop + px.h + (ax.dstPins || 0) * px.xp;
-      return { left, top, right: r.left + scroll.clientLeft + scroll.clientWidth, bottom: r.top + scroll.clientTop + scroll.clientHeight };
+      const m = metricsNow();
+      return { left: m.x + px.w + (ax.srcPins || 0) * px.xp, top: m.y + px.h + (ax.dstPins || 0) * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
     },
     // Draws the Drawn line from a to b, in crosspoint units, or hides it for null.
     line(seg) {
@@ -475,12 +499,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     },
     // The display cell { i, j } under a client point, -1 on a bar, or null past the last item or on a scrollbar.
     cellAt(x, y) {
-      const r = scroll.getBoundingClientRect();
-      const cx = x - r.left - scroll.clientLeft;
-      const cy = y - r.top - scroll.clientTop;
-      if (cx >= scroll.clientWidth || cy >= scroll.clientHeight) return null;
-      const j = slotAt(cx, axis(true));
-      const i = slotAt(cy, axis(false));
+      const m = metricsNow();
+      const p = local(x, y, m);
+      if (p.x >= m.cw || p.y >= m.ch) return null;
+      const j = slotAt(p.x, axis(true, m));
+      const i = slotAt(p.y, axis(false, m));
       return i === null || j === null ? null : { i, j };
     },
     // Places the cursor at display cell { i, j }. Only the cursor node changes.
@@ -491,26 +514,23 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       placeCursor();
     },
     // Whole scrolling rows and columns one screen shows.
-    page: () => ({ rows: pageOf(axis(false)), cols: pageOf(axis(true)) }),
+    page() {
+      const m = metricsNow();
+      return { rows: pageOf(axis(false, m)), cols: pageOf(axis(true, m)) };
+    },
     // Scrolls as little as it can to show display cell { i, j } whole; a bar (-1) keeps that axis where it is.
-    revealCell({ i, j }) {
-      if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true));
-      if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false));
+    // Fresh metrics, since a draw's listener can scroll.
+    reveal({ i, j }) {
+      if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true, read()));
+      if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false, read()));
     },
     // The crosspoint under a client point, or null on a name, a gap or outside.
     hit(x, y) {
-      const r = scroll.getBoundingClientRect();
-      const j = indexAt(x - r.left - scroll.clientLeft, axis(true));
-      const i = indexAt(y - r.top - scroll.clientTop, axis(false));
+      const m = metricsNow();
+      const p = local(x, y, m);
+      const j = indexAt(p.x, axis(true, m));
+      const i = indexAt(p.y, axis(false, m));
       return i < 0 || j < 0 ? null : { src: ax.srcs[j], dst: ax.dsts[i], i, j };
-    },
-    // Scrolls as little as it can to show the crosspoint of router numbers src and dst whole. Leave one out
-    // to keep that axis where it is.
-    reveal({ src, dst }) {
-      const j = src === undefined ? -1 : at(srcAt, src);
-      const i = dst === undefined ? -1 : at(dstAt, dst);
-      if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true));
-      if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false));
     },
     // The drawn crosspoint node of src and dst, or null when it is out of view.
     node: (src, dst) => nodeOf(src, dst),
@@ -519,14 +539,18 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       listeners.add(f);
       return () => listeners.delete(f);
     },
+    // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
+    // staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }.
+    // view.other(dst) is { text, tip }, and view.art(kind, n) is { icon, url, mask, b } or null.
+    // kind is 'srcs' or 'dsts'. Only drawn nodes are painted.
     paint(v) {
       view = v;
       for (const p of xpPools) for (const n of p.live.values()) paintXp(n, Number(n.dataset.src), Number(n.dataset.dst), v);
       for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) paintSrc(n, Number(n.dataset.src));
       for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) paintDst(n, Number(n.dataset.dst));
     },
-    // pairs is [{ src, dst }] in press order, or empty; over marks a press past the cap. skipped is the protected
-    // pairs a Drawn line passes over. Only drawn nodes that carry a mark, or get one, are touched.
+    // The routes a press would stage, numbered, and their names outlined. pairs is [{ src, dst }] in press order, or
+    // empty; over marks a press past the cap. skipped is the protected pairs a Drawn line passes over. Only drawn nodes that carry a mark, or get one, are touched.
     preview(pairs, over, skipped = []) {
       mark = {
         xps: new Map(pairs.map(({ src, dst }, k) => [`${src}:${dst}`, k + 1])),
@@ -553,15 +577,3 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     },
   };
 }
-
-// view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
-// staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }. Only drawn nodes are painted.
-// view.other(dst) is { text, tip } for the current sources that the grid does not show.
-// view.art(kind, n), kind 'source' or 'destination', is { icon, url, mask, b } for the artwork beside a name, or null.
-export function paintGridPanel(g, view) {
-  g.paint(view);
-}
-
-// The routes a press would stage: each target crosspoint numbered in order and its names outlined. pairs is
-// [{ src, dst }] or empty; over marks a press the 128 cap would refuse.
-export const previewGridPanel = (g, pairs, over, skipped) => g.preview(pairs, over, skipped);

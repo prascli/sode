@@ -2,11 +2,10 @@
 // the rows in view have nodes, since a router can have thousands. Rules are editorgridrules.js.
 import { el } from './core.js';
 import { btn } from './formbits.js';
-import { axisSpan, spanMax } from './gridpanelwindow.js';
+import { axisSpan, spanMax, OVER } from './gridpanelwindow.js';
 import { routerRows, findRows, selectRows, addItems } from './editorgridrules.js';
 
 const ROW_REM = 2; // keep in step with .sode-rlist__row in panels.css
-const OVER = 4; // rows drawn past each end of the view
 
 // o: { key, what, edge(), router(), rights(), kind, off(), readOnly(), set(edge) }.
 export function createRouterList(o) {

@@ -2,7 +2,7 @@
 // Clear and All (follow router). The router list (editorrouterlist.js) is beside it. Rules are editorgridrules.js;
 // each edit is one ed.setFields of the edge.
 import { el } from './core.js';
-import { axisSpan } from './gridpanelwindow.js';
+import { axisSpan, OVER } from './gridpanelwindow.js';
 import { btn } from './formbits.js';
 import { createOrderedList } from './orderedlist.js';
 import { createRouterList } from './editorrouterlist.js';
@@ -11,7 +11,6 @@ import { myRights, onMyRights } from './editorrights.js';
 import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, setItemArt, PINS_MAX } from './editorgridrules.js';
 import { createArtControl } from './editorart.js';
 
-const OVER = 4; // rows drawn past each end of the view
 const FIRST = 30; // rows drawn before the list has a height
 
 // key is the panel field and the /names list ('sources' or 'destinations'), rights the Rights key, what the item word.
