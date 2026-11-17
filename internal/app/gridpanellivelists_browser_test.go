@@ -85,6 +85,18 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	})()`)
 	b.eval(`{ const f = document.querySelector('#ed-live-art .sode-side__find'); f.focus(); key(f, 'ArrowRight'); key(f, 'ArrowDown'); key(f, 's'); } true`)
 	b.waitFor("keys in the Artwork panel never reach the grid", `cursorAt() === cursorWas && document.activeElement === document.querySelector('#ed-live-art .sode-side__find')`)
+	// The Icon library dialog sits on the body, outside the drawer, so the run's guard for shown dialogs keeps its keys:
+	// its Esc must not drop a staged route on the grid first.
+	b.eval(gridXp(5, 1) + `.click(); true`)
+	b.waitFor("a route is staged on the live grid", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
+	b.eval(`document.getElementById('ed-lib-open').click(); true`)
+	b.waitFor("the Icon library dialog opens with its name box focused", `!document.getElementById('ed-lib-dialog').hidden && document.activeElement === document.getElementById('ed-lib-name')`)
+	b.eval(`{ const c = document.getElementById('ed-lib-close'); c.focus(); key(c, 'ArrowRight'); key(c, 'ArrowDown'); key(c, 's'); } true`)
+	b.waitFor("keys in the Icon library dialog never reach the grid", `cursorAt() === cursorWas && document.activeElement === document.getElementById('ed-lib-close')`)
+	b.eval(`key(document.getElementById('ed-lib-close'), 'Escape'); true`)
+	b.waitFor("Esc closes only the Icon library dialog, and the staged route stays", `document.getElementById('ed-lib-dialog').hidden && !document.getElementById('ed-live-art').hidden && !!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
+	b.eval(`document.getElementById('panel-clear').click(); true`)
+	b.waitFor("Clear drops it", `!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
 	b.eval(`[...document.querySelectorAll('#ed-live-art .pb-btn')].find((x) => x.textContent === 'Hide text').click(); true`)
 	b.waitFor("Hide text hides the names on the live grid and keeps their words", `(() => {
 		const n = document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="0"]:not([hidden])');
