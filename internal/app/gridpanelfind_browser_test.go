@@ -87,6 +87,13 @@ func TestChromeGridPanelFind(t *testing.T) {
 	realKey(b, "j", "KeyJ", 74)
 	gridCursorOn(b, "the keys move the cursor again", 3, 12)
 
+	realKey(b, "s", "KeyS", 83)
+	b.call("Input.insertText", map[string]any{"text": "zz"})
+	b.waitFor("a Filter with no match shows no sources and says so", cols+` === '0' && `+
+		`document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').textContent.includes('No match')`)
+	realKey(b, "Escape", "Escape", 27)
+	b.waitFor("Esc shows every source again", cols+` === '200'`)
+
 	b.open(srv.URL + "/panels/" + id + "?instance=Desk")
 	b.waitFor("the grid after a load", gridXp(3, 2)+` !== null && `+cols+` === '200'`)
 	b.waitFor("a load starts with empty boxes in Find mode", gridFindBox("srcs")+`.value === '' && `+gridFindBox("dsts")+`.value === '' && `+
