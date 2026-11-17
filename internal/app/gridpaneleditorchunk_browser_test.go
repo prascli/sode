@@ -28,7 +28,7 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 
 	rows := `document.querySelectorAll('#ed-sources-router [data-n]:not([hidden])')`
 	b.waitFor("the router list shows its first rows", `!!document.querySelector('#ed-sources-router [data-n="0"]:not([hidden])')`)
-	if n := int(b.eval(`document.querySelectorAll('#ed-sources-router [data-n]').length`).(float64)); n > 200 {
+	if n := int(b.eval(`document.querySelectorAll('#ed-sources-router .sode-rlist__row').length`).(float64)); n > 200 {
 		t.Fatalf("the router list draws %d rows for 2500 sources", n)
 	}
 	b.eval(`const r = document.getElementById('ed-sources-router'); r.scrollTop = r.scrollHeight; true`)
