@@ -59,14 +59,14 @@ html:has(.sode-gridpanel) {
 /* Lines and boxes between the bands have no padding of their own. A kiosk fixes the foot to the bottom instead. */
 :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) > :is(.sode__hint, .sode-panel__device, .pb-btn),
 :root:not([data-layout="phone"], [data-sode-kiosk]) .sode-panels:has(.sode-gridpanel) > .sode-panel__foot {
-  margin: var(--pb-space-4) 0.7rem;
+  margin: var(--pb-space-4) var(--pb-space-5);
 }
 /* The header is a raised band. Only the end and block padding is set here, as the start clears the Lock chip
    (panels.css). */
 :where(:root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel)) > .sode-panels__head {
   background: var(--pb-surface-raised);
   border-bottom: var(--pb-border-w) solid var(--pb-border);
-  padding: 0.6rem 0.7rem;
+  padding: calc(var(--pb-space-4) + var(--pb-space-1)) var(--pb-space-5);
 }
 /* The page has no side padding here, so the header adds it past the Lock chip. */
 [data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-panels:has(.sode-gridpanel) > .sode-panels__head {
@@ -76,7 +76,7 @@ html:has(.sode-gridpanel) {
   background: transparent;
 }
 :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) .sode-panels__title {
-  font-size: 1.76rem;
+  font-size: calc(2 * var(--pb-text-md));
   line-height: 1.1;
 }
 .sode-gridpanel__scroll {
@@ -120,8 +120,20 @@ html:has(.sode-gridpanel) {
    drawn window still shows the lines. The tiles start where the bars end. */
 .sode-gridpanel__body {
   background-color: var(--sode-patch-field);
-  background-image: linear-gradient(to right, transparent 50%, var(--sode-line) 50%, var(--sode-line) calc(50% + 1px), transparent calc(50% + 1px)),
-    linear-gradient(to bottom, transparent 50%, var(--sode-line) 50%, var(--sode-line) calc(50% + 1px), transparent calc(50% + 1px));
+  background-image: linear-gradient(
+      to right,
+      transparent 50%,
+      var(--sode-line) 50%,
+      var(--sode-line) calc(50% + var(--pb-border-w)),
+      transparent calc(50% + var(--pb-border-w))
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 50%,
+      var(--sode-line) 50%,
+      var(--sode-line) calc(50% + var(--pb-border-w)),
+      transparent calc(50% + var(--pb-border-w))
+    );
   background-position: var(--sode-name-w) var(--sode-name-h);
   background-size: var(--sode-xp) var(--sode-xp);
   position: relative;
@@ -300,8 +312,8 @@ html:has(.sode-gridpanel) {
   background-position: center;
   background-repeat: no-repeat;
   background-size:
-    1px 100%,
-    100% 1px;
+    var(--pb-border-w) 100%,
+    100% var(--pb-border-w);
 }
 :is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) > .sode-gridpanel__xp:hover {
   background-color: color-mix(in oklab, var(--pb-text) 8%, var(--sode-patch-field));
@@ -563,12 +575,12 @@ html:has(.sode-gridpanel) {
 }
 .sode-gridpanel__levels .pb-btn.sode__all {
   height: calc(2 * 2.08rem + var(--pb-space-1));
-  padding: 0 0.4rem;
+  padding: 0 var(--pb-space-3);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__levels {
   grid-template-columns: auto auto auto;
   margin: 0;
-  padding: 0.3rem 0.4rem;
+  padding: calc(var(--pb-space-2) + var(--pb-space-1) / 2) var(--pb-space-3);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__levels > .sode__box-head {
   min-height: 0;
