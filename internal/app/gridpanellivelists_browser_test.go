@@ -85,8 +85,8 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	})()`)
 	b.eval(`{ const f = document.querySelector('#ed-live-art .sode-side__find'); f.focus(); key(f, 'ArrowRight'); key(f, 'ArrowDown'); key(f, 's'); } true`)
 	b.waitFor("keys in the Artwork panel never reach the grid", `cursorAt() === cursorWas && document.activeElement === document.querySelector('#ed-live-art .sode-side__find')`)
-	// The Icon library dialog sits on the body, outside the drawer, so the run's guard for shown dialogs keeps its keys:
-	// its Esc must not drop a staged route on the grid first.
+	// The Icon library dialog sits on the body, outside the drawer. The run's guard for shown dialogs leaves its keys to it,
+	// so its Esc does not drop a staged route on the grid first.
 	b.eval(gridXp(5, 1) + `.click(); true`)
 	b.waitFor("a route is staged on the live grid", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp[data-s="staged"]')`)
 	b.eval(`document.getElementById('ed-lib-open').click(); true`)
