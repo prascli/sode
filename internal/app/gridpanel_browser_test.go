@@ -178,7 +178,12 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 		t.Errorf("a Shift-click selected text %q", got)
 	}
 
-	b.eval(gridXp(11, 4) + `.dispatchEvent(new PointerEvent('pointerover', { bubbles: true })); true`)
+	b.eval(`(() => {
+		const r = ` + gridXp(11, 4) + `.getBoundingClientRect();
+		const at = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+		` + gridXp(11, 4) + `.dispatchEvent(new PointerEvent('pointermove', at));
+		return true;
+	})()`)
 	b.waitFor("the targets show numbered and their names outlined",
 		gridXp(11, 4)+`.dataset.n === '1' && `+gridXp(12, 5)+`.dataset.n === '2' && `+gridXp(13, 6)+`.dataset.n === '3' && !(`+gridXp(11, 5)+`.dataset.n) && `+
 			dst(5)+`.dataset.target === '' && `+src(13)+`.dataset.target === '' && !('target' in `+dst(7)+`.dataset)`)

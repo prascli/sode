@@ -14,6 +14,7 @@ import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
+import { CORNER, MOVES, moveCursor, pointOf, followCursor } from './gridpanelcursor.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
@@ -51,7 +52,10 @@ export function gridBody(ctx, first) {
   let out = []; // staged routes left out (gridpanelrights.js), as of the last render
   let g = null;
   let picks = createPicks();
-  let at = null; // the crosspoint under the pointer, whose press the preview shows
+  let at = null; // the crosspoint under the cursor, whose press the preview shows
+  let cur = CORNER;
+  // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
+  let ptr = null; // { x, y } in client px while the pointer leads, else null
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -142,6 +146,7 @@ export function gridBody(ctx, first) {
     const key = JSON.stringify(next);
     if (key === axesKey) return;
     axesKey = key;
+    cur = followCursor(cur, axes, next);
     axes = next;
     shownSrcs = new Set(next.srcs);
     // Picks on names that left the panel go.
@@ -149,7 +154,11 @@ export function gridBody(ctx, first) {
     at = null;
     const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
     if (g) g.setAxes(all);
-    else g = buildGridPanel(ui.grid, all, { onPress, onName, onAt });
+    else {
+      g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint });
+      g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
+    }
+    setCursor(cur);
   };
 
   async function send(routes) {
@@ -249,6 +258,30 @@ export function gridBody(ctx, first) {
     render();
   }
 
+  function setCursor(c) {
+    cur = c;
+    g.cursor(c);
+    onAt(pointOf(c, axes));
+  }
+
+  // A scroll calls this again with the last pointer place, so the cursor marks the crosspoint a click would hit.
+  function pointAt(x, y) {
+    const c = g.cellAt(x, y);
+    if (c && (c.i !== cur.i || c.j !== cur.j)) setCursor(c);
+  }
+
+  function onPoint(x, y) {
+    ptr = { x, y };
+    pointAt(x, y);
+  }
+
+  function moveTo(move) {
+    ptr = null;
+    setCursor(moveCursor(cur, move, { rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() }));
+    if (move === 'corner') g.scroll.scrollTo(0, 0);
+    else g.revealCell(cur);
+  }
+
   function onAt(xp) {
     if (at?.src === xp?.src && at?.dst === xp?.dst) return;
     at = xp;
@@ -262,9 +295,18 @@ export function gridBody(ctx, first) {
     if (e.defaultPrevented) return;
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
     if (!act) return;
+    const moves = MOVES.has(act) || act === 'press';
+    // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
+    if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
+    // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
     e.preventDefault();
     e.stopPropagation();
-    if (act === 'confirm') openConfirm();
+    if (MOVES.has(act)) {
+      if (g) moveTo(act);
+    } else if (act === 'press') {
+      const xp = pointOf(cur, axes);
+      if (xp && g) onPress(xp);
+    } else if (act === 'confirm') openConfirm();
     else if (act === 'unpick') {
       picks = dropPicks(picks);
       render();
