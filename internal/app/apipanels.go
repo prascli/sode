@@ -214,7 +214,7 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	// The page mirrors these before arming a take; the server still enforces them.
 	out["rights"] = cl.Rights.Clone()
 	out["artDefaults"] = a.panelArtDefaults(cl, p)
-	// A page opened by a key or as Public has no socket hello, so its take confirm reads these here.
+	// A panel page's take confirm reads these here, since its socket hello can be late or never come.
 	cfg := a.r().cfg
 	out["confirm"] = map[string]any{"lockoutMs": cfg.ConfirmLockoutMs, "enter": cfg.ConfirmEnter}
 	apiJSONTaggedBy(w, r, out, readTagOf(out))

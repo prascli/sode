@@ -1,7 +1,7 @@
 // A Grid panel's take confirm. It is the main page's churning-letter confirm (keyconfirm.js) over the #confirm markup
 // in panel.html, with a summary in the main page's plan look. Levels and labels come from the adapter's GET /tally,
-// since the panel page has no S.levels. Its lockout and Enter come from the panel read, since a page opened by a key
-// or as Public has no socket hello to fill S.cfg.
+// since the panel page has no S.levels. Its lockout and Enter come from the panel read. The socket's hello fills
+// S.cfg late, or never when the socket is blocked.
 import { el, S } from './core.js';
 import { keyConfirm } from './keyconfirm.js';
 import { levelColor } from './levelbox.js';
