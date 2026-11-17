@@ -38,3 +38,50 @@ test('f focuses the Levels box, unless a field already has focus', () => {
 test('other keys do nothing yet', () => {
   assert.equal(gridKeyAction(key('x'), ctx()), null);
 });
+
+const code = (c, over = {}) => key(c.startsWith('Key') ? c.slice(3).toLowerCase() : c, { code: c, ...over });
+
+test('arrows and h/j/k/l move the cursor; h/j/k/l are physical keys', () => {
+  const want = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyK: 'up', KeyJ: 'down', KeyH: 'left', KeyL: 'right' };
+  for (const [c, m] of Object.entries(want)) assert.equal(gridKeyAction(code(c), ctx()), m, c);
+  // Dvorak: the key in the J place types h but moves down.
+  assert.equal(gridKeyAction(key('h', { code: 'KeyJ' }), ctx()), 'down');
+});
+
+test('PageUp, PageDown and Alt+arrows move one screen', () => {
+  assert.equal(gridKeyAction(code('PageUp'), ctx()), 'pageUp');
+  assert.equal(gridKeyAction(code('PageDown'), ctx()), 'pageDown');
+  assert.equal(gridKeyAction(code('ArrowUp', { altKey: true }), ctx()), 'pageUp');
+  assert.equal(gridKeyAction(code('ArrowDown', { altKey: true }), ctx()), 'pageDown');
+  assert.equal(gridKeyAction(code('ArrowLeft', { altKey: true }), ctx()), 'pageLeft');
+  assert.equal(gridKeyAction(code('ArrowRight', { altKey: true }), ctx()), 'pageRight');
+});
+
+test('Home goes to the corner, Ctrl or Cmd+Home and End to the row edges, End to the column end', () => {
+  assert.equal(gridKeyAction(code('Home'), ctx()), 'corner');
+  assert.equal(gridKeyAction(code('End'), ctx()), 'colEnd');
+  for (const mod of ['ctrlKey', 'metaKey']) {
+    assert.equal(gridKeyAction(code('Home', { [mod]: true }), ctx()), 'rowStart', mod);
+    assert.equal(gridKeyAction(code('End', { [mod]: true }), ctx()), 'rowEnd', mod);
+  }
+});
+
+test('Space presses at the cursor', () => {
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), ctx({ staged: 0 })), 'press');
+});
+
+test('Shift with a move does nothing in the grid', () => {
+  assert.equal(gridKeyAction(code('ArrowDown', { shiftKey: true }), ctx()), null);
+  assert.equal(gridKeyAction(code('KeyJ', { shiftKey: true }), ctx()), null);
+});
+
+test('moves and Space leave a focused field or header button its own keys', () => {
+  for (const c of ['ArrowUp', 'KeyJ', 'PageDown', 'Home', 'End']) assert.equal(gridKeyAction(code(c), ctx({ inControl: true })), null, c);
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), ctx({ inControl: true })), null);
+});
+
+test('browser chords such as Cmd+R and Ctrl+L are not the grid’s', () => {
+  assert.equal(gridKeyAction(code('KeyR', { metaKey: true }), ctx()), null);
+  assert.equal(gridKeyAction(code('KeyL', { ctrlKey: true }), ctx()), null);
+  assert.equal(gridKeyAction(code('KeyJ', { altKey: true }), ctx()), null);
+});
