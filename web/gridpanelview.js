@@ -201,6 +201,15 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // pinned item it must draw above the sticky bands.
   const cursor = el('div', 'sode-gridpanel__cursor', el('span', 'sode-gridpanel__ring'));
   cursor.setAttribute('aria-hidden', 'true');
+  // The Drawn line, in content px (gridpanelline.js has the geometry).
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('sode-gridpanel__lines');
+  svg.setAttribute('aria-hidden', 'true');
+  const lineNode = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  lineNode.classList.add('sode-gridpanel__line');
+  svg.append(lineNode);
+  svg.hidden = true;
+  overlay.append(svg);
   const field = el('div', 'sode-gridpanel__field', body, overlay, side, top, corner, cursor);
   field.setAttribute('role', 'group');
   field.setAttribute('aria-label', 'Crosspoints');
@@ -218,7 +227,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let dstAt = new Map();
   let view = null;
   // The press preview (previewGridPanel): numbered crosspoints by "s:d" and outlined names.
-  let mark = { xps: new Map(), srcs: new Set(), dsts: new Set() };
+  let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
   let px = { xp: 1, w: 1, h: 1 };
   const listeners = new Set();
@@ -233,8 +242,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   };
   const markXp = (n, s, d) => {
     const k = mark.xps.get(`${s}:${d}`);
+    const skip = mark.skip.has(`${s}:${d}`);
     setData(n, 'n', k === undefined ? undefined : String(k));
-    if (k === undefined) marked.delete(n);
+    setData(n, 'skip', skip ? '' : undefined);
+    if (k === undefined && !skip) marked.delete(n);
     else marked.add(n);
   };
   const markName = (n, on) => setData(n, 'target', on ? '' : undefined);
@@ -427,6 +438,32 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // Cell px sizes: xp is one crosspoint, w the Destination bar width, h the Source bar height.
     metrics: () => ({ ...px }),
     spans,
+    // A client point in crosspoint units (gridpanelline.js), display order. A pinned band does not scroll.
+    unitsAt(x, y) {
+      const r = scroll.getBoundingClientRect();
+      const unit = (p, a) => {
+        const k = (p - a.head) / a.size;
+        return k < a.pins ? k : k + a.offset / a.size;
+      };
+      return { x: unit(x - r.left - scroll.clientLeft, axis(true)), y: unit(y - r.top - scroll.clientTop, axis(false)) };
+    },
+    // The scroller's body in client px: past the name bars and the pinned bands, inside the scrollbars.
+    bodyBox() {
+      const r = scroll.getBoundingClientRect();
+      const left = r.left + scroll.clientLeft + px.w + (ax.srcPins || 0) * px.xp;
+      const top = r.top + scroll.clientTop + px.h + (ax.dstPins || 0) * px.xp;
+      return { left, top, right: r.left + scroll.clientLeft + scroll.clientWidth, bottom: r.top + scroll.clientTop + scroll.clientHeight };
+    },
+    // Draws the Drawn line from a to b, in crosspoint units, or hides it for null.
+    line(seg) {
+      svg.hidden = !seg;
+      if (!seg) return;
+      const set = (k, v) => lineNode.setAttribute(k, String(v));
+      set('x1', px.w + seg.a.x * px.xp);
+      set('y1', px.h + seg.a.y * px.xp);
+      set('x2', px.w + seg.b.x * px.xp);
+      set('y2', px.h + seg.b.y * px.xp);
+    },
     // The display cell { i, j } under a client point, -1 on a bar, or null past the last item or on a scrollbar.
     cellAt(x, y) {
       const r = scroll.getBoundingClientRect();
@@ -479,16 +516,17 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) paintSrc(n, Number(n.dataset.src));
       for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) paintDst(n, Number(n.dataset.dst));
     },
-    // pairs is [{ src, dst }] in press order, or empty; over marks a press past the cap. Only drawn nodes that
-    // carry a mark, or get one, are touched.
-    preview(pairs, over) {
+    // pairs is [{ src, dst }] in press order, or empty; over marks a press past the cap. skipped is the protected
+    // pairs a Drawn line passes over. Only drawn nodes that carry a mark, or get one, are touched.
+    preview(pairs, over, skipped = []) {
       mark = {
         xps: new Map(pairs.map(({ src, dst }, k) => [`${src}:${dst}`, k + 1])),
+        skip: new Set(skipped.map(({ src, dst }) => `${src}:${dst}`)),
         srcs: new Set(pairs.map((p) => p.src)),
         dsts: new Set(pairs.map((p) => p.dst)),
       };
       for (const n of [...marked]) markXp(n, Number(n.dataset.src), Number(n.dataset.dst));
-      for (const { src, dst } of pairs) {
+      for (const { src, dst } of [...pairs, ...skipped]) {
         const xp = nodeOf(src, dst);
         if (xp) markXp(xp, src, dst);
       }
@@ -497,7 +535,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.has(Number(n.dataset.dst)));
       setData(field, 'over', over && pairs.length ? '' : undefined);
     },
-    previewing: () => mark.xps.size > 0 || mark.srcs.size > 0,
+    previewing: () => mark.xps.size > 0 || mark.srcs.size > 0 || mark.skip.size > 0,
     stop() {
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
@@ -517,4 +555,4 @@ export function paintGridPanel(g, view) {
 
 // The routes a press would stage: each target crosspoint numbered in order and its names outlined. pairs is
 // [{ src, dst }] or empty; over marks a press the 128 cap would refuse.
-export const previewGridPanel = (g, pairs, over) => g.preview(pairs, over);
+export const previewGridPanel = (g, pairs, over, skipped) => g.preview(pairs, over, skipped);
