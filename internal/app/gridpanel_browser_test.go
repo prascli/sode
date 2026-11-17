@@ -199,6 +199,8 @@ func TestChromeGridPanelDiagonal(t *testing.T) {
 	b.waitFor("the targets show numbered and their names outlined",
 		gridXp(11, 4)+`.dataset.n === '1' && `+gridXp(12, 5)+`.dataset.n === '2' && `+gridXp(13, 6)+`.dataset.n === '3' && !(`+gridXp(11, 5)+`.dataset.n) && `+
 			dst(5)+`.dataset.target === '' && `+src(13)+`.dataset.target === '' && !('target' in `+dst(7)+`.dataset)`)
+	b.waitFor("each name carries its crosspoint's number", `[`+src(11)+`, `+dst(4)+`, `+src(12)+`, `+dst(5)+`, `+src(13)+`, `+dst(6)+`].map((n) => n.dataset.n).join('') === '112233' && `+
+		`getComputedStyle(`+dst(5)+`, '::after').content === '"2"' && !('n' in `+dst(7)+`.dataset)`)
 	b.shot("diagonal-preview")
 
 	b.eval(gridXp(11, 4) + `.click()`)

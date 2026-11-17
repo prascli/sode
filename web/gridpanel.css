@@ -683,6 +683,21 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__field[data-over] .sode-gridpanel__xp[data-n]::after {
   color: var(--pb-status-error);
 }
+/* A previewed name carries its crosspoint's number in the same look (gridpanelview.js pairNumbers). */
+:is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-n]::after {
+  color: var(--pb-text-strong);
+  content: attr(data-n);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-xs);
+  font-weight: var(--pb-weight-bold);
+  inset: var(--pb-space-1) auto auto var(--pb-space-2);
+  letter-spacing: normal;
+  line-height: 1;
+  position: absolute;
+}
+.sode-gridpanel__field[data-over] :is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-n]::after {
+  color: var(--pb-status-error);
+}
 /* A Drawn line (gridpanelline.js), in content px over the crosspoints and under the sticky bands. */
 .sode-gridpanel__lines {
   height: 100%;

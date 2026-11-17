@@ -22,6 +22,14 @@ export function joinPulse(node) {
   joining.add(node);
 }
 
+// The number each name of a press preview carries, the same as its crosspoint's, so the two line up by eye. A name in
+// more than one numbered pair (a line's one source) gets '' and shows no number. key is 'src' or 'dst'.
+const pairNumbers = (pairs, key) => {
+  const m = new Map();
+  pairs.forEach((p, k) => m.set(p[key], m.has(p[key]) ? '' : String(k + 1)));
+  return m;
+};
+
 // A name node keeps one Text child, so a rename or a move is not a childList change.
 const setText = (n, t) => {
   if (n.firstChild.data !== t) n.firstChild.data = t;
@@ -265,7 +273,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let dstAt = new Map();
   let view = null;
   // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
-  let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
+  let mark = { xps: new Map(), skip: new Set(), srcs: new Map(), dsts: new Map() };
   const marked = new Set(); // crosspoint nodes that carry a number
   let cur = { i: -1, j: -1 }; // The cursor's display position, -1 on a bar.
   // What g.glide or g.jump went to, { srcs, dsts, seq } with router numbers (null for none), until its pulse ends. The
@@ -330,7 +338,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     if (k === undefined && !skip) marked.delete(n);
     else marked.add(n);
   };
-  const markName = (n, on) => setData(n, 'target', on ? '' : undefined);
+  // v is the name's number in mark (a string), '' for a name in more than one numbered pair, undefined for none.
+  const markName = (n, v) => {
+    setData(n, 'target', v !== undefined ? '' : undefined);
+    setData(n, 'n', v || undefined);
+  };
   // The names of the crosspoint under the cursor; none while the cursor is on a bar.
   const cueOf = () => (cur.i >= 0 && cur.j >= 0 ? { src: ax.srcs[cur.j], dst: ax.dsts[cur.i] } : {});
   const cueName = (n, on) => setData(n, 'cue', on ? '' : undefined);
@@ -346,7 +358,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       setData(n, 'found', view.found('srcs', s) ? '' : undefined);
       paintArt(n.lastChild, view.art('srcs', s));
     }
-    markName(n, mark.srcs.has(s));
+    markName(n, mark.srcs.get(s));
     cueName(n, cueOf().src === s);
     setData(n, 'hit', hitOf('srcs', s));
   };
@@ -358,7 +370,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintDstMarks(n, d, view);
       paintArt(n.lastChild, view.art('dsts', d));
     }
-    markName(n, mark.dsts.has(d));
+    markName(n, mark.dsts.get(d));
     cueName(n, cueOf().dst === d);
     setData(n, 'hit', hitOf('dsts', d));
   };
@@ -698,8 +710,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       mark = {
         xps: new Map(pairs.map(({ src, dst }, k) => [`${src}:${dst}`, k + 1])),
         skip: new Set(skipped.map(({ src, dst }) => `${src}:${dst}`)),
-        srcs: new Set(pairs.map((p) => p.src)),
-        dsts: new Set(pairs.map((p) => p.dst)),
+        srcs: pairNumbers(pairs, 'src'),
+        dsts: pairNumbers(pairs, 'dst'),
       };
       for (const n of [...marked]) markXp(n, Number(n.dataset.src), Number(n.dataset.dst));
       for (const { src, dst } of [...pairs, ...skipped]) {
@@ -707,8 +719,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
         if (xp) markXp(xp, src, dst);
       }
       // The drawn names are a few dozen, so each is checked.
-      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.has(Number(n.dataset.src)));
-      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.has(Number(n.dataset.dst)));
+      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.get(Number(n.dataset.src)));
+      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.get(Number(n.dataset.dst)));
       setData(field, 'over', over && pairs.length ? '' : undefined);
       setData(field, 'marked', mark.srcs.size || mark.dsts.size ? '' : undefined);
     },
