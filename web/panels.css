@@ -358,37 +358,6 @@ body {
 .sode-panel__take {
   font-size: calc(var(--pb-text-xl) * var(--panel-fs, 1) * var(--cell-fs, 1));
 }
-/* The panel page fits words in JS (panelfit.js) in place of the cqi cap above, which the editor's squares keep.
-   --fit (at most 1) shrinks them, never below --pb-text-2xs; a word breaks only when that is not enough. Past it,
-   data-fit="cut" wraps anywhere and cuts each line of text to --fit-lines lines with an ellipsis. */
-.sode-panel__grid:not(.sode-gridpanel) {
-  min-height: 0;
-}
-.sode-panel__cell {
-  overflow-wrap: normal;
-}
-.sode-panel__cell span.sode-panel__text {
-  font-size: min(1em, max(calc(1em * var(--fit, 1)), var(--pb-text-2xs)));
-}
-.sode-panel__cell small,
-.sode-panel__staged {
-  --small-fs: calc(var(--pb-text-xs) * var(--panel-fs, 1) * var(--cell-fs, 1));
-  font-size: min(var(--small-fs), max(calc(var(--small-fs) * var(--fit, 1)), var(--pb-text-2xs)));
-}
-/* With one line each still too tall (a destination's three lines on a small square), the first lines stay and the
-   end is cut. */
-.sode-panel__cell[data-fit="cut"] {
-  justify-content: safe center;
-  overflow-wrap: anywhere;
-}
-.sode-panel__cell[data-fit="cut"] .sode-panel__text:not(.sode-panel__result) {
-  -webkit-box-orient: vertical;
-  display: -webkit-box;
-  /* Or the cell's flex column squeezes the box and cuts a line in half, which no measure of the cell sees. */
-  flex-shrink: 0;
-  -webkit-line-clamp: var(--fit-lines, 1);
-  overflow: hidden;
-}
 /* The artwork row: Icon A (a sprite icon or an image) then Icon B (a glyph) side by side, each scaled to the row.
    The row is a size container so the glyph follows the square's height (cqh), as the icon does. Alone, either
    fills the row; beside a sprite icon Icon A takes 40% of its width and Icon B 60% (both shrink alike for the gap,
@@ -493,16 +462,6 @@ body {
   letter-spacing: var(--pb-tracking-label);
   margin: var(--pb-space-4) 0 var(--pb-space-2);
   text-transform: uppercase;
-}
-/* Open now carries the panel's status badge, which keeps its own case. */
-.sode-ov__group--status {
-  align-items: center;
-  display: flex;
-  gap: var(--pb-space-2);
-}
-.sode-ov__group--status .pb-badge {
-  letter-spacing: normal;
-  text-transform: none;
 }
 .sode-ov__item {
   align-items: center;

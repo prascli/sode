@@ -3,8 +3,8 @@
 import { el, icon } from './core.js';
 import { askNotifyPermission, notifyPermission } from './panelwatch.js';
 import { durationText, permissionText } from './panelwatchrules.js';
-import { panelStatus, shownInstances, hiddenShown, instanceUptime } from './panelsrules.js';
-import { summary } from './uptime.js';
+import { panelStatus, shownInstances, hiddenShown } from './panelsrules.js';
+import { slotFor, summary } from './uptime.js';
 import { uptimeBars } from './uptimebars.js';
 import { renameState, renameProblem } from './panelassignrules.js';
 
@@ -37,7 +37,8 @@ export function paintOnline(panels) {
 // The last 24 hours of one instance, from the server's own clock (to), so the browser's clock does not shift it.
 function uptimeStrip(i) {
   if (!i.uptime) return null;
-  const data = instanceUptime(i.uptime);
+  const u = i.uptime;
+  const data = { start: u.start, trans: u.trans, counts: [], from: u.from, to: u.to, slot: slotFor(u.from, u.to), now: u.to };
   const text = summary(data);
   const bars = el('div', 'sode-up__bars sode-up__bars--sm', ...uptimeBars(data, { fmt: fmtTime, words: INSTANCE_WORDS }));
   bars.setAttribute('role', 'img');
@@ -49,7 +50,7 @@ function hideButton(p, i, setHide) {
   const b = el('button', 'pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm', icon('eye-off'));
   b.type = 'button';
   b.dataset.hideInstance = i.device;
-  b.dataset.pbTip = 'Hide this instance from the list for all users. It keeps its key and watch. Show them puts it back.';
+  b.dataset.pbTip = 'Hide this instance from the list. It keeps its key and watch, and shows again when it comes back.';
   b.classList.add('pb-tip--end');
   b.setAttribute('aria-label', `Hide ${i.device}`);
   b.addEventListener('click', () => setHide?.(p.id, i.device, true));
@@ -154,18 +155,18 @@ export function openNow(p, { setWatch, setHide, rename } = {}, now = Date.now())
   box.id = 'panels-open';
   box.dataset.for = p.id;
   if (!p.instances) return box;
-  box.append(el('h2', 'sode-ov__group sode-ov__group--status', 'Open now', statusBadge(p)));
+  box.append(el('h2', 'sode-ov__group', 'Open now'));
   const rows = shownInstances(p);
   const hidden = hiddenLine(p, setHide);
   if (!rows.length) {
-    box.append(el('p', 'sode-ov__muted', hidden ? 'Every instance is hidden.' : 'No instance opened this panel in the last 24 hours.'));
+    box.append(el('p', 'sode-ov__muted', hidden ? 'Every instance is hidden.' : 'No instance has opened this panel since Sode started.'));
     if (hidden) box.append(hidden);
     return box;
   }
   const watched = new Set(p.watchingInstances || []);
   const ul = el('ul', 'sode-ov__open');
   for (const i of rows) {
-    const ago = i.seen ? (i.online ? '' : `last seen ${durationText((now - Date.parse(i.seen)) / 1000)} ago`) : 'not seen in the last 24 hours';
+    const ago = i.seen ? (i.online ? '' : `last seen ${durationText((now - Date.parse(i.seen)) / 1000)} ago`) : 'not seen since Sode started';
     const input = el('input', 'pb-check__input');
     input.type = 'checkbox';
     input.checked = watched.has(i.device.toLowerCase());

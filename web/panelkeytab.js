@@ -5,7 +5,7 @@
 import { el, icon, on } from './core.js';
 import { btn, check, field } from './formbits.js';
 import { confirmBox } from './confirmbox.js';
-import { copyRow, qrNode, secretNode } from './keyview.js';
+import { qrNode, secretNode } from './keyview.js';
 import { trapDialog } from './dialogkeys.js';
 import { shareTabs } from './panelshare.js';
 import {
@@ -28,19 +28,10 @@ import {
 } from './panelkeyrules.js';
 import { linkFor } from './panellink.js';
 import { linkBase, shareHostField } from './sharehost.js';
-import { isLoopback } from './sharehostrules.js';
 import { linkRow } from './panellinkrow.js';
 import { isPublic } from './panelsrules.js';
 
 const COPIED_MS = 2000;
-// A link built on a localhost page before an address for other devices was given (sharehost.js).
-const localLink = (link) => {
-  try {
-    return isLoopback(new URL(link, document.baseURI).hostname);
-  } catch {
-    return false;
-  }
-};
 const REFRESH_MS = 5000; // how often the list asks again, so Online follows the instances
 const FAIL = Symbol('failed'); // a call that said why in the note
 
@@ -223,7 +214,7 @@ shareTabs.push(({ panel, api }) => {
     revealed = false;
     await loadKeys();
     paintLink();
-    if (!setup) showKey(made.name, res.key, made.link);
+    if (!setup) showKey(made.name, res.key);
     say(
       setup
         ? `${made.name}: the old key is ended. Open the link one time on that device to set it up.`
@@ -240,10 +231,9 @@ shareTabs.push(({ panel, api }) => {
     say(`Revoked ${name}. Other instances are not affected.`);
   }
 
-  // The key itself, for a client that needs it apart from the link (a Bearer header), and the link that holds it.
-  // Built per make and removed on close, so the secret lives no longer than the modal. trapDialog drops it from the
-  // Esc stack after it is hidden.
-  function showKey(name, secret, link) {
+  // The key itself, for a client that needs it apart from the link (a Bearer header). Built per make and removed on
+  // close, so the secret lives no longer than the modal. trapDialog drops it from the Esc stack after it is hidden.
+  function showKey(name, secret) {
     const back = document.activeElement;
     const keyRoot = el('div', 'pb-modal-backdrop sode__scrim');
     const dialog = el('div', 'pb-modal sode-ov__keyshow');
@@ -253,22 +243,12 @@ shareTabs.push(({ panel, api }) => {
     dialog.tabIndex = -1;
     const done = btn('pb-btn--ok', 'Done', () => shut());
     dialog.append(
-      el('div', 'pb-modal__header', Object.assign(el('span', 'pb-modal__title', `API key and link for ${name}`), { id: 'key-show-title' })),
+      el('div', 'pb-modal__header', Object.assign(el('span', 'pb-modal__title', `API key for ${name}`), { id: 'key-show-title' })),
       el(
         'div',
         'pb-modal__body',
         el('p', 'sode__hint', 'The link already holds this key. Use the key on its own where an app asks for one, in an Authorization: Bearer header.'),
         secretNode(secret),
-        el(
-          'div',
-          'sode__secret',
-          el(
-            'p',
-            'sode__hint',
-            `Open this link on the device for ${name}.${localLink(link) ? ' This address works only on this computer. For another device, set its address under Link with key, then copy the link there.' : ''}`,
-          ),
-          copyRow(link, { label: `Link for ${name}`, button: 'Copy link', what: 'link' }),
-        ),
       ),
       el('div', 'pb-modal__footer', done),
     );

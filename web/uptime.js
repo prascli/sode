@@ -68,8 +68,7 @@ export function drops(data) {
   let prev = data.start || '';
   let n = 0;
   for (const t of data.trans || []) {
-    // '' is no record (an instance while Sode was stopped), not a drop.
-    if (prev === 'up' && t.s && t.s !== 'up') n++;
+    if (prev === 'up' && t.s !== 'up') n++;
     prev = t.s;
   }
   return n;

@@ -1,1 +1,0 @@
-- Panel editor: a mouse that crosses Find's list no longer changes the highlighted result. A list that opens under a still mouse highlights nothing. Leaving the list puts back the result that the keys chose. A click still chooses.
