@@ -28,6 +28,8 @@ Levels accept `1`, `1-3`, `1,3,5-8` (or `+`), `!1` (all but 1), `1-8!3`, and wor
 
 Press `+` or Ctrl+Enter after each destination instead of Tab. The routes land in History as one Group with **Undo all**.
 
+Ctrl-click a destination in History, in a Followed by list or in the Destination match list to add it the same way. On a Mac, Cmd-click also adds it. A click without Ctrl fills the box as before.
+
 ### Presets
 
 A preset is a saved plan of sources to destinations, fired in one confirm. **Edit**, or **Presets…** when there are none, opens the editor. Each entry in a preset is a source, destinations and levels. Levels can be numbers or names, and blank levels mean the default levels. **Add from Patch Boxes…** and **Add from History…** add entries for you. Save for **This browser** or **Everyone**. Everyone needs the Advanced Settings PIN, as filter sets do.

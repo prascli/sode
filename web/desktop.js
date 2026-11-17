@@ -104,6 +104,19 @@ function addDst(pick) {
   showList('dst', b.list().find((d) => d.n > added)?.n);
 }
 
+// Ctrl-click on a destination elsewhere on the page: it joins the chips, with the box's own pick.
+function addEnd(it) {
+  const have = allDsts();
+  dsts = have.some((x) => x.n === it.n) ? have : [...have, it];
+  if (sel.dst) {
+    sel.dst = null;
+    boxes.dst.input.value = '';
+  }
+  boxes.dst.cb.close();
+  renderChips();
+  renderTally();
+}
+
 function renderChips() {
   const box = $('dst-chips');
   box.hidden = !dsts.length;
@@ -266,7 +279,7 @@ function renderTally() {
 
 // ---- history
 
-const historyView = desktopHistory({ select, focusBox, openConfirm, focusSearch, openKeys: () => keys.open(), boxes, active });
+const historyView = desktopHistory({ select, addEnd, focusBox, openConfirm, focusSearch, openKeys: () => keys.open(), boxes, active });
 const { renderHistory, enterKeys, keyMode, histList, histArea, pager } = historyView;
 
 // ---- flip order (per browser; index.html applies it before first paint)
