@@ -2,7 +2,7 @@
 
 import { byText } from './lockrules.js';
 import { el, S, needsLink, srcItem, dstItem, tallyText, dstLabel, chevron, icon } from './core.js';
-import { mac, listStep } from './keys.js';
+import { mac, listStep, addClick, pickOrAdd } from './keys.js';
 import { levelBar, levelText, parseLevels, levelInput, defaultLevelsHint, relabelLevels, pickButtons, allLevels } from './levelview.js';
 import { srcRow, srcEnd } from './routes.js';
 import { fmtClock } from './device.js';
@@ -208,8 +208,14 @@ export function combobox(
       const i = rowOf(e);
       if (i >= 0) {
         e.preventDefault();
-        choose(i);
+        // Ctrl-click on a row does what its + does.
+        if (add && canAdd() && addClick(e)) add(matches[i]);
+        else choose(i);
       }
+    });
+    // A Mac's Ctrl-click also opens the context menu.
+    menu.addEventListener('contextmenu', (e) => {
+      if (add && canAdd() && rowOf(e) >= 0 && addClick(e)) e.preventDefault();
     });
   }
   menu.addEventListener('scroll', () => {
@@ -422,9 +428,9 @@ export function failureRows(e) {
 
 // Stacked row timeline, newest first. Every change but the newest has Restore. restore(plan)
 // confirms; pickSrc(n) / pickDst(item), if given, make each source / followed destination a
-// button.
+// button. addDst(item) is the Ctrl-click on a followed destination.
 
-export function stackSteps(e, { restore: onRestore, pickSrc: onPickSrc, pickDst: onPickDst }) {
+export function stackSteps(e, { restore: onRestore, pickSrc: onPickSrc, pickDst: onPickDst, addDst: onAddDst }) {
   const lv = (ls) => ls.filter((u) => S.levelBy.has(u));
   const step = (time, levels, text, btn, follows = null, src = null) =>
     el(
@@ -457,6 +463,7 @@ export function stackSteps(e, { restore: onRestore, pickSrc: onPickSrc, pickDst:
           (e.follows || []).filter((f) => f.follow === c.id),
           c.levels,
           onPickDst,
+          onAddDst,
         ),
         c.src,
       ),
@@ -466,8 +473,8 @@ export function stackSteps(e, { restore: onRestore, pickSrc: onPickSrc, pickDst:
 }
 
 // "Followed by:" with each follow's destination, levels shown where they differ. Null if none.
-// onPickDst(item) makes each fill the Destination box.
-export function followBoxes(follows, levels, onPickDst) {
+// onPickDst(item) makes each fill the Destination box; onAddDst(item) is the Ctrl-click that adds it.
+export function followBoxes(follows, levels, onPickDst, onAddDst) {
   if (!follows?.length) return null;
   const lv = (ls) => ls.filter((u) => S.levelBy.has(u));
   const same = (ls) => lv(ls).join() === lv(levels).join();
@@ -484,7 +491,7 @@ export function followBoxes(follows, levels, onPickDst) {
       b.tabIndex = -1;
       b.dataset.pbTip = 'Use as destination';
       b.addEventListener('mousedown', (e) => e.preventDefault());
-      b.addEventListener('click', () => onPickDst(it));
+      pickOrAdd(b, () => onPickDst(it), onAddDst && (() => onAddDst(it)));
       return b;
     }),
   );

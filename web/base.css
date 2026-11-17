@@ -751,12 +751,19 @@ html {
   gap: var(--pb-space-5);
   min-width: 0;
 }
+/* The edge of the destination chips under the Destination box (pb-chip--static). On the desktop also their text size and
+   padding; the phone keeps the smaller chip, so Last and Next fit beside its box name. */
 .pb-chip.sode__last {
+  border-color: var(--pb-edge-light);
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-2);
   max-width: 100%;
   min-width: 0;
   padding: 0 var(--pb-space-2);
+}
+:root:not([data-layout="phone"]) .pb-chip.sode__last {
+  font-size: var(--pb-text-sm);
+  padding: var(--pb-space-1) var(--pb-space-4);
 }
 .sode__last-text {
   min-width: 0;
