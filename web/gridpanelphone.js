@@ -1,4 +1,4 @@
-// A Grid panel by touch and on the phone layout (spec #432), and its Take button. Pure. A phone has no hover and
+// A Grid panel by touch and on the phone layout, and its Take button. Pure. A phone has no hover and
 // no modifier keys.
 
 const first = (picked, order) => order.find((n) => picked.includes(n));

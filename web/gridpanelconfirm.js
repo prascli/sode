@@ -1,7 +1,7 @@
 // A Grid panel's take confirm. It is the main page's churning-letter confirm (keyconfirm.js) over the #confirm markup
 // in panel.html, with a summary in the main page's plan look. Levels and labels come from the adapter's GET /tally,
-// since the panel page has no S.levels. Its lockout is lockout.js's: the configured value once the socket's hello
-// has filled S.cfg, else 500 ms.
+// since the panel page has no S.levels. Its lockout and Enter come from the panel read. The socket's hello fills
+// S.cfg late, or never when the socket is blocked.
 import { el, S } from './core.js';
 import { keyConfirm } from './keyconfirm.js';
 import { levelColor } from './levelbox.js';
@@ -85,14 +85,19 @@ export function gridSummary(plan, tally) {
   ];
 }
 
-// onTake(plan) sends; onClose(plan) is a cancel.
-export function gridConfirm({ tally, onTake, onClose }) {
+// onTake(plan) sends; onClose(plan) is a cancel. settings() is the panel read's confirm, or null before a read.
+export function gridConfirm({ tally, settings, onTake, onClose }) {
+  const cfg = () => {
+    const c = settings();
+    return c ? { confirmLockoutMs: c.lockoutMs, confirmEnter: c.enter } : S.cfg;
+  };
   return keyConfirm({
+    cfg,
     verb: (plan) => plan.verb,
     summary: (plan) => gridSummary(plan, tally()),
     // As on the main page (desktop.js): Enter also confirms when the setting says so.
-    enter: () => !!S.cfg?.confirmEnter,
-    prompt: (key) => ['Press ', key, S.cfg?.confirmEnter ? ' or Enter' : '', ' to confirm, or escape to cancel.'],
+    enter: () => !!cfg()?.confirmEnter,
+    prompt: (key) => ['Press ', key, cfg()?.confirmEnter ? ' or Enter' : '', ' to confirm, or escape to cancel.'],
     onTake: (plan) => onTake(plan),
     onClose: (plan) => onClose(plan),
   });

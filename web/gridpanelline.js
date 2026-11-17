@@ -1,4 +1,4 @@
-// Drawn lines on a Grid panel (spec #432). Pure. A point is { x, y } in crosspoint units from the first crosspoint's
+// Drawn lines on a Grid panel. Pure. A point is { x, y } in crosspoint units from the first crosspoint's
 // top left, in display order (gridAxes). So a line holds while the grid scrolls under it. A cell is { i, j } as in
 // gridpanelcursor.js.
 import { fromHere } from './gridpanelpick.js';

@@ -34,6 +34,13 @@ test('g says why when it cannot go', () => {
   assert.deepEqual(sourceJump({ i: 0, j: 0 }, axes, envOf([[3, 1, 9]]), [1]), { why: 'other', dst: 3, src: 9 });
 });
 
+test('g to a source the Filter hides says so, not that it is off the panel', () => {
+  const shown = { srcs: [2, 1], dsts: axes.dsts };
+  assert.deepEqual(sourceJump({ i: 0, j: 0 }, shown, envOf([[3, 1, 0]]), [1], axes.srcs), { why: 'filtered', dst: 3, src: 0 });
+  assert.deepEqual(sourceJump({ i: 0, j: 0 }, shown, envOf([[3, 1, 9]]), [1], axes.srcs), { why: 'other', dst: 3, src: 9 });
+  assert.deepEqual(sourceJump({ i: 0, j: 0 }, shown, envOf([[3, 1, 1]]), [1], axes.srcs), { c: { i: 0, j: 1 } });
+});
+
 test('G steps down through the destinations that have the source on any level, and wraps', () => {
   const env = envOf([
     [3, 1, 0],
@@ -67,4 +74,5 @@ test('the note for a jump that cannot go', () => {
   assert.equal(jumpText({ why: 'none', dst: 3, level: 1 }, names, levels), 'MON D has no source on level 1');
   assert.equal(jumpText({ why: 'other', dst: 3, src: 9 }, names, levels), 'SAT 1 on MON D is not on this panel');
   assert.equal(jumpText({ why: 'unused', src: 9 }, names, levels), 'No destination on this panel has SAT 1');
+  assert.equal(jumpText({ why: 'filtered', dst: 3, src: 9 }, names, levels), 'SAT 1 on MON D is hidden by the Filter');
 });

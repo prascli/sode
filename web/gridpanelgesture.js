@@ -1,9 +1,8 @@
-// Drawn line gestures on a Grid panel (spec #432): a mouse or pen drag on the crosspoints, or a touch long-press.
+// Drawn line gestures on a Grid panel: a mouse or pen drag on the crosspoints, or a touch long-press.
 // Also the touch gestures on names: a long-press adds a range and a double-tap jumps. g is the drawn grid
 // (gridpanelview.js). on: { start(a), move(b), end(b), cancel(), name(kind, n, how) }, points in crosspoint units;
 // kind is 'srcs' or 'dsts' and how 'long' or 'double'.
-// Touch is way A of the prototype on branch prototype/panels (grid/touch.html). touch-action cannot change after
-// pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
+// touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
 // timer. A plain touch drag stays a native scroll.
 import { isLine } from './gridpanelline.js';
 

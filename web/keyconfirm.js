@@ -6,8 +6,9 @@ import { lockout } from './lockout.js';
 import { churnKey } from './lockrules.js';
 
 // verb(plan) is the word for the title and button; summary(plan, { prot, spaceHint }) the body nodes. spaceHint: the
-// undo's follows box says Space ticks it. enter(): Enter also confirms. viaKeys: answered from the keyboard.
-export function keyConfirm({ prompt, verb: verbOf, summary, enter = () => false, spaceHint = false, onTake, onClose }) {
+// undo's follows box says Space ticks it. enter(): Enter also confirms. cfg(): settings with confirmLockoutMs, else
+// S.cfg. viaKeys: answered from the keyboard.
+export function keyConfirm({ prompt, verb: verbOf, summary, enter = () => false, cfg = () => undefined, spaceHint = false, onTake, onClose }) {
   let cur = null; // { plan, prot, key, lock }
   let lastKey = '';
 
@@ -41,7 +42,7 @@ export function keyConfirm({ prompt, verb: verbOf, summary, enter = () => false,
         lock: lockout(() => {
           keyEl.classList.remove('sode__key--locked');
           $('confirm-ok').disabled = false;
-        }),
+        }, cfg()),
       };
     },
 

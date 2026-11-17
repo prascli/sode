@@ -21,7 +21,7 @@ func TestChromePanelLockBarFloats(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 	t.Cleanup(srv.CloseClientConnections)
 
 	ana := userKey(t, a, "Ana")

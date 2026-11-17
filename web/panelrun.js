@@ -324,10 +324,11 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     ui,
     id,
     panel,
-    // Every read carries the caller's Rights, which a layout update waiting on staged routes must not hold back.
+    // Every read carries the caller's Rights and the confirm settings, which a layout update waiting on staged
+    // routes must not hold back.
     get: async (path) => {
       const p = await callJSON(path);
-      body.rights?.(p?.rights);
+      if (p) body.read?.(p);
       return p;
     },
     state: () => body.pending(),

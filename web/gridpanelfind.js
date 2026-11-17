@@ -1,13 +1,23 @@
-// Find and Filter on a Grid panel's Source bar and Destination bar (spec #432). Pure.
-// Find marks matches in place and steps through them; Filter shows only matches. Each bar has its own box and mode.
+// Find and Filter on a Grid panel's Source bar and Destination bar. Pure.
+// Find marks matches in place and steps through them; Filter shows only matches. Each bar has its own box; one mode
+// serves both for the visit, so a change of box keeps it.
 // Matching is the main page's fuzzy scoring as a yes or no: matches keep panel order and there is no cut-off.
 import { fuzzyScore } from './fuzzy.js';
 
 // at is the router number of the current match, or null for the first one.
-const empty = () => ({ text: '', mode: 'find', at: null });
+const empty = () => ({ text: '', at: null });
 
-// last is the box that n and N on the grid step.
-export const createFind = () => ({ srcs: empty(), dsts: empty(), last: 'srcs' });
+// mode is 'find' or 'filter'. last is the box typed in or stepped last.
+export const createFind = () => ({ srcs: empty(), dsts: empty(), mode: 'find', last: 'srcs' });
+
+const other = (kind) => (kind === 'srcs' ? 'dsts' : 'srcs');
+const hasText = (f, kind) => !!f[kind].text.trim();
+
+// The box n and N on the grid step: the last one, or the other when the last is empty. null when both are empty.
+export function stepBox(f) {
+  if (hasText(f, f.last)) return f.last;
+  return hasText(f, other(f.last)) ? other(f.last) : null;
+}
 
 // order is router numbers in display order; list is that edge of GET /names ({ n, name }). offset is the reply's
 // numberOffset, so a typed number matches the number as shown.
@@ -23,7 +33,7 @@ export const typed = (f, kind, text) => ({ ...f, [kind]: { ...f[kind], text, at:
 
 export const clearFind = (f, kind) => ({ ...f, [kind]: { ...f[kind], text: '', at: null } });
 
-export const switchMode = (f, kind) => ({ ...f, [kind]: { ...f[kind], mode: f[kind].mode === 'find' ? 'filter' : 'find' } });
+export const switchMode = (f) => ({ ...f, mode: f.mode === 'find' ? 'filter' : 'find' });
 
 // matches is findMatches for that box. A current match that went (a live update, a rename) gives the first.
 export const currentMatch = (f, kind, matches) => (matches.includes(f[kind].at) ? f[kind].at : (matches[0] ?? null));
@@ -38,8 +48,8 @@ export function stepMatch(f, kind, matches, dir) {
 
 // One edge in display order, as the grid shows it. pins is how many lead the order (pinsOf); a Filter never hides
 // them, as pinned items stay at the edge with or without a filter.
-export function shownOrder(order, pins, box, matches) {
-  if (box.mode !== 'filter' || !box.text.trim()) return order;
+export function shownOrder(order, pins, f, kind, matches) {
+  if (f.mode !== 'filter' || !hasText(f, kind)) return order;
   const on = new Set(matches);
   return [...order.slice(0, pins), ...order.slice(pins).filter((n) => on.has(n))];
 }

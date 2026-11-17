@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/sethdotfm/sode/internal/config"
 )
@@ -213,7 +214,33 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	// The page mirrors these before arming a take; the server still enforces them.
 	out["rights"] = cl.Rights.Clone()
 	out["artDefaults"] = a.panelArtDefaults(cl, p)
-	apiJSONTagged(w, r, out)
+	// A panel page's take confirm reads these here, since its socket hello can be late or never come.
+	cfg := a.r().cfg
+	out["confirm"] = map[string]any{"lockoutMs": cfg.ConfirmLockoutMs, "enter": cfg.ConfirmEnter}
+	apiJSONTaggedBy(w, r, out, readTagOf(out))
+}
+
+// readTagOf is the panel read without the fields that move with the clock. Seen moves on each keepalive, and a held
+// stream counts as now. The uptime window ends now. Online and uptime changes still move the tag.
+func readTagOf(out map[string]any) map[string]any {
+	tag := maps.Clone(out)
+	if rows, ok := out["instances"].([]instOut); ok {
+		still := make([]instOut, len(rows))
+		for i, o := range rows {
+			o.Seen, o.Uptime.From, o.Uptime.To = time.Time{}, 0, 0
+			still[i] = o
+		}
+		tag["instances"] = still
+	}
+	if rows, ok := out["keyless"].([]keylessOut); ok {
+		still := make([]keylessOut, len(rows))
+		for i, o := range rows {
+			o.Seen = time.Time{}
+			still[i] = o
+		}
+		tag["keyless"] = still
+	}
+	return tag
 }
 
 // panelIDOf turns a short name into its panel's id. Anything else comes back as given, so an unknown

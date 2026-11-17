@@ -5,6 +5,9 @@
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+// Items drawn past each end of the view, so a fast scroll shows fewer blank items.
+export const OVER = 4;
+
 // The scrolling items to draw as [lo, hi). Pinned items are drawn apart, so lo is never under pins.
 export function axisSpan({ n, pins, size, head, offset, view, over = 0 }) {
   const lo = Math.floor(offset / size) + pins - over;

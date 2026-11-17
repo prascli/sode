@@ -123,3 +123,39 @@ func TestGridPanelCopyKeepsListsHiddenItemsAndPins(t *testing.T) {
 		t.Errorf("copy destinations %s", got)
 	}
 }
+
+// An editor whose Rights are narrower than the panel's lists saves what the read gave back. The members, hidden
+// items and item settings outside those Rights are still there for a user who can see them.
+func TestGridSaveKeepsItemsOutsideTheEditorsRights(t *testing.T) {
+	a := panelsApp(t)
+	ana, cy := userKey(t, a, "Ana"), userKey(t, a, "Cy")
+	id := makePanel(t, a, ana, `{"name":"G","type":"grid",
+		"sources":{"members":[1,50],"items":{"1":{"pinned":true},"50":{"pinned":true,"art":"icon:mic"}}},
+		"destinations":{"members":"all","hide":[60],"items":{"70":{"art":"icon:mic"}}}}`)
+	cfg := a.r().cfg
+	for i := range cfg.Users {
+		if cfg.Users[i].Name == "Ana" {
+			cfg.Users[i].Rights = config.Rights{Sources: &[]int{0, 1, 2}, Dsts: &[]int{0, 1, 2}}
+		}
+	}
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	read := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil)
+	if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, read.Body.String()); rec.Code != 200 {
+		t.Fatalf("save: %d %s", rec.Code, rec.Body.String())
+	}
+	p := readPanel(t, a, cy, id)
+	src, _ := json.Marshal(p["sources"])
+	dst, _ := json.Marshal(p["destinations"])
+	for _, want := range []string{`"members":[1,50]`, `"50":{"art":"icon:mic","pinned":true}`} {
+		if !strings.Contains(string(src), want) {
+			t.Errorf("sources %s, want %s", src, want)
+		}
+	}
+	for _, want := range []string{`"hide":[60]`, `"70":{"art":"icon:mic"}`} {
+		if !strings.Contains(string(dst), want) {
+			t.Errorf("destinations %s, want %s", dst, want)
+		}
+	}
+}

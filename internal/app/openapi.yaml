@@ -2506,6 +2506,14 @@ components:
               description: |
                 Output only, on `GET /panels/{id}`. The Default artwork of the items the panel's cells show,
                 as the caller can see it. Never stored in a cell; an open page compares it as it does `rev`.
+            confirm:
+              type: object
+              description: |
+                Output only, on `GET /panels/{id}`. The server's take confirm settings, for a panel page
+                whose socket hello is late or never comes. `lockoutMs` is the time before the confirm key works; `enter` lets Enter confirm.
+              properties:
+                lockoutMs: { type: integer }
+                enter: { type: boolean }
             canEdit: { type: boolean, description: False when the caller is allowed only to use the panel }
             hasKey: { type: boolean, description: "For an editor of an API panel: the client holds a key now. A pending setup link is not a key. The secret itself is never returned." }
             clientNetworks:

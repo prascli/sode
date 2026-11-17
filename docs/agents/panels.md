@@ -83,14 +83,14 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### The view
 
-- `gridpanelview.js` draws only what shows, on both axes, and moves nodes from item to item as the grid scrolls. The window maths is in `gridpanelwindow.js`. Its indices are display order, never router numbers. A node holds no state of its own. Paint picks, gone items, Find matches, the cursor and marks from the `view` that `paintGridPanel` gets, in `paintXp` (crosspoints) or `paintSrc` and `paintDst` (names). Both a move and a paint call those.
+- `gridpanelview.js` draws only what shows, on both axes, and moves nodes from item to item as the grid scrolls. The window maths is in `gridpanelwindow.js`. Its indices are display order, never router numbers. A node holds no state of its own. Paint picks, gone items, Find matches, the cursor and marks from the `view` that `g.paint` gets, in `paintXp` (crosspoints) or `paintSrc` and `paintDst` (names). Both a move and a paint call those.
 - A name node keeps one Text child that `setText` changes, and a destination name is `[Text, prot, other, art]`. Do not use `textContent =` or append children on a scroll, or the no-rebuild MutationObserver check sees a childList change. Keep the art row last.
 - Spare nodes stay in the DOM with `hidden`, and keep their old `data-picked` and `data-s`. A check that counts nodes counts them, and a "none left" selector needs `:not([hidden])`.
 - The layers share one CSS grid cell. The body scrolls. The top and side bands are sticky and hold the names and pinned crosspoints. The corner holds what is pinned on both axes, and `g.head` in the corner holds the search boxes. A pointer move over `g.head` does not move the cursor.
 - CSS places nodes with `--sode-i` and `--sode-j`. Sizes are `--sode-xp`, `--sode-name-w` and `--sode-name-h` in rem, and the view measures them in px on each resize. `--sode-patch-field` is the field colour token. `scrollbar-width: auto` on `.sode-gridpanel__scroll` lets the `::-webkit-scrollbar` rules apply. There is no `border-radius` (rules.test), so the pie is round through `clip-path`.
 - Look sizes come from the prototype at the 125% root (72 px crosspoints, a 208 by 112 px corner). A staged crosspoint carries `data-s="staged"`. Each one runs `sode-panel-pulse` itself, because a Grid panel turns the grid's animation off (Gotchas below).
 - The cursor (`gridpanelcursor.js`) holds display indices, with -1 on a bar. Its node `.sode-gridpanel__cursor` is a child of the field, not of the overlay. So on a bar or a pinned item it can draw above the sticky bands. `data-band` lifts it. The view moves it by transform. `TestChromeGridPanelCursor` checks that a pointer move changes nothing else on the page.
-- `g.hit`, `g.reveal`, `g.node`, `g.onDraw`, `g.cellAt`, `g.page` and `g.revealCell` are the view's seams for keys, jumps and Find. A pointer move calls `onPoint`, and a key clears the run's `ptr`, so a scroll re-places the cursor only after a pointer move.
+- `g.hit`, `g.reveal`, `g.node`, `g.onDraw`, `g.cellAt` and `g.page` are the view's seams for keys, jumps and Find. A pointer move calls `onPoint`, and a key clears the run's `ptr`, so a scroll re-places the cursor only after a pointer move.
 
 ### Staging, confirm and Undo
 
@@ -130,7 +130,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Browser checks
 
-- Names: `TestChromeGridPanel` plus `Take`, `Diagonal`, `SharingModes`, `Protected`, `Levels` (`gridpanel_browser_test.go`), `Scale`, `Cursor`, `Keys`, `Find`, `Undo`, `Line`, `Phone`, `LiveUpdate`, `Art`, `Editor` and `EditorChunk`. Each is in its own `gridpanel<area>_browser_test.go`, except the first five. CI selects them with `^TestChromeGridPanel`. The `grid` job in ci.yml runs them on PRs into `integration/grid-panels` and on pushes to it, and `ci-ok` needs it. That job does not run the Buttons panel checks, so run `^TestChrome(GridPanel|Panel|Editor)` before a push.
+- Names: `TestChromeGridPanel` plus `Take`, `Diagonal`, `SharingModes`, `Protected`, `Levels` (`gridpanel_browser_test.go`), `Scale`, `Cursor`, `Keys`, `Find`, `Undo`, `Line`, `Phone`, `LiveUpdate`, `Art`, `ConfirmSettings`, `Editor` and `EditorChunk`. Each is in its own `gridpanel<area>_browser_test.go`, except the first five. CI selects them with `^TestChromeGridPanel`. The `grid` job in ci.yml runs them on PRs into `integration/grid-panels` and on pushes to it, and `ci-ok` needs it. That job does not run the Buttons panel checks, so run `^TestChrome(GridPanel|Panel|Editor)` before a push.
 - Helpers:
   - `gridXp(src, dst)` is a JS selector. `gridShow` scrolls a far crosspoint near the top left, on an `all` edge with no pins.
   - `gridConfirm` waits out the lockout and types the letter.

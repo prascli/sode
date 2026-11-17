@@ -1,4 +1,4 @@
-// The words in a Grid panel's header, as in the prototype's shared-panel header. Pure; gridpanelheadview.js draws them.
+// The words in a Grid panel's header. Pure; gridpanelheadview.js draws them.
 
 // link is GET /status's answer, or null for a key without the status scope.
 export function routerStat(link) {

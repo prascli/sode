@@ -12,11 +12,11 @@ import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, lef
 import { gridKeyAction, findBoxAction } from './gridpanelkeys.js';
 import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
 import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
-import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind } from './gridpanelfind.js';
+import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind, stepBox } from './gridpanelfind.js';
 import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
-import { buildGridPanel, paintGridPanel, previewGridPanel, pulseDelay } from './gridpanelview.js';
+import { buildGridPanel, pulseDelay } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
 import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
@@ -33,6 +33,8 @@ const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
 // Like the moves, these work in an embedded run only with focus in the grid.
 const FIND_KEYS = new Set(['findSrcs', 'findDsts', 'nextMatch', 'prevMatch']);
+const sameList = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
+const sameAxes = (a, b) => sameList(a.srcs, b.srcs) && sameList(a.dsts, b.dsts);
 
 const say = (n, text) => {
   if (n.textContent !== text) n.textContent = text;
@@ -54,7 +56,12 @@ export function gridBody(ctx, first) {
   let env = envFrom({}, {});
   let names = namesFrom({});
   let namesReply = {};
-  let axesKey = '';
+  let drawn = null; // the { full, axes } the view was last given; null makes the next rebuild redraw
+  // The last tally and protected replies, and names reply, as text. A 304 replays the same text, so a poll that
+  // changed nothing does no work and the tick paints only the status line.
+  let dataSig = '';
+  let namesSig = '';
+  let dirty = true;
   // Picks and other sources use full (gridAxes). The grid shows axes: full less what a Filter hides.
   let axes = { srcs: [], dsts: [] };
   let full = { srcs: [], dsts: [] };
@@ -76,14 +83,14 @@ export function gridBody(ctx, first) {
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
   count.hidden = true;
-  // The panel page's header has the prototype's boxes (gridpanelheadview.js); the editor's live test keeps its own.
+  // The panel page's header has its own boxes (gridpanelheadview.js); the editor's live test keeps its own.
   const head = ctx.embedded || !ui.name ? null : gridHead(ui, count);
   if (!head) ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let link = null; // GET /status's answer, null without the status scope
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
+  const noteOf = (text, ok = false) => ({ text, at: Date.now(), ok });
   const phone = () => document.documentElement.dataset.layout === 'phone';
-  // The Take button (gridpanelphone.js) at the end of the Levels box, as in the prototype; Kiosk mode hides the
-  // header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
+  // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
   const takeCount = el('span', 'sode-gridpanel__take-n');
   const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--commit sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
   if (take) {
@@ -115,7 +122,7 @@ export function gridBody(ctx, first) {
       defaultsFor = panel.artDefaults;
       defaults = defaultsBy(defaultsFor);
     }
-    const art = nameArt(kind === 'source' ? panel.sources : panel.destinations, kind, n, defaults);
+    const art = kind === 'srcs' ? nameArt(panel.sources, 'source', n, defaults) : nameArt(panel.destinations, 'destination', n, defaults);
     if (!art) return null;
     const out = { b: art.b };
     if (art.a?.icon) out.icon = art.a.icon;
@@ -141,7 +148,7 @@ export function gridBody(ctx, first) {
     staged,
     picked: (kind, n) => picks[kind].includes(n),
     // Filter shows only matches, so only Find marks them.
-    found: (kind, n) => find[kind].mode === 'find' && matches[kind].includes(n),
+    found: (kind, n) => find.mode === 'find' && matches[kind].includes(n),
     leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
     protected: (d) => env.protectedDsts.has(d),
     art: (kind, n) => nameArtOf(kind, n),
@@ -169,18 +176,19 @@ export function gridBody(ctx, first) {
     if (line) {
       const { kept, r } = lineDry();
       g.line(lineShown(picks, line.a, line.b, axes));
-      return previewGridPanel(g, kept, r.over, r.skipped);
+      return g.preview(kept, r.over, r.skipped);
     }
     g.line(null);
     const from = at || (phone() && restPoint(picks, axes, cur));
     const pairs = from && pickCount(picks) ? pairsAt(from) : [];
-    previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
+    g.preview(pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
   };
 
   const render = () => {
+    dirty = false;
     out = leftOut(st, world());
     if (g) {
-      paintGridPanel(g, view);
+      g.paint(view);
       preview();
     }
     const n = stagedCount(st);
@@ -194,6 +202,10 @@ export function gridBody(ctx, first) {
       say(takeCount, t.count);
     }
     boxes?.paint(find, countsOf());
+    status();
+  };
+  // Results and errors fade on the clock, so the status line and the header boxes are what the tick paints each time.
+  const status = () => {
     head?.paint({
       link,
       mode: st.mode,
@@ -208,14 +220,15 @@ export function gridBody(ctx, first) {
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
+  // From the run after each poll and every second.
+  const tick = () => (dirty ? render() : status());
 
   // The view moves its nodes to the new items only when the shown sources or destinations change.
   const rebuild = () => {
     const next = arrange(panel, namesReply, { find, picks, cur, axes });
     matches = next.matches;
-    const key = JSON.stringify([next.full, next.axes]);
-    if (key === axesKey) return;
-    axesKey = key;
+    if (drawn && sameAxes(drawn.full, next.full) && sameAxes(drawn.axes, next.axes)) return;
+    drawn = { full: next.full, axes: next.axes };
     ({ cur, axes, full, picks } = next);
     // A line is in display order, so new axes end it.
     if (line) {
@@ -246,7 +259,7 @@ export function gridBody(ctx, first) {
     if (k < 0 || !g) return;
     ptr = null;
     setCursor(kind === 'srcs' ? { i: cur.i, j: k } : { i: k, j: cur.j });
-    g.revealCell(cur);
+    g.reveal(cur);
   }
 
   function findText(kind, text) {
@@ -256,14 +269,14 @@ export function gridBody(ctx, first) {
     render();
   }
 
-  function findMode(kind) {
-    find = switchMode(find, kind);
+  function findMode() {
+    find = switchMode(find);
     rebuild();
     render();
   }
 
   function findStep(kind, dir) {
-    if (!find[kind].text.trim()) return;
+    if (!kind || !find[kind].text.trim()) return;
     find = stepMatch(find, kind, matches[kind], dir);
     toMatch(kind);
     render();
@@ -299,8 +312,8 @@ export function gridBody(ctx, first) {
       const bad = (reply?.results || []).filter((r) => !r.ok);
       const n = (reply?.results || routes).length;
       note = bad.length
-        ? { text: `${undo ? 'Undo' : 'Take'} failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`, at: Date.now(), ok: false }
-        : { text: `${undo ? 'Undone' : 'Taken'}: ${n === 1 ? '1 route' : `${n} routes`}`, at: Date.now(), ok: true };
+        ? noteOf(`${undo ? 'Undo' : 'Take'} failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`)
+        : noteOf(`${undo ? 'Undone' : 'Taken'}: ${n === 1 ? '1 route' : `${n} routes`}`, true);
     } catch (e) {
       failed =
         e.status === undefined
@@ -328,7 +341,7 @@ export function gridBody(ctx, first) {
     }
     if (ask !== undoAsk || stopped || st.busy || confirm.isOpen()) return;
     if (failed) {
-      note = { text: failed.status === undefined ? 'Sode did not answer' : failed.message || 'Undo is refused', at: Date.now(), ok: false };
+      note = noteOf(failed.status === undefined ? 'Sode did not answer' : failed.message || 'Undo is refused');
       return render();
     }
     const staged = st.undoId === null ? stagedCount(st) : 0;
@@ -383,6 +396,7 @@ export function gridBody(ctx, first) {
   const confirm = document.getElementById('confirm')
     ? gridConfirm({
         tally: () => tally,
+        settings: () => panel.confirm,
         onTake: (plan) => (plan.replace ? takeUndo(plan.next) : send(plan)),
         onClose: () => {
           st = cancelConfirm(st);
@@ -403,7 +417,7 @@ export function gridBody(ctx, first) {
     st = keepLive(st, world());
     const routes = confirmRoutes(st);
     if (routes) confirm.open({ ...planOf(routes, names), routes, warnings: was.map((r) => leftOutLine(r, names)) });
-    else if (was.length) note = { text: leftOutText(was, names), at: Date.now(), ok: false };
+    else if (was.length) note = noteOf(leftOutText(was, names));
     render();
   }
 
@@ -460,7 +474,7 @@ export function gridBody(ctx, first) {
     st = r.st;
     if (r.skipped.length && !st.error) {
       const n = r.skipped.length;
-      note = { text: `Skipped ${n === 1 ? '1 protected destination' : `${n} protected destinations`}`, at: Date.now(), ok: false };
+      note = noteOf(`Skipped ${n === 1 ? '1 protected destination' : `${n} protected destinations`}`);
     }
     if (r.send) send({ routes: r.send });
     else render();
@@ -507,13 +521,13 @@ export function gridBody(ctx, first) {
     if (r.c) {
       ptr = null;
       setCursor(r.c);
-      g.revealCell(r.c);
+      g.reveal(r.c);
     } else {
-      note = { text: jumpText(r, names, tally?.levels || []), at: Date.now(), ok: false };
+      note = noteOf(jumpText(r, names, tally?.levels || []));
       render();
     }
   }
-  const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels());
+  const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels(), full.srcs);
 
   // Right-clicks on one source step on from the last one. The pointer on the name moves the cursor off that row.
   let lastStep = null; // { src, dst } of the last right-click step
@@ -533,7 +547,7 @@ export function gridBody(ctx, first) {
     if (line?.keys) next = { i: Math.max(0, next.i), j: Math.max(0, next.j) };
     setCursor(next);
     if (move === 'corner') g.scroll.scrollTo(0, 0);
-    else g.revealCell(cur);
+    else g.reveal(cur);
     if (line?.keys) lineMove(centre(cur));
   }
 
@@ -547,7 +561,7 @@ export function gridBody(ctx, first) {
       const from = name(cur);
       ptr = null;
       setCursor(rangeCursor(cur, act.slice('range:'.length), dims()));
-      g.revealCell(cur);
+      g.reveal(cur);
       picks = extendPick(picks, kind, from, name(cur), axes[kind]);
     }
     render();
@@ -590,7 +604,7 @@ export function gridBody(ctx, first) {
       e.stopPropagation();
       return findBox(box, boxAct);
     }
-    const finding = !!find[find.last].text.trim();
+    const finding = stepBox(find) !== null;
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding, line: !!line });
     // A phone has no key list.
     if (!act || (act === 'keys' && (!keyList || phone()))) return;
@@ -641,8 +655,8 @@ export function gridBody(ctx, first) {
       const i = boxes?.input(act === 'findSrcs' ? 'srcs' : 'dsts');
       i?.focus();
       i?.select();
-    } else if (act === 'nextMatch') findStep(find.last, 1);
-    else if (act === 'prevMatch') findStep(find.last, -1);
+    } else if (act === 'nextMatch') findStep(stepBox(find), 1);
+    else if (act === 'prevMatch') findStep(stepBox(find), -1);
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);
@@ -650,17 +664,25 @@ export function gridBody(ctx, first) {
   const offLayout = onLayout(render);
 
   return {
-    render,
+    render: tick,
     data({ tally: t, prot, nm, link: l }) {
+      const sig = JSON.stringify([t, prot, l ?? null]);
+      const nmSig = nm ? JSON.stringify(nm) : namesSig;
+      if (sig === dataSig && nmSig === namesSig) return;
+      dirty = true;
+      dataSig = sig;
       tally = t;
       link = l ?? null;
       env = envFrom(t, prot, {}, panel.rights);
-      if (nm) {
+      const renamed = nmSig !== namesSig;
+      if (renamed) {
+        namesSig = nmSig;
         namesReply = nm;
         names = namesFrom(nm);
       }
       syncBox();
-      rebuild();
+      // The axes come from the panel and the names, not the tally.
+      if (renamed) rebuild();
     },
     pending: () => ({ staged: st.staged.length > 0, busy: st.busy }),
     apply(p) {
@@ -668,16 +690,20 @@ export function gridBody(ctx, first) {
       if (confirm?.isOpen()) confirm.close();
       panel = p;
       st = restage(st, p);
-      axesKey = '';
+      drawn = null;
+      // env reads the panel's Rights, so the next poll makes it again.
+      dataSig = '';
       syncBox();
       rebuild();
       render();
     },
     renamed: render,
     // From each panel read (panelrun.js), so staged routes that leave the Rights are left out at once.
-    rights(r) {
+    read({ rights: r, confirm: c }) {
+      if (c) panel = { ...panel, confirm: c };
       if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
       panel = { ...panel, rights: r };
+      dataSig = '';
       syncBox();
       rebuild();
       render();

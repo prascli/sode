@@ -1,4 +1,4 @@
-// A Grid panel's header parts, as in the prototype. The title is over a line that says whose panel it is. The Router,
+// A Grid panel's header parts. The title is over a line that says whose panel it is. The Router,
 // Mode and Signed in boxes come after it. The run (gridpanelrun.js) makes them on the panel page only and its stop takes
 // them out. The words come from gridpanelhead.js.
 import { el, icon, on } from './core.js';

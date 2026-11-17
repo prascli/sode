@@ -109,6 +109,22 @@ func TestChromeGridPanelScale(t *testing.T) {
 	})()`)
 	b.shot("scale-corner")
 
+	// Idle: the polls get 304 and the tick runs each second, but nothing changed, so nothing in the grid is written.
+	b.call("Performance.enable", nil)
+	i0 := b.metrics()
+	idle := b.eval(`new Promise((done) => {
+		const grid = document.getElementById('panel-grid');
+		let n = 0;
+		const mo = new MutationObserver((recs) => { n += recs.length; });
+		mo.observe(grid, { subtree: true, childList: true, attributes: true, characterData: true });
+		setTimeout(() => { n += mo.takeRecords().length; mo.disconnect(); done(n); }, 5000);
+	})`)
+	i1 := b.metrics()
+	t.Logf("5 s idle: tasks %.0f ms", (i1["TaskDuration"]-i0["TaskDuration"])*1000)
+	if idle != 0.0 {
+		t.Errorf("5 s idle wrote the grid %v times, want none", idle)
+	}
+
 	// A press far from the start still stages.
 	b.eval(gridXp(2499, 749) + `.click()`)
 	b.waitFor("the press stages", gridXp(2499, 749)+`.dataset.s === 'staged'`)
@@ -125,7 +141,6 @@ func TestChromeGridPanelScale(t *testing.T) {
 		const t = document.getAnimations().filter((a) => a.effect?.target?.dataset?.s === 'staged').map((a) => (a.currentTime - a.effect.getTiming().delay) % 2000);
 		return Math.max(...t) - Math.min(...t) < 100;
 	})()`)
-	b.call("Performance.enable", nil)
 	m0 := b.metrics()
 	time.Sleep(3 * time.Second)
 	m1 := b.metrics()

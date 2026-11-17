@@ -96,12 +96,25 @@ func apiJSON(w http.ResponseWriter, v any) {
 // apiJSONTagged is apiJSON for a read a page repeats. The ETag hashes the body the caller would get, so a Rights or Default artwork
 // change moves it. A match answers 304 with no body.
 func apiJSONTagged(w http.ResponseWriter, r *http.Request, v any) {
+	apiJSONTaggedBy(w, r, v, nil)
+}
+
+// apiJSONTaggedBy tags v by the JSON of tagOf, when tagOf is not nil. tagOf leaves out a field that moves
+// with time alone, so an unchanged read still gets 304.
+func apiJSONTaggedBy(w http.ResponseWriter, r *http.Request, v, tagOf any) {
 	body, err := json.Marshal(v)
 	if err != nil {
 		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
 		return
 	}
-	sum := sha256.Sum256(body)
+	tagged := body
+	if tagOf != nil {
+		if tagged, err = json.Marshal(tagOf); err != nil {
+			apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+			return
+		}
+	}
+	sum := sha256.Sum256(tagged)
 	tag := `"` + hex.EncodeToString(sum[:16]) + `"`
 	w.Header().Set("ETag", tag)
 	w.Header().Set("Cache-Control", "no-store")

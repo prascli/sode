@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 
 	"github.com/sethdotfm/sode/internal/config"
 )
@@ -74,5 +75,48 @@ func TestPanelReadETagMovesWithRightsAndDefaultArtwork(t *testing.T) {
 	code, rights := ifNone(a, path, bot, art)
 	if code != 200 || rights == art {
 		t.Fatalf("after Rights change: %d, ETag %q was %q", code, rights, art)
+	}
+}
+
+// An editor's read lists the instances with their uptime, which is measured to now. Only a change in what the
+// page shows moves the tag: time alone does not, a lost instance does.
+func TestPanelReadAnswers304ToAnEditorWhileTimePasses(t *testing.T) {
+	a, clk := monApp(t)
+	ana := userKey(t, a, "Ana")
+	id := makePanel(t, a, ana, etagPanel)
+	if code := keepalive(a, id, ana, "Desk"); code != 200 {
+		t.Fatalf("keepalive: %d", code)
+	}
+	done, _ := a.mon.openKeyless(id, "192.0.2.7", "Lobby", false, func() {})
+	defer done()
+	path := "/api/v1/panels/" + id
+	_, tag := ifNone(a, path, ana, "")
+	clk.advance(5 * time.Second)
+	if code, again := ifNone(a, path, ana, tag); code != 304 || again != tag {
+		t.Fatalf("5 s later: %d, ETag %q was %q", code, again, tag)
+	}
+	clk.advance(10 * time.Second)
+	keepalive(a, id, ana, "Desk")
+	if code, _ := ifNone(a, path, ana, tag); code != 304 {
+		t.Fatalf("after a keepalive: %d, want 304", code)
+	}
+	clk.advance(2 * time.Minute)
+	if code, _ := ifNone(a, path, ana, tag); code != 200 {
+		t.Fatalf("after the instance went offline: %d, want 200", code)
+	}
+}
+
+// A panel page opened by a key or as Public has no socket hello, so the read carries the take confirm's settings.
+func TestPanelReadCarriesTheConfirmSettings(t *testing.T) {
+	a := etagApp(t)
+	id := makePanel(t, a, userKey(t, a, "Ana"), etagPanel)
+	cfg := a.r().cfg
+	cfg.ConfirmLockoutMs, cfg.ConfirmEnter = 1500, true
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := readPanel(t, a, botKey(t, a), id)["confirm"].(map[string]any)
+	if got["lockoutMs"] != 1500.0 || got["enter"] != true {
+		t.Fatalf("confirm %v, want lockoutMs 1500 and enter true", got)
 	}
 }
