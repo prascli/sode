@@ -148,7 +148,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Panels page
 
-- The panels page draws a Grid panel from `gridThumb` (`panelsrules.js`), and the words are `gridSize`. The squares per edge grow with the log of the item count. An "all" edge reads "all" and counts as `GRID_ALL_ITEMS`, since the page reads no names.
+- The panels page draws a Grid panel from `gridThumb` (`panelsrules.js`), and the words are `gridSize`. The picture has three fixed sizes, `small`, `medium` and `large` (`GRID_SQUARES`), chosen from the larger edge by `GRID_MEDIUM_FROM` (13) and `GRID_LARGE_FROM` (65). The count shows as text on the picture (`sode-ov__count`): sources by destinations for a Grid panel, columns by rows for a Buttons panel. An "all" edge reads "all" and counts as `GRID_ALL_ITEMS`, so it is Large, since the page reads no names.
 
 ## Undo cell
 

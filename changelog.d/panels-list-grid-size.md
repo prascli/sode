@@ -1,1 +1,2 @@
-- On the panels list, a Grid panel's picture now shows its size. The squares across and down grow with the number of sources and destinations, so a big Grid panel looks big. An "all" edge shows as full size.
+- On the panels list, a Grid panel's picture has one of three fixed sizes: Small, Medium or Large. It shows its count as text, such as "40 × 12" (sources by destinations). A Buttons panel shows its columns by rows. An "all" edge makes the picture Large.
+- In the panel editor, the Panels button in the header is now the Sode Panels logo, left of the title.

@@ -276,21 +276,26 @@ test('each Authentication mode switch says what it does to keys, and only those 
 });
 
 test('a Grid panel on the list says how many sources and destinations it holds, or all', async () => {
-  const { gridSize, gridThumb, GRID_EDGE_MAX } = await import('../panelsrules.js');
+  const { gridSize, gridThumb, GRID_MEDIUM_FROM, GRID_LARGE_FROM, GRID_SQUARES } = await import('../panelsrules.js');
   assert.equal(gridSize({ type: 'grid', sources: { members: [1, 2, 3] }, destinations: { members: [4] } }), 'Grid, 3 sources by 1 destination');
   assert.equal(gridSize({ type: 'grid', sources: { members: 'all', hide: [2] } }), 'Grid, all sources by all destinations');
-  // The picture: a Source bar across the top, a Destination bar down the side and a diagonal of routes. Its size follows the counts.
+  // The picture: a Source bar across the top, a Destination bar down the side and a diagonal of routes, in one of three sizes.
   const edge = (n) => ({ members: Array.from({ length: n }, (_, i) => i + 1) });
-  const small = gridThumb({ sources: edge(3), destinations: edge(2) });
-  assert.equal(small.cols, 4);
-  assert.equal(small.rows, 3);
-  assert.equal(small.cells.filter((c) => c.kind === 'source').length, small.cols - 1);
-  assert.equal(small.cells.filter((c) => c.kind === 'destination').length, small.rows - 1);
-  const big = gridThumb({ sources: edge(200), destinations: edge(8) });
-  assert.ok(big.cols > small.cols && big.cols > big.rows);
-  assert.ok(gridThumb({ sources: edge(8), destinations: edge(200) }).rows > big.rows);
-  assert.ok(gridThumb({ sources: edge(100000), destinations: edge(100000) }).cols <= GRID_EDGE_MAX + 1);
-  const all = gridThumb({ sources: { members: 'all' }, destinations: { members: 'all' } });
-  assert.equal(all.cols, GRID_EDGE_MAX + 1);
-  for (const t of [small, big, all]) assert.ok(t.cells.filter((c) => c.kind === 'on').every((c) => c.c >= 2 && c.c <= t.cols && c.r >= 2 && c.r <= t.rows));
+  const t = (s, d) => gridThumb({ sources: edge(s), destinations: edge(d) });
+  assert.equal(t(3, 2).size, 'small');
+  assert.equal(t(GRID_MEDIUM_FROM - 1, 1).size, 'small');
+  assert.equal(t(1, GRID_MEDIUM_FROM).size, 'medium');
+  assert.equal(t(GRID_LARGE_FROM - 1, 2).size, 'medium');
+  assert.equal(t(2, GRID_LARGE_FROM).size, 'large');
+  assert.equal(t(40, 12).label, '40 \u00d7 12');
+  const all = gridThumb({ sources: { members: 'all' }, destinations: edge(4) });
+  assert.equal(all.size, 'large');
+  assert.equal(all.label, 'all \u00d7 4');
+  for (const k of ['small', 'medium', 'large']) {
+    const g = k === 'small' ? t(3, 2) : k === 'medium' ? t(20, 20) : t(200, 8);
+    assert.equal(g.cols, GRID_SQUARES[k] + 1);
+    assert.equal(g.cells.filter((c) => c.kind === 'source').length, g.cols - 1);
+    assert.equal(g.cells.filter((c) => c.kind === 'destination').length, g.rows - 1);
+    assert.ok(g.cells.filter((c) => c.kind === 'on').every((c) => c.c >= 2 && c.c <= g.cols && c.r >= 2 && c.r <= g.rows));
+  }
 });
