@@ -92,6 +92,51 @@
   </div>
 </div>
 
+<!-- A Grid panel's key list (? and Ctrl+?); the ids and markup are shortcuts.js's, as in index.html. -->
+<div class="pb-modal-backdrop sode__scrim" id="keys" hidden>
+  <div class="pb-modal" role="dialog" aria-modal="true" aria-labelledby="keys-title" tabindex="-1" id="keys-dialog">
+    <div class="pb-modal__header"><span class="pb-modal__title" id="keys-title">Keyboard shortcuts</span></div>
+    <div class="pb-modal__body sode__keys">
+      <div class="sode__label">Cursor</div>
+      <dl>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> <kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></dt><dd>Move the cursor</dd>
+        <dt><kbd>PgUp</kbd> <kbd>PgDn</kbd> <kbd data-mac="⌥↑ ↓ ← →">Alt+↑ ↓ ← →</kbd></dt><dd>Move the cursor as far as the grid shows</dd>
+        <dt><kbd>Home</kbd></dt><dd>The corner</dd>
+        <dt><kbd>End</kbd></dt><dd>The last destination</dd>
+        <dt><kbd data-mac="⌘Home">Ctrl+Home</kbd> <kbd data-mac="⌘End">Ctrl+End</kbd></dt><dd>The first or last source</dd>
+      </dl>
+      <div class="sode__label">Source bar and Destination bar</div>
+      <dl>
+        <dt><kbd>Space</kbd></dt><dd>Pick the name; a second Space removes the pick</dd>
+        <dt><kbd>x</kbd></dt><dd>Add the name to the picks, or remove it</dd>
+        <dt><kbd>⇧</kbd>+move</dt><dd>Pick a range along the bar</dd>
+      </dl>
+      <div class="sode__label">Crosspoints</div>
+      <dl>
+        <dt><kbd>Space</kbd></dt><dd>Stage the route, or the Diagonal when names are picked</dd>
+        <dt><kbd>Enter</kbd></dt><dd>Take the staged routes (opens the confirm)</dd>
+        <dt><kbd>f</kbd></dt><dd>Levels box</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Remove the picks, then the staged routes</dd>
+      </dl>
+      <div class="sode__label">Find</div>
+      <dl>
+        <dt><kbd>s</kbd> <kbd>d</kbd></dt><dd>Source bar or Destination bar search box</dd>
+        <dt><kbd>Enter</kbd> <kbd>⇧Enter</kbd>, <kbd>n</kbd> <kbd>N</kbd> on the grid</dt><dd>Next or previous match</dd>
+        <dt><kbd data-mac="⌃/">Ctrl+/</kbd></dt><dd>Change between Find and Filter</dd>
+        <dt><kbd>Tab</kbd></dt><dd>The other search box</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Clear the box and go back to the cursor</dd>
+      </dl>
+      <div class="sode__label">Anywhere</div>
+      <dl>
+        <dt><kbd>?</kbd> <kbd data-mac="⌃?">Ctrl+?</kbd></dt><dd>This list</dd>
+      </dl>
+    </div>
+    <div class="pb-modal__footer">
+      <button type="button" class="pb-btn pb-btn--outline" id="keys-close">Close</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="panelpage.js"></script>
 </body>
 </html>

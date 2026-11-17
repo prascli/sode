@@ -50,3 +50,9 @@ export function diagonal(p, xp, { srcs, dsts, shownDsts = dsts }) {
   if (pSrcs.length < 2) return targets.map((dst) => ({ src: xp.src, dst }));
   return targets.map((dst, i) => ({ src: pSrcs[i % pSrcs.length], dst }));
 }
+
+// A Shift move on a bar. With no anchor shown, the range starts at from, the name the cursor left.
+export function extendPick(p, kind, from, to, shown) {
+  const q = shown.includes(p.anchor[kind]) ? p : { ...p, anchor: { ...p.anchor, [kind]: from } };
+  return pickName(q, kind, to, { range: true }, shown);
+}
