@@ -1,4 +1,4 @@
-// Picks on a Grid panel's Source bar and Destination bar, and the Diagonal they make (spec #432). Pure.
+// Picks on a Grid panel's Source bar and Destination bar, and the Diagonal they make. Pure.
 // Picks are router numbers; anchor is the last plain or Cmd click on each bar, where a Shift-click range starts.
 // Every order here is display order (gridAxes), never router order.
 

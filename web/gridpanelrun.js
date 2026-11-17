@@ -78,8 +78,7 @@ export function gridBody(ctx, first) {
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
   const phone = () => document.documentElement.dataset.layout === 'phone';
-  // The Take button (gridpanelphone.js) at the end of the Levels box, as in the prototype; Kiosk mode hides the
-  // header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
+  // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
   const takeCount = el('span', 'sode-gridpanel__take-n');
   const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--commit sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
   if (take) {
