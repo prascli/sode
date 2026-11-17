@@ -287,15 +287,28 @@ test('a Grid panel on the list says how many sources and destinations it holds, 
   assert.equal(t(1, GRID_MEDIUM_FROM).size, 'medium');
   assert.equal(t(GRID_LARGE_FROM - 1, 2).size, 'medium');
   assert.equal(t(2, GRID_LARGE_FROM).size, 'large');
-  assert.equal(t(40, 12).label, '40 \u00d7 12');
+  assert.deepEqual(
+    t(40, 12).tiles.map((x) => x.label),
+    ['40', '12'],
+  );
   const all = gridThumb({ sources: { members: 'all' }, destinations: edge(4) });
   assert.equal(all.size, 'large');
-  assert.equal(all.label, 'all \u00d7 4');
+  assert.deepEqual(
+    all.tiles.map((x) => x.label),
+    ['all', '4'],
+  );
   for (const k of ['small', 'medium', 'large']) {
     const g = k === 'small' ? t(3, 2) : k === 'medium' ? t(20, 20) : t(200, 8);
     assert.equal(g.cols, GRID_SQUARES[k] + 1);
     assert.equal(g.cells.filter((c) => c.kind === 'source').length, g.cols - 1);
     assert.equal(g.cells.filter((c) => c.kind === 'destination').length, g.rows - 1);
+    // Each count is one tile, centred in its bar: the same squares free before and after it.
+    const [src, dst] = g.tiles;
+    assert.equal(src.r, 1);
+    assert.equal(dst.c, 1);
+    assert.ok(src.cs >= 3 && dst.rs === src.cs);
+    assert.equal(src.c - 2, g.cols - (src.c + src.cs - 1));
+    assert.equal(dst.r - 2, g.rows - (dst.r + dst.rs - 1));
     assert.ok(g.cells.filter((c) => c.kind === 'on').every((c) => c.c >= 2 && c.c <= g.cols && c.r >= 2 && c.r <= g.rows));
   }
 });

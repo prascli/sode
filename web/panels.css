@@ -1801,6 +1801,25 @@ body {
 .sode-ed__pick {
   padding-inline-start: var(--pb-space-3);
 }
+/* A count tile sits in a bar's squares. Digits stand upright and stack in the Destination bar, so they read without a tilt. */
+.sode-ov__thumb--grid .sode-ov__tile {
+  align-items: center;
+  color: var(--pb-text-strong);
+  display: flex;
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-sm);
+  font-style: normal;
+  justify-content: center;
+  line-height: 1;
+  overflow: hidden;
+}
+.sode-ov__thumb--grid .sode-ov__tile--destination {
+  text-orientation: upright;
+  writing-mode: vertical-rl;
+}
+.sode-ov__thumb--sm.sode-ov__thumb--grid .sode-ov__tile {
+  font-size: var(--pb-text-xs);
+}
 /* A Grid panel's picture (panelsrules.js gridThumb): the role colours of the grid's bars, a field and routes. */
 .sode-ov__thumb--grid .sode-ov__k-source {
   background: var(--pb-source);
