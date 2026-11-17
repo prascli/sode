@@ -1,7 +1,8 @@
-// A Grid panel's header parts: the title and instance name, then the main page's Server and Router status
-// (connview.js), Full screen and the Panels link. The Lock chip names the user, as on the main page. On the panel
-// page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run
-// (gridpanelrun.js) makes them on the panel page only, and its stop puts the page back.
+// A Grid panel's header parts, laid out as on the main page: the Lock chip, the title and the icon buttons (Settings,
+// Full screen, the Panels link) on the left, and the Server and Router status (connview.js) top right. Beside the
+// status is the status slot: the result line and the "This panel was changed" banner. On the panel page they share
+// one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run (gridpanelrun.js)
+// makes them on the panel page only, and its stop puts the page back.
 import { el, icon, on } from './core.js';
 import { connBox, paintConn } from './connview.js';
 import { layout, onLayout } from './layout.js';
@@ -23,11 +24,16 @@ export function gridHead(ui, count) {
   const screenCls = ['pb-btn--outline', 'pb-btn--sm'].filter((c) => ui.screen?.classList.contains(c));
   ui.screen?.classList.remove(...screenCls);
   ui.screen?.classList.add('pb-btn--ghost');
-  // The status and the header buttons in one group; the Panels link joins it (panelfull.js). Kiosk mode and Full
-  // width stay in it for their code, and gridpanel.css hides them.
+  // The main page's Settings button (index.html #settings-open), as a link: settings.js opens the view at #settings.
+  const settings = el('a', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__settings', icon('settings', false));
+  settings.href = './#settings';
+  settings.setAttribute('aria-label', 'Settings');
+  settings.dataset.pbTip = 'Settings';
+  // The header buttons in one group; the Panels link joins it (panelfull.js). Kiosk mode and Full width stay in it
+  // for their code, and gridpanel.css hides them.
   const btns = [ui.kiosk, ui.screen, ui.full].filter(Boolean);
   const after = btns.at(-1)?.nextSibling ?? null;
-  const tools = el('div', 'sode-gridpanel__tools', conn.root, ...btns);
+  const tools = el('div', 'sode-gridpanel__tools', settings, ...btns);
   ui.head.insertBefore(tools, after);
   if (ui.home && ui.head.contains(ui.home)) tools.append(ui.home);
   ui.tools = tools;
@@ -40,8 +46,13 @@ export function gridHead(ui, count) {
     return r;
   };
   const deck = el('div', 'sode-gridpanel__deck');
+  // The status slot is outside the header, since kiosk mode and the Title bar setting hide the header. Its height is
+  // fixed (gridpanel.css), so a line or the banner that shows or goes never moves the grid.
+  const slot = el('div', 'sode-gridpanel__slot');
+  const top = el('div', 'sode-gridpanel__headrow');
   ui.head.before(deck);
-  deck.append(ui.head, ...(box ? [box] : []), rule(1), finds, rule(2));
+  top.append(ui.head, slot, conn.root);
+  deck.append(top, ...(box ? [box] : []), rule(1), finds, rule(2));
   // The phone's band (gridpanel.css): More and the levels in words open the rest of the deck under it.
   const more = el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__more', icon('menu', false));
   more.type = 'button';
@@ -64,13 +75,13 @@ export function gridHead(ui, count) {
     if (lvText.data !== t) lvText.data = t;
   };
   box?.prepend(more, lv);
-  // On the desktop layout the status line has its own room in the deck (gridpanel.css), so a result or refusal never
-  // moves the grid. The phone keeps it where the page has it.
-  const statusHome = ui.status ? [ui.status.parentNode, ui.status.nextSibling] : null;
+  // The desktop layout moves the status line and the banner into the slot. The phone keeps them where the page has
+  // them.
+  const moved = [ui.status, ui.update].filter(Boolean).map((n) => [n, n.parentNode, n.nextSibling]);
+  // Back in reverse order, since the status line's next sibling is the banner.
   const placeStatus = (l) => {
-    if (!statusHome) return;
-    if (l !== 'phone') deck.append(ui.status);
-    else if (ui.status.parentNode === deck) statusHome[0].insertBefore(ui.status, statusHome[1]);
+    if (l !== 'phone') slot.append(...moved.map(([n]) => n));
+    else for (const [n, home, next] of [...moved].reverse()) if (n.parentNode === slot) home.insertBefore(n, next);
   };
   placeStatus(layout());
   const offLayout = onLayout(placeStatus);

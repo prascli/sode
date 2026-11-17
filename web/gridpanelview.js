@@ -238,9 +238,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const corner = layer('sode-gridpanel__corner');
   // Where the bars meet: the run puts the search boxes here (gridpanelfindbox.js).
   // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar. The
-  // Sources word is on its side at the corner's right edge, next to the Source bar, so it needs no arrow.
-  const label = (kind, word, ...arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), ...arrow);
-  const head = el('div', 'sode-gridpanel__head', label('src', 'Sources'), label('dst', 'Destinations', icon('arrow-down')));
+  // Sources word is on its side at the corner's right edge, next to the Source bar. Its label is turned 180 degrees
+  // (gridpanel.css), so arrow-left draws pointing right, along the Source bar.
+  const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), icon(arrow));
+  const head = el('div', 'sode-gridpanel__head', label('src', 'Sources', 'arrow-left'), label('dst', 'Destinations', 'arrow-down'));
   corner.append(head);
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
@@ -357,6 +358,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const paintSrc = (n, s) => {
     if (view) {
       setText(n, view.names.source(s));
+      setData(n, 'num', String(s + (view.names.off || 0)));
       pick(n, view.picked('srcs', s));
       setData(n, 'found', view.found('srcs', s) ? '' : undefined);
       paintArt(n.lastChild, view.art('srcs', s));
@@ -368,6 +370,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const paintDst = (n, d) => {
     if (view) {
       setText(n, view.names.destination(d));
+      setData(n, 'num', String(d + (view.names.off || 0)));
       pick(n, view.picked('dsts', d));
       setData(n, 'found', view.found('dsts', d) ? '' : undefined);
       paintDstMarks(n, d, view);

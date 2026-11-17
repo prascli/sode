@@ -1,0 +1,5 @@
+- The Grid page's header row is laid out as the main page: the title, then Settings, Full screen and the Panels link at the left, and the Server and Router status at the top right. Take results, refusals and the "This panel was changed" banner show beside the status, in a place of fixed height, so the grid never moves. The banner keeps its countdown bar.
+- The Grid page has Sode's Settings button.
+- The search mode switch says Find or Filter, the mode that is on, and the two search boxes are much shorter.
+- The Sources word in the corner has an arrow, as Destinations has.
+- Each source and destination name shows its router number before it, for example "12 CAM 1".
