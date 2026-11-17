@@ -139,6 +139,13 @@
 .sode__menu-all[hidden] {
   display: none;
 }
+/* Destination's hangs below the box, so below the destinations added with +, and the match list still hangs off the input. */
+.sode__box > .sode__menu-all {
+  left: 0;
+  position: absolute;
+  top: 100%;
+  z-index: var(--pb-z-dropdown, 10);
+}
 .sode__menu-all .pb-btn {
   color: var(--pb-text-muted);
   font-size: var(--pb-text-xs);

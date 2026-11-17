@@ -1,0 +1,1 @@
+- "Show all destinations" now shows below the destinations that you added with +. Before, those destinations covered it.
