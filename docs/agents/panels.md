@@ -147,7 +147,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Panels page
 
-- The panels page draws a Grid panel from `GRID_THUMB` and `gridThumbCells` (`panelsrules.js`), and the words are `gridSize`. An "all" edge reads "all", since the page reads no names.
+- The panels page draws a Grid panel from `gridThumb` (`panelsrules.js`), and the words are `gridSize`. The squares per edge grow with the log of the item count. An "all" edge reads "all" and counts as `GRID_ALL_ITEMS`, since the page reads no names.
 
 ## Undo cell
 

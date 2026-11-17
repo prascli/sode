@@ -276,12 +276,21 @@ test('each Authentication mode switch says what it does to keys, and only those 
 });
 
 test('a Grid panel on the list says how many sources and destinations it holds, or all', async () => {
-  const { gridSize, gridThumbCells, GRID_THUMB } = await import('../panelsrules.js');
+  const { gridSize, gridThumb, GRID_EDGE_MAX } = await import('../panelsrules.js');
   assert.equal(gridSize({ type: 'grid', sources: { members: [1, 2, 3] }, destinations: { members: [4] } }), 'Grid, 3 sources by 1 destination');
   assert.equal(gridSize({ type: 'grid', sources: { members: 'all', hide: [2] } }), 'Grid, all sources by all destinations');
-  // The picture: a Source bar across the top, a Destination bar down the side and a diagonal of routes.
-  const cells = gridThumbCells();
-  assert.equal(cells.filter((c) => c.kind === 'source').length, GRID_THUMB.cols - 1);
-  assert.equal(cells.filter((c) => c.kind === 'destination').length, GRID_THUMB.rows - 1);
-  assert.ok(cells.filter((c) => c.kind === 'on').every((c) => c.r - 1 === c.c - 1));
+  // The picture: a Source bar across the top, a Destination bar down the side and a diagonal of routes. Its size follows the counts.
+  const edge = (n) => ({ members: Array.from({ length: n }, (_, i) => i + 1) });
+  const small = gridThumb({ sources: edge(3), destinations: edge(2) });
+  assert.equal(small.cols, 4);
+  assert.equal(small.rows, 3);
+  assert.equal(small.cells.filter((c) => c.kind === 'source').length, small.cols - 1);
+  assert.equal(small.cells.filter((c) => c.kind === 'destination').length, small.rows - 1);
+  const big = gridThumb({ sources: edge(200), destinations: edge(8) });
+  assert.ok(big.cols > small.cols && big.cols > big.rows);
+  assert.ok(gridThumb({ sources: edge(8), destinations: edge(200) }).rows > big.rows);
+  assert.ok(gridThumb({ sources: edge(100000), destinations: edge(100000) }).cols <= GRID_EDGE_MAX + 1);
+  const all = gridThumb({ sources: { members: 'all' }, destinations: { members: 'all' } });
+  assert.equal(all.cols, GRID_EDGE_MAX + 1);
+  for (const t of [small, big, all]) assert.ok(t.cells.filter((c) => c.kind === 'on').every((c) => c.c >= 2 && c.c <= t.cols && c.r >= 2 && c.r <= t.rows));
 });

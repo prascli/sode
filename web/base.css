@@ -9,6 +9,9 @@ html {
 }
 :root {
   --sode-side-w: 0.3125rem;
+  --sode-bigscroll-w: 1.4rem;
+  /* The page's big scroll bar width while it shows, so fixed items at the right edge keep clear of it. */
+  --sode-page-bar: 0rem;
   --sode-motion-enter: 400ms;
   --sode-motion-found: 600ms;
   --sode-motion-reveal: 250ms;
@@ -52,7 +55,7 @@ html {
   gap: var(--pb-space-4);
   padding: var(--pb-space-2) var(--pb-space-3);
   position: fixed;
-  right: var(--pb-space-5);
+  right: calc(var(--pb-space-5) + var(--sode-page-bar));
   top: var(--pb-space-4);
   z-index: var(--pb-z-sticky);
 }
@@ -459,7 +462,7 @@ html {
   .sode__toc {
     border-bottom: 0;
     flex-direction: column;
-    left: calc(50% - 20rem - 12.5rem - var(--pb-space-8));
+    left: calc(50% - var(--sode-page-bar) / 2 - 20rem - 12.5rem - var(--pb-space-8));
     overflow-x: hidden;
     position: fixed;
     top: calc(10vh + var(--sode-down-h, 0px));
@@ -1197,4 +1200,66 @@ button.sode-up__bar:not(:disabled):hover,
 }
 .sode__keys dd {
   margin: 0;
+}
+
+/* Big scroll bars (bigscroll.js): drawn by Sode, oversized and always shown where a user needs to scroll.
+   The phone layout keeps the native bars, since a touch screen scrolls the content itself. */
+:root:not([data-layout="phone"]) [data-bigscroll] {
+  scrollbar-width: none;
+}
+:root:not([data-layout="phone"]) [data-bigscroll]::-webkit-scrollbar {
+  display: none;
+}
+:root[data-bigscroll-on]:not([data-layout="phone"]) {
+  --sode-page-bar: var(--sode-bigscroll-w);
+  padding-right: var(--sode-bigscroll-w);
+}
+.sode-bigscroll-host {
+  position: relative;
+}
+.sode-bigscroll {
+  background: var(--pb-surface-control);
+  position: absolute;
+  touch-action: none;
+  user-select: none;
+  z-index: 2;
+}
+.sode-bigscroll--y {
+  width: var(--sode-bigscroll-w);
+}
+.sode-bigscroll--x {
+  height: var(--sode-bigscroll-w);
+}
+.sode-bigscroll--page {
+  bottom: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: var(--pb-z-sticky);
+}
+.sode-bigscroll[hidden],
+:root[data-layout="phone"] .sode-bigscroll {
+  display: none;
+}
+.sode-bigscroll__thumb {
+  background-color: color-mix(in oklab, var(--pb-text) 40%, var(--pb-surface-control));
+  border: 0.15rem solid var(--pb-surface-control);
+  cursor: grab;
+  min-height: 3rem;
+  min-width: 3rem;
+}
+.sode-bigscroll--y > .sode-bigscroll__thumb {
+  min-width: 0;
+  width: 100%;
+}
+.sode-bigscroll--x > .sode-bigscroll__thumb {
+  height: 100%;
+  min-height: 0;
+}
+.sode-bigscroll__thumb:hover,
+.sode-bigscroll--drag > .sode-bigscroll__thumb {
+  background-color: var(--pb-text-muted);
+}
+.sode-bigscroll--drag > .sode-bigscroll__thumb {
+  cursor: grabbing;
 }
