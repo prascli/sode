@@ -345,8 +345,8 @@ export function gridBody(ctx, first) {
     }
   }
 
-  // plan is what the confirm showed. An Undo goes to its own route with the id it was staged from, so the server
-  // marks that take undone.
+  // plan is what the confirm showed, or what Take sends with the box off (left: what it left out). An Undo goes to
+  // its own route with the id it was staged from, so the server marks that take undone.
   async function send(plan) {
     const { routes, undoId } = plan;
     const undo = undoId !== undefined;
@@ -362,7 +362,7 @@ export function gridBody(ctx, first) {
       const n = (reply?.results || routes).length;
       note = bad.length
         ? noteOf(`${undo ? 'Undo' : 'Take'} failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`)
-        : noteOf(`${undo ? 'Undone' : 'Taken'}: ${plural(n, 'route')}`, true);
+        : noteOf(`${undo ? 'Undone' : 'Taken'}: ${plural(n, 'route')}${plan.left ? `. ${plan.left}` : ''}`, !plan.left);
     } catch (e) {
       failed =
         e.status === undefined
@@ -456,18 +456,22 @@ export function gridBody(ctx, first) {
       })
     : null;
 
-  // Routes that no longer apply are left out with the reason and dropped here.
+  // Routes that no longer apply are left out with the reason and dropped here. With the box off (st.ask false), this
+  // is the Confirm and sends at once; Instant mode always asks.
   function openConfirm() {
     if (!confirm || st.busy) return;
+    const ask = st.ask || st.mode === 'instant';
     // The server sends an Undo whole, so nothing is left out of it here.
     if (st.undoId !== null) {
       const routes = confirmRoutes(st);
-      return confirm.open({ ...planOf(routes, names), verb: 'undo', routes, undoId: st.undoId });
+      if (!ask) return send({ routes, undoId: st.undoId });
+      return confirm.open({ ...planOf(routes, names, tally), verb: 'undo', routes, undoId: st.undoId });
     }
     const was = leftOut(st, world());
     st = keepLive(st, world());
     const routes = confirmRoutes(st);
-    if (routes) confirm.open({ ...planOf(routes, names), routes, warnings: was.map((r) => leftOutLine(r, names)) });
+    if (routes && !ask) return send({ routes, left: leftOutText(was, names) });
+    if (routes) confirm.open({ ...planOf(routes, names, tally), routes, warnings: was.map((r) => leftOutLine(r, names)) });
     else if (was.length) note = noteOf(leftOutText(was, names));
     render();
   }

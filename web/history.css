@@ -116,16 +116,6 @@
   box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-edge);
   min-height: var(--pb-control-h-lg);
 }
-.sode__plan-before {
-  border-top: var(--pb-border-w) solid var(--pb-edge-soft);
-  display: flex;
-  flex-direction: column;
-  gap: var(--pb-space-3);
-  padding-top: var(--pb-space-3);
-}
-.sode__plan-item .sode__plan-before .sode__end {
-  color: var(--pb-text-muted);
-}
 .sode__hist-before {
   border-top: var(--pb-border-w) solid var(--pb-edge-soft);
   display: grid;

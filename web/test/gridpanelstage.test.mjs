@@ -253,3 +253,17 @@ test('Instant mode: a failed take holds nothing staged', () => {
   assert.equal(stagedCount(st), 0);
   assert.equal(st.error.message, 'refused');
 });
+
+test('only the stored mode takeOnly turns the confirm box off; it is Take mode', () => {
+  assert.equal(createStage({ mode: 'takeOnly' }).mode, 'take');
+  assert.equal(createStage({ mode: 'takeOnly' }).ask, false);
+  for (const mode of [undefined, 'take', 'instant', 'other']) assert.equal(createStage({ mode }).ask, true, String(mode));
+});
+
+test('with the box off a second press still asks for the take, and the routes are the staged ones', () => {
+  const first = press(createStage({ mode: 'takeOnly' }), 3, 7);
+  assert.equal(first.send, null);
+  const r = press(first.st, 3, 7);
+  assert.equal(r.confirm, true);
+  assert.deepEqual(confirmRoutes(r.st), [{ src: 3, dst: 7, levels: [1, 2] }]);
+});

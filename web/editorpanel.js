@@ -14,6 +14,9 @@ import { fixedDestsOf } from './panelrules.js';
 import { isGridPanel } from './gridpaneledges.js';
 import { followRouter, stopFollowing } from './editorgridrules.js';
 
+const GRID_MODE_HINT =
+  'Instant sends a press on one crosspoint at once and asks before more routes. Stage + Take: Take sends with no confirm box. Stage + Take + Confirm: Take opens the confirm box.';
+
 const section = (title, ...kids) => el('section', 'sode-side__sec', el('h3', 'sode-side__h', title), ...kids);
 const select = (id, options) => {
   const s = el('select', 'pb-select', ...options.map(([v, t]) => opt(v, t)));
@@ -100,15 +103,34 @@ export function createPanelTab(ed) {
     el('div', 'sode__field', Object.assign(el('label', null, 'Theme'), { htmlFor: 'ed-set-theme' }), theme.node),
   );
 
-  const mode = segmented(
-    'ed-set-mode',
-    'Mode',
-    [
+  // One stored mode for both types. A Grid panel adds takeOnly, its Take mode with no confirm box. A Buttons panel
+  // has no confirm box, so it shows only take and instant.
+  const modeOptions = {
+    buttons: [
       ['take', 'Stage, then Take'],
       ['instant', 'Instant'],
     ],
-    (v) => set('mode', v),
-  );
+    grid: [
+      ['instant', 'Instant'],
+      ['takeOnly', 'Stage + Take'],
+      ['take', 'Stage + Take + Confirm'],
+    ],
+  };
+  const modeHint = el('span', 'sode__hint');
+  modeHint.id = 'ed-mode-note';
+  let modeType = '';
+  let mode = null;
+  const modeField = el('div', 'sode__field', el('span', 'sode__field-label', 'Mode'));
+  const drawMode = (kind) => {
+    if (kind === modeType) return;
+    modeType = kind;
+    const next = segmented('ed-set-mode', 'Mode', modeOptions[kind], (v) => set('mode', v));
+    if (mode) mode.node.replaceWith(next.node);
+    else modeField.append(next.node, modeHint);
+    mode = next;
+    modeHint.textContent = kind === 'grid' ? GRID_MODE_HINT : '';
+  };
+  drawMode('buttons');
   const guard = segmented(
     'ed-set-guard',
     'Take button behavior',
@@ -131,17 +153,7 @@ export function createPanelTab(ed) {
   const wrapPages = toggle('wrapPages', 'Wrap between Pages', 'Next Page on the last Page goes to the first, and Previous Page on the first goes to the last.');
   // Settings that only a Buttons panel uses; a Grid panel keeps them stored but does not show them.
   const buttonsOnly = [sizes.node, guardField, fixed.node, multi, resultText, wrapPages];
-  const behavior = section(
-    'Behavior',
-    el('div', 'sode__field', el('span', 'sode__field-label', 'Mode'), mode.node),
-    guardField,
-    fixed.node,
-    multi,
-    levelField,
-    resultText,
-    toggle('kiosk', 'Kiosk mode'),
-    wrapPages,
-  );
+  const behavior = section('Behavior', modeField, guardField, fixed.node, multi, levelField, resultText, toggle('kiosk', 'Kiosk mode'), wrapPages);
 
   // A Grid panel's edges: each one is the router's list, or holds its own. One section for the router, so a
   // choice per router has a place if Sode gets more than one.
@@ -220,7 +232,8 @@ export function createPanelTab(ed) {
       deviceNote.textContent = feel.wake ? '' : "This browser cannot keep the screen awake. It is the panel's own browser that counts.";
       if (document.activeElement !== size) size.value = String(s.fontSize || 100); // shown, so the arrows step from the default
       size.disabled = ro;
-      mode.set(s.mode === 'instant' ? 'instant' : 'take');
+      drawMode(grid ? 'grid' : 'buttons');
+      mode.set(s.mode === 'instant' ? 'instant' : grid && s.mode === 'takeOnly' ? 'takeOnly' : 'take');
       mode.disable(ro);
       guard.set(s.guard === 'hold' || s.guard === 'double' ? s.guard : 'none');
       guard.disable(ro);

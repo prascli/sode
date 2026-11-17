@@ -103,7 +103,8 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
   - `caption`, `levels` (UI levels).
 
   Panel `settings` read so far:
-  - `mode` (`take` or `instant`), `multi`, `levels`, `guard` (`hold` or `double`) and `resultText`.
+  - `mode` (`take`, `instant` or `takeOnly`), `multi`, `levels`, `guard` (`hold` or `double`) and `resultText`.
+  - `takeOnly` is Take mode with no confirm box, on a Grid panel. A Buttons panel reads it as `take`.
   - `wrapPages`: wrap between Pages, stored only as `false`.
   - `askInstanceName`: Ask for an instance name, a boolean. A file without it reads as on, and the API sends it as `true`. So the editor stores it as chosen, `true` included.
   - `fixedDests` (Fixed destination): a list of router destination numbers in the order chosen. They are whole numbers from 0 to 65535, unique, at most 16. It is removed when empty, never stored as `[]`. A file without it loads unchanged. Push leaves each target's own list, and a template carries it only with `dests`.

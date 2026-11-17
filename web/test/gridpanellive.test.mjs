@@ -91,3 +91,8 @@ test('an update never cuts a take in flight short', () => {
   const st = { ...createStage(), busy: true };
   assert.equal(restage(st, gridPanel()).busy, true);
 });
+
+test('an update carries the take flow: takeOnly turns the confirm box off, and back', () => {
+  assert.equal(restage(createStage({ mode: 'take' }), gridPanel({ settings: { mode: 'takeOnly' } })).ask, false);
+  assert.equal(restage(createStage({ mode: 'takeOnly' }), gridPanel()).ask, true);
+});
