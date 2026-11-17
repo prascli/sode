@@ -14,6 +14,21 @@
   -webkit-user-select: none;
   user-select: none;
 }
+/* The phone layout: crosspoints a finger can hit, and narrower names so more of them show. */
+:root[data-layout="phone"] .sode-panel__grid.sode-gridpanel {
+  --sode-xp: 4.5rem;
+  --sode-name-w: 8rem;
+}
+/* A double-tap on a name is a jump, not a zoom, and a long-press adds a range with no callout. */
+.sode-gridpanel__src,
+.sode-gridpanel__dst {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+/* The phone's Take button (gridpanelphone.js). */
+.sode-gridpanel__take {
+  align-self: flex-start;
+}
 /* No rubber-band and no swipe-back on a trackpad, at the grid or at the page. */
 html:has(.sode-gridpanel) {
   overscroll-behavior: none;

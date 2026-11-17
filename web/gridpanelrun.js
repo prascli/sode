@@ -23,6 +23,8 @@ import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
 import { shortcutList } from './shortcuts.js';
+import { restPoint, takeButton, tapMods } from './gridpanelphone.js';
+import { onLayout } from './layout.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -77,6 +79,16 @@ export function gridBody(ctx, first) {
   count.hidden = true;
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
+  // The phone's Enter (gridpanelphone.js). In the foot, since Kiosk mode hides the header.
+  const phone = () => document.documentElement.dataset.layout === 'phone';
+  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-gridpanel__take', 'Take');
+  if (take) {
+    take.type = 'button';
+    take.id = 'panel-take';
+    take.hidden = true;
+    take.addEventListener('click', () => openConfirm());
+    document.getElementById('panel-foot')?.prepend(take);
+  }
 
   // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
   const images = new Map(); // artwork id -> { url, type }, or null while it loads or after it failed
@@ -140,9 +152,11 @@ export function gridBody(ctx, first) {
   // A Diagonal skips protected rows.
   const pairsAt = (xp) => stageable(diagonalAt(xp), env).pairs;
 
-  // Numbered targets only while names are picked; a press with none is the crosspoint itself.
+  // Numbered targets only while names are picked; a press with none is the crosspoint itself. A phone has no hover,
+  // so with no crosspoint under the cursor the targets show from the picks' rest point.
   const preview = () => {
-    const pairs = at && pickCount(picks) ? pairsAt(at) : [];
+    const from = at || (phone() && restPoint(picks, axes, cur));
+    const pairs = from && pickCount(picks) ? pairsAt(from) : [];
     previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
   };
 
@@ -154,6 +168,11 @@ export function gridBody(ctx, first) {
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
+    if (take) {
+      const t = takeButton({ phone: phone(), mode: st.mode, staged: n, busy: st.busy });
+      if (take.hidden === t.shown) take.hidden = !t.shown;
+      if (take.disabled !== t.disabled) take.disabled = t.disabled;
+    }
     boxes?.paint(find, countsOf());
     const text =
       stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
@@ -383,7 +402,7 @@ export function gridBody(ctx, first) {
 
   function onName(kind, n, e) {
     if (!ctx.ready()) return;
-    picks = pickName(picks, kind, n, { range: e.shiftKey, toggle: e.metaKey || e.ctrlKey }, axes[kind]);
+    picks = pickName(picks, kind, n, tapMods(e, phone()), axes[kind]);
     render();
   }
 
@@ -492,7 +511,8 @@ export function gridBody(ctx, first) {
     }
     const finding = !!find[find.last].text.trim();
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding });
-    if (!act || (act === 'keys' && !keyList)) return;
+    // A phone has no key list.
+    if (!act || (act === 'keys' && (!keyList || phone()))) return;
     const moves =
       MOVES.has(act) || act === 'pick' || act === 'add' || act.startsWith('range:') || ['press', 'jump', 'step', 'undo'].includes(act) || FIND_KEYS.has(act);
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
@@ -530,6 +550,8 @@ export function gridBody(ctx, first) {
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);
+  // A turned phone or a changed Layout setting shows or hides the Take button and the rest-point targets.
+  onLayout(() => !stopped && render());
 
   return {
     render,
@@ -566,6 +588,7 @@ export function gridBody(ctx, first) {
       document.removeEventListener('keydown', onKey, true);
       g?.stop();
       count.remove();
+      take?.remove();
       if (boxNode) boxNode.hidden = true;
       if (confirm?.isOpen()) confirm.close();
       if (keyList?.shown()) keyList.close();

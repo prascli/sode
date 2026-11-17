@@ -389,6 +389,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   });
   // Nodes move between items on a scroll, so the item is read from the node at the click.
   field.addEventListener('contextmenu', (e) => {
+    // Android sends a long-press as a menu; on touch a long-press is a line or a range (gridpanelgesture.js).
+    if (e.pointerType === 'touch') return e.preventDefault();
     const xp = e.target.closest('.sode-gridpanel__xp');
     const name = !xp && e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
     if (!xp && !name) return;
