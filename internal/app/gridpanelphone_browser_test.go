@@ -17,8 +17,8 @@ func touchAt(b *tab, expr string) (float64, float64) {
 	return x, y
 }
 
-// touch puts one finger down on the element that expr gives and lifts it after hold, through the browser's own
-// touch input, so the page sees Touch Events and the click that follows a tap.
+// touch puts one finger down on the element that expr gives and lifts it after hold. It uses the browser's own
+// touch input, so the page gets Touch Events and the click that follows a tap.
 func touch(b *tab, expr string, hold time.Duration) {
 	b.t.Helper()
 	x, y := touchAt(b, expr)

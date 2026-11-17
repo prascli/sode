@@ -4,8 +4,8 @@
 const first = (picked, order) => order.find((n) => picked.includes(n));
 
 // The press point of the numbered targets while no crosspoint is under the cursor, so picks show their Diagonal
-// without hover: the first shown picked source and destination, else the cursor's column or row, else the first
-// item. cur is a cursor (gridpanelcursor.js), axes the shown axes. Null with no shown picks.
+// without hover. It is the first shown picked source and destination, else the cursor's column or row, else the
+// first item. cur is a cursor (gridpanelcursor.js), axes the shown axes. Null with no shown picks.
 export function restPoint(picks, axes, cur) {
   const src = first(picks.srcs, axes.srcs);
   const dst = first(picks.dsts, axes.dsts);
