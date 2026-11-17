@@ -38,6 +38,36 @@ func TestChromeGridPanelFind(t *testing.T) {
 
 	realKey(b, "s", "KeyS", 83)
 	b.waitFor("s goes to the Source bar box and types nothing", `document.activeElement === `+gridFindBox("srcs")+` && document.activeElement.value === ''`)
+	b.waitFor("no step buttons on an empty box", `[...document.querySelectorAll('.sode-gridpanel__find-step')].every((n) => n.hidden)`)
+	// SRC 031 (source 30) is the first match in panel order, on letters in order only. SRC 100 to SRC 199 start with
+	// the text, so Find goes to the first of them.
+	b.call("Input.insertText", map[string]any{"text": "src 1"})
+	gridCursorOn(b, "Find goes to the best match, not the first in panel order", -1, 99)
+	// The glide ends with the match in the middle of what shows past the Destination bar.
+	b.waitFor("the best match glides to the middle and pulses", `(() => {
+		const n = document.querySelector('.sode-gridpanel__src[data-src="99"]:not([hidden])');
+		const sc = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
+		const bar = document.querySelector('.sode-gridpanel__head').getBoundingClientRect();
+		if (!n || n.dataset.hit === undefined) return false;
+		const r = n.getBoundingClientRect();
+		return Math.abs((r.left + r.right) / 2 - (bar.right + sc.right) / 2) <= r.width / 2;
+	})()`)
+	b.waitFor("the pulse ends", `!document.querySelector('.sode-gridpanel__src[data-hit]')`)
+	realKeyMods(b, "n", "KeyN", 78, modCtrl)
+	gridCursorOn(b, "Ctrl+N in the box steps to the next match", -1, 100)
+	realKeyMods(b, "p", "KeyP", 80, modCtrl)
+	gridCursorOn(b, "Ctrl+P steps back", -1, 99)
+	b.waitFor("Ctrl+N and Ctrl+P type nothing", gridFindBox("srcs")+`.value === 'src 1'`)
+	b.eval(`document.querySelector('.sode-gridpanel__find[data-kind="srcs"] .sode-gridpanel__find-step[data-dir="1"]').click(); true`)
+	gridCursorOn(b, "the next match button steps", -1, 100)
+	b.eval(`document.querySelector('.sode-gridpanel__find[data-kind="srcs"] .sode-gridpanel__find-step[data-dir="-1"]').click(); true`)
+	gridCursorOn(b, "the previous match button steps back", -1, 99)
+	b.waitFor("a step button gives the keys back to the box", `document.activeElement === `+gridFindBox("srcs"))
+	b.waitFor("the Destination bar box shows no step buttons", `[...document.querySelectorAll('.sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-step')].every((n) => n.hidden)`)
+	b.shot("find-best")
+	realKey(b, "Escape", "Escape", 27)
+	realKey(b, "s", "KeyS", 83)
+	b.waitFor("s goes back to the empty box", `document.activeElement === `+gridFindBox("srcs")+` && document.activeElement.value === ''`)
 	b.call("Input.insertText", map[string]any{"text": "cam 1"})
 	// CAM 1 and CAM 10 to CAM 12 are sources 12 and 21 to 23; only about 13 columns show, so the grid scrolls.
 	gridCursorOn(b, "Find moves the cursor to the first match", -1, 12)

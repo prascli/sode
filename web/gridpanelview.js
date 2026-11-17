@@ -5,9 +5,10 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, OVER } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, OVER } from './gridpanelwindow.js';
 
 const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
+const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s)
 // A newly pulsing node starts in step with the others. All count from time zero.
 export const pulseDelay = () => `${-(document.timeline.currentTime % PULSE_MS)}ms`;
 
@@ -252,6 +253,15 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
+  // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
+  // animations, so a new glide restarts the pulse on a node that still has the last one.
+  let hit = null;
+  let hitEnd = null; // { timer, done } of the pulse in progress
+  const hitOf = (kind, n) => (hit?.kind === kind && hit.n === n ? String(hit.seq) : undefined);
+  const paintHits = () => {
+    for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('srcs', Number(n.dataset.src)));
+    for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('dsts', Number(n.dataset.dst)));
+  };
   let px = { xp: 1, w: 1, h: 1 };
   const listeners = new Set();
 
@@ -280,6 +290,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintArt(n.lastChild, view.art('srcs', s));
     }
     markName(n, mark.srcs.has(s));
+    setData(n, 'hit', hitOf('srcs', s));
   };
   const paintDst = (n, d) => {
     if (view) {
@@ -290,6 +301,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintArt(n.lastChild, view.art('dsts', d));
     }
     markName(n, mark.dsts.has(d));
+    setData(n, 'hit', hitOf('dsts', d));
   };
   const xpPut = (n, i, j) => {
     place(n, i, j);
@@ -542,6 +554,32 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true, read()));
       if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false, read()));
     },
+    // Find: scrolls one axis so display item k of kind ('srcs' or 'dsts') is in the middle, smoothly, and pulses its
+    // name. The pulse ends HIT_MS after the scroll does; a node drawn for the name during the scroll pulses then.
+    glide(kind, k) {
+      const cols = kind === 'srcs';
+      const a = axis(cols, read());
+      const to = centreFor(k, a);
+      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      hit = { kind, n: ax[kind][k], seq: hit ? 1 - hit.seq : 0 };
+      paintHits();
+      if (hitEnd) {
+        clearTimeout(hitEnd.timer);
+        scroll.removeEventListener('scrollend', hitEnd.done);
+      }
+      const done = () => {
+        scroll.removeEventListener('scrollend', done);
+        hitEnd.timer = setTimeout(() => {
+          hit = null;
+          hitEnd = null;
+          paintHits();
+        }, HIT_MS);
+      };
+      hitEnd = { timer: 0, done };
+      if (to === a.offset) return done();
+      scroll.addEventListener('scrollend', done);
+      scroll.scrollTo({ [cols ? 'left' : 'top']: to, behavior: calm ? 'instant' : 'smooth' });
+    },
     // The crosspoint under a client point, or null on a name, a gap or outside.
     hit(x, y) {
       const m = metricsNow();
@@ -592,6 +630,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
       scroll.removeEventListener('pointermove', onMove);
+      if (hitEnd) clearTimeout(hitEnd.timer);
       listeners.clear();
     },
   };

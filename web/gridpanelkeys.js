@@ -82,10 +82,13 @@ export function gridKeyAction(e, ctx) {
 }
 
 // Keys in a Source bar or Destination bar search box. Any other key is typing. Ctrl+Tab cannot be used: browsers
-// keep it, so Ctrl+/ switches the mode.
+// keep it, so Ctrl+/ switches the mode. Chrome on Windows and Linux keeps Ctrl+N for a new window, so there only
+// Ctrl+P arrives; on a Mac both do.
 const BOX = {
   enter: 'nextMatch',
   'shift+enter': 'prevMatch',
+  'ctrl+n': 'nextMatch',
+  'ctrl+p': 'prevMatch',
   escape: 'clear',
   tab: 'swap',
   'shift+tab': 'swap',
