@@ -1,0 +1,1 @@
+- Share: the dialog that opens after a Named instance link is made or rotated now shows the link with its own Copy link, beside the API key.
