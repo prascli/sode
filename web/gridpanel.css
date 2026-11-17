@@ -19,11 +19,11 @@
   -webkit-user-select: none;
   user-select: none;
 }
-/* The phone layout: crosspoints a finger can hit, and narrower names so more of them show. */
+/* The phone layout: 56 px crosspoints, over the 44 pt touch minimum, and narrow names so more of them show. */
 :root[data-layout="phone"] .sode-panel__grid.sode-gridpanel {
-  --sode-xp: 4rem;
-  --sode-name-w: 8rem;
-  --sode-name-h: 5.6rem;
+  --sode-xp: 3.5rem;
+  --sode-name-w: 6rem;
+  --sode-name-h: 4.5rem;
   --sode-scroll-h: 0.88rem;
   --sode-scroll-w: 0.88rem;
 }
@@ -39,26 +39,27 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__frame {
   max-height: calc(100dvh - 12rem);
 }
-/* On the desktop layout the page is one viewport high: the header and the Levels box are bands, the grid fills the
-   rest edge to edge, and the page does not scroll. The bottom padding stays clear for the Panels link. */
-:root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) {
+/* On both layouts the page is one viewport high: the header and the Levels box are bands, the grid fills the rest
+   edge to edge, and the page does not scroll. The bottom padding stays clear for the Panels link; the phone's
+   band holds it (gridpanelphone.css). */
+.sode-panels:has(.sode-gridpanel) {
   box-sizing: border-box;
   gap: 0;
   height: 100dvh;
   padding-inline: 0;
   padding-top: 0;
 }
-:root:not([data-layout="phone"]) .sode-panel__grid.sode-gridpanel {
+.sode-panel__grid.sode-gridpanel {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
-:root:not([data-layout="phone"]) .sode-gridpanel .sode-gridpanel__frame {
+.sode-gridpanel .sode-gridpanel__frame {
   border-inline: 0;
   max-height: none;
 }
-:root:not([data-layout="phone"]) .sode-gridpanel__scroll {
+.sode-gridpanel__scroll {
   flex: 1 1 auto;
   min-height: 0;
 }

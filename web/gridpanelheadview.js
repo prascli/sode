@@ -2,7 +2,7 @@
 // (connview.js), Full screen and the Panels link. The Lock chip names the user, as on the main page. On the panel
 // page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run
 // (gridpanelrun.js) makes them on the panel page only, and its stop puts the page back.
-import { el, on } from './core.js';
+import { el, icon, on } from './core.js';
 import { connBox, paintConn } from './connview.js';
 
 // core.js's on() has no unsubscribe, so one subscription at import paints every head a run has made.
@@ -41,10 +41,39 @@ export function gridHead(ui, count) {
   const deck = el('div', 'sode-gridpanel__deck');
   ui.head.before(deck);
   deck.append(ui.head, ...(box ? [box] : []), rule(1), finds, rule(2));
+  // The phone's band (gridpanel.css): More and the levels in words open the rest of the deck under it.
+  const more = el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__more', icon('menu', false));
+  more.type = 'button';
+  more.id = 'panel-more';
+  more.setAttribute('aria-label', 'More');
+  more.setAttribute('aria-expanded', 'false');
+  const lvText = document.createTextNode('');
+  const lv = el('button', 'pb-btn pb-btn--outline pb-btn--sm sode-gridpanel__lv', el('span', 'sode-gridpanel__lv-word', 'Levels'), lvText);
+  lv.type = 'button';
+  const open = (on) => {
+    deck.toggleAttribute('data-open', on);
+    more.setAttribute('aria-expanded', String(on));
+  };
+  const toggle = () => open(!deck.hasAttribute('data-open'));
+  more.addEventListener('click', toggle);
+  lv.addEventListener('click', toggle);
+  const input = box?.querySelector('input');
+  const paintLevels = () => {
+    const t = input?.value.trim() || 'none';
+    if (lvText.data !== t) lvText.data = t;
+  };
+  input?.addEventListener('input', paintLevels);
+  box?.prepend(more, lv);
+  paintLevels();
   return {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
+    // The run calls this on each render, since a fill of the box from code sends no input event.
+    paintLevels,
     stop() {
+      more.remove();
+      lv.remove();
+      input?.removeEventListener('input', paintLevels);
       conns.delete(conn);
       delete ui.tools;
       id.replaceWith(ui.title, ui.name);

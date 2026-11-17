@@ -657,6 +657,20 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       placeCursor();
       cueNames();
     },
+    // The body's view on each axis: first and last display positions shown (1-based, pins counted), the count, and
+    // the scroll offset and its most (gridpanelpos.js).
+    shown() {
+      const m = metricsNow();
+      const one = (a, max) => {
+        const v = a.view - a.head - a.pins * a.size;
+        const first = Math.min(a.n, a.pins + Math.floor(a.offset / a.size) + 1);
+        return { first, last: Math.min(a.n, a.pins + Math.ceil((a.offset + v) / a.size)), n: a.n, offset: a.offset, max };
+      };
+      return {
+        srcs: one(axis(true, m), scroll.scrollWidth - m.cw),
+        dsts: one(axis(false, m), scroll.scrollHeight - m.ch),
+      };
+    },
     // Whole scrolling rows and columns one screen shows.
     page() {
       const m = metricsNow();

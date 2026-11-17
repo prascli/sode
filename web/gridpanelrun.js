@@ -44,6 +44,8 @@ import { clearNote } from './gridpanelnote.js';
 import { onLayout } from './layout.js';
 import { gridHead } from './gridpanelheadview.js';
 import { emptyText } from './gridpanelhead.js';
+import { gridPosition } from './gridpanelpos.js';
+import { POS_KINDS } from './gridpanelposrules.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -93,10 +95,11 @@ export function gridBody(ctx, first) {
   let at = null; // the crosspoint under the cursor, whose press the preview shows
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
-  let ptr = null; // { x, y } in client px while the pointer leads, else null
-  let keyed = false; // a key moved the cursor last, so it may draw its box on a bar
+  let ptr = null; // { x, y } in client px while the pointer leads, else null.
+  let keyed = false; // true after a key move: only then can the cursor draw its box on a bar.
   let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
   let gest = null;
+  let pos = null; // the phone's position tracks (gridpanelpos.js)
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -204,6 +207,7 @@ export function gridBody(ctx, first) {
   };
 
   const render = () => {
+    head?.paintLevels();
     dirty = false;
     out = leftOut(st, world());
     if (g) {
@@ -279,6 +283,8 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
+      const posKind = new URLSearchParams(location.search).get('pos');
+      if (head) pos = gridPosition(g, g.scroll.parentNode, POS_KINDS.includes(posKind) ? posKind : 'strips', phone);
       boxes = findBoxes(head?.finds || g.head, { onText: findText, onMode: findMode, onStep: findStep });
       gest = lineGestures(g, {
         start: lineStart,
@@ -798,6 +804,7 @@ export function gridBody(ctx, first) {
       stopped = true;
       document.removeEventListener('keydown', onKey, true);
       gest?.stop();
+      pos?.stop();
       g?.stop();
       count.remove();
       head?.stop();

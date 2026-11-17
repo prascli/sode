@@ -12,9 +12,9 @@ const DOUBLE_MS = 350; // the most time between the two taps of a double-tap.
 const SLOP_PX = 10; // a touch that moves this far before the timer is a scroll
 // Edge auto-scroll, in crosspoints, so phone and desktop feel alike. Time-based, so a 120 Hz screen is not twice as
 // fast. The depth is capped at the zone: a finger past the body (over the names or the band) does not speed it up.
-const EDGE_MAX = 10; // crosspoints per second at the full depth
-const EDGE_ZONE = 0.15; // the zone's share of the body's side, at most one crosspoint
-const EDGE_RAMP_MS = 400; // from rest to full speed, so a press that starts near an edge does not jump
+const EDGE_MAX = 10; // crosspoints per second at the full depth.
+const EDGE_ZONE = 0.15; // the zone's part of the body's side, at most one crosspoint.
+const EDGE_RAMP_MS = 400; // from rest to full speed. A press that starts near an edge does not jump.
 
 export function lineGestures(g, on) {
   const { scroll } = g;

@@ -1,0 +1,1 @@
+- Grid panel on a phone: the grid fills the screen under one band with More, the levels, Clear and Take. More opens the header, the Levels box and the search boxes. Crosspoints are 56 px. The corner shows the shown ranges, and a position track runs along the grid's edges. No cursor shows on touch, and the edge scroll during a Drawn line is slower and capped.

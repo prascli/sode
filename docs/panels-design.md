@@ -116,7 +116,11 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 ### Phone and touch
 
 - On the phone layout, a tap on a name picks it, and a long-press on a name picks a range. A double-tap on a name jumps, as `g` does. A tap on a crosspoint stages.
-- Crosspoints are larger (4rem) and names are narrower, so that more names show. The numbered targets show while names are picked. A touch move does not move the cursor, and there is no key list.
+- The grid comes first. The page is one window high and does not scroll. One band holds More, the levels in words, the note, Clear and Take. More or the levels open the header, the Levels box and the search boxes under the band (`web/gridpanelphone.css`). While they are open, they push the grid down. On a 390 by 844 phone the grid shows 5 columns by 12 rows.
+- Crosspoints are 3.5rem (56 px, over the 44 pt touch minimum), names are 6rem wide and the corner is 4.5rem high. The numbered targets show while names are picked. There is no key list.
+- No cursor shows on the phone layout, and on the desktop layout a touch hides it until the next mouse move or key move. The box on a bar shows only after a key move. A touch move does not move the cursor.
+- A phone draws its scroll bars only while a scroll runs. So the corner gives the shown ranges (`12–16/2500`), and the body's bottom and right edges get a position track (`web/gridpanelpos.js`). Two kinds are prototypes until the owner picks one on a real phone. `strips` is the default: thin and display only. `thumbs` (`?pos=thumbs` on the page URL) has a thumb that a finger drags for fast travel.
+- A Drawn line's edge scroll goes at most 10 crosspoints a second, with the speed the square of the depth into the zone. It is time-based, so a 120 Hz screen is not faster. A finger past the body does not make it faster, and it starts over 400 ms. The zone is 15% of the body's side, at most one crosspoint.
 - Two taps on one name inside 350 ms are a double-tap. Both taps still pick or unpick, so a double-tap leaves the picks as they were.
 
 ### The editor
