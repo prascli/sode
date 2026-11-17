@@ -1,4 +1,5 @@
-// A Grid panel on the phone layout (spec #432). Pure. A phone has no hover and no modifier keys.
+// A Grid panel by touch and on the phone layout (spec #432), and its Take button. Pure. A phone has no hover and
+// no modifier keys.
 
 const first = (picked, order) => order.find((n) => picked.includes(n));
 
@@ -15,10 +16,12 @@ export function restPoint(picks, axes, cur) {
   };
 }
 
-// The phone's Take button stands in for Enter. Instant mode holds nothing staged, so it has none.
-export function takeButton({ phone, mode, staged, busy }) {
-  const shown = phone && mode === 'take';
-  return { shown, disabled: !shown || !staged || busy };
+// The Take button, on every layout: Enter for a phone, and the staged count beside the Levels box. Instant mode
+// holds nothing staged, so it has none. Armed is the look of a Take with routes waiting.
+export function takeButton({ mode, staged, busy }) {
+  const shown = mode === 'take';
+  const n = shown ? staged : 0;
+  return { shown, disabled: !n || busy, armed: !!n && !busy, count: n ? String(n) : '' };
 }
 
 // pickName's mods for a click on a name. On the phone a tap adds or removes one name, as Cmd-click does, and a

@@ -1,5 +1,5 @@
 // A Grid panel on the phone layout (gridpanelphone.js): the press point of the numbered targets with no hover, and
-// the Take button.
+// the Take button, which every layout shows.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPicks, pickName } from '../gridpanelpick.js';
@@ -31,13 +31,12 @@ test('picks hidden by a Filter are not a rest point', () => {
   assert.equal(restPoint(picked([99], []), axes, { i: -1, j: -1 }), null);
 });
 
-test('the Take button shows on the phone layout in Take mode and works only with routes staged', () => {
-  const at = (o) => takeButton({ phone: true, mode: 'take', staged: 2, busy: false, ...o });
-  assert.deepEqual(at({}), { shown: true, disabled: false });
-  assert.deepEqual(at({ staged: 0 }), { shown: true, disabled: true });
-  assert.deepEqual(at({ busy: true }), { shown: true, disabled: true });
-  assert.deepEqual(at({ phone: false }), { shown: false, disabled: true });
-  assert.deepEqual(at({ mode: 'instant' }), { shown: false, disabled: true });
+test('the Take button shows in Take mode on every layout, counts the staged routes and works only with some', () => {
+  const at = (o) => takeButton({ mode: 'take', staged: 2, busy: false, ...o });
+  assert.deepEqual(at({}), { shown: true, disabled: false, armed: true, count: '2' });
+  assert.deepEqual(at({ staged: 0 }), { shown: true, disabled: true, armed: false, count: '' });
+  assert.deepEqual(at({ busy: true }), { shown: true, disabled: true, armed: false, count: '2' });
+  assert.deepEqual(at({ mode: 'instant' }), { shown: false, disabled: true, armed: false, count: '' });
 });
 
 test('a tap on the phone layout adds or removes one name, so a finger can pick a set', () => {

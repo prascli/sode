@@ -54,10 +54,10 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	}
 	b.waitFor("the Take button shows, off with nothing staged", `(() => { const t = document.getElementById('panel-take'); return !!t?.offsetParent && t.disabled; })()`)
 
-	// Source 11 in the first column.
+	// Router numbers start at 0, so source 11 is the twelfth column: it goes first.
 	b.eval(`(() => {
 		const sc = document.querySelector('.sode-gridpanel__scroll');
-		sc.scrollLeft = 10 * document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		sc.scrollLeft = 11 * document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
 		return true;
 	})()`)
 	src := func(n int) string {
@@ -67,7 +67,7 @@ func TestChromeGridPanelPhone(t *testing.T) {
 		return fmt.Sprintf(`document.querySelector('.sode-gridpanel__dst[data-dst="%d"]')`, n)
 	}
 	picked := func(name string) string { return `('picked' in ` + name + `.dataset)` }
-	b.waitFor("source 13 drawn", src(13)+` !== null && !`+src(13)+`.hidden && `+src(13)+`.getBoundingClientRect().right <= innerWidth`)
+	b.waitFor("source 13 drawn", src(13)+` !== null && !`+src(13)+`.hidden && `+src(13)+`.getBoundingClientRect().right <= document.querySelector(".sode-gridpanel__scroll").getBoundingClientRect().right`)
 
 	tap(b, src(13))
 	b.waitFor("a tap picks", picked(src(13)))
@@ -83,20 +83,20 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	}
 
 	b.waitFor("the numbered targets show with no hover",
-		gridXp(11, 1)+`?.dataset.n === '1' && `+gridXp(12, 2)+`?.dataset.n === '2' && `+gridXp(13, 3)+`?.dataset.n === '3'`)
+		gridXp(11, 0)+`?.dataset.n === '1' && `+gridXp(12, 1)+`?.dataset.n === '2' && `+gridXp(13, 2)+`?.dataset.n === '3'`)
 	b.shot("phone-preview")
 
-	tap(b, gridXp(11, 1))
+	tap(b, gridXp(11, 0))
 	staged := func(s, d int) string { return gridXp(s, d) + `.dataset.s === 'staged'` }
-	b.waitFor("a tap on a crosspoint stages the Diagonal", staged(11, 1)+` && `+staged(12, 2)+` && `+staged(13, 3))
-	b.waitFor("the Take button works", `!document.getElementById('panel-take').disabled`)
+	b.waitFor("a tap on a crosspoint stages the Diagonal", staged(11, 0)+` && `+staged(12, 1)+` && `+staged(13, 2))
+	b.waitFor("the Take button works and counts the staged routes", `(() => { const t = document.getElementById('panel-take'); return !t.disabled && t.textContent === 'Take 3'; })()`)
 	tap(b, `document.getElementById('panel-take')`)
 	b.waitFor("the confirm lists all three", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
 	b.shot("phone-confirm")
 	gridConfirm(b)
-	tallyHas(t, a, ana, 1, 11)
-	tallyHas(t, a, ana, 2, 12)
-	tallyHas(t, a, ana, 3, 13)
+	tallyHas(t, a, ana, 0, 11)
+	tallyHas(t, a, ana, 1, 12)
+	tallyHas(t, a, ana, 2, 13)
 	b.waitFor("the Take button is off again", `document.getElementById('panel-take').disabled`)
 
 	// Destination 5 has source 5: a double-tap on its name goes along the row to it.
@@ -105,7 +105,7 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	tap(b, dst(5))
 	time.Sleep(80 * time.Millisecond)
 	tap(b, dst(5))
-	gridCursorOn(b, "a double-tap on a name jumps", 4, 4)
+	gridCursorOn(b, "a double-tap on a name jumps", 5, 5)
 	b.waitFor("the double-tap leaves the picks", `!`+picked(dst(5)))
 
 	realKey(b, "?", "Slash", 191)

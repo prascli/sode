@@ -79,15 +79,17 @@ export function gridBody(ctx, first) {
   count.hidden = true;
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
-  // The phone's Enter (gridpanelphone.js). In the foot, since Kiosk mode hides the header.
   const phone = () => document.documentElement.dataset.layout === 'phone';
-  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-gridpanel__take', 'Take');
+  // The Take button (gridpanelphone.js) at the end of the Levels box, as in the prototype; Kiosk mode hides the
+  // header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
+  const takeCount = el('span', 'sode-gridpanel__take-n');
+  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--commit sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
   if (take) {
     take.type = 'button';
     take.id = 'panel-take';
     take.hidden = true;
     take.addEventListener('click', () => openConfirm());
-    document.getElementById('panel-foot')?.prepend(take);
+    document.getElementById('panel-levels')?.append(take);
   }
 
   // Artwork images load with the panel's key, so a name paints without one until its fetch lands, then paints again.
@@ -169,9 +171,11 @@ export function gridBody(ctx, first) {
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
     if (take) {
-      const t = takeButton({ phone: phone(), mode: st.mode, staged: n, busy: st.busy });
+      const t = takeButton({ mode: st.mode, staged: n, busy: st.busy });
       if (take.hidden === t.shown) take.hidden = !t.shown;
       if (take.disabled !== t.disabled) take.disabled = t.disabled;
+      take.classList.toggle('sode-panel__take--armed', t.armed);
+      say(takeCount, t.count);
     }
     boxes?.paint(find, countsOf());
     const text =
@@ -550,7 +554,7 @@ export function gridBody(ctx, first) {
   };
   // Capture, so the grid's Esc is handled before Kiosk mode's own (panelfull.js).
   document.addEventListener('keydown', onKey, true);
-  // A turned phone or a changed Layout setting shows or hides the Take button and the rest-point targets.
+  // A turned phone or a changed Layout setting shows or hides the rest-point targets.
   onLayout(() => !stopped && render());
 
   return {

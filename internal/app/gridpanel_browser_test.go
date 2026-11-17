@@ -99,6 +99,7 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.waitFor("another source in the row replaces the route", staged(simSrc, 2)+` && !(`+staged(11, 2)+`)`)
 	b.eval(gridXp(11, 3) + `.click()`)
 	b.waitFor("two routes staged", staged(11, 3))
+	b.waitFor("the desktop layout's Take button counts them", `(() => { const t = document.getElementById('panel-take'); return !!t.offsetParent && !t.disabled && t.textContent === 'Take 2'; })()`)
 
 	// A real Enter with focus on the last crosspoint pressed, as a mouse leaves it.
 	b.eval(gridXp(11, 3) + `.focus(); true`)
@@ -284,6 +285,9 @@ func TestChromeGridPanelSharingModes(t *testing.T) {
 	b.eval(`localStorage.clear()`)
 	b.open(srv.URL + "/panels/" + id + "?instance=Hall")
 	ready("Public")
+	if shown := b.eval(`!document.getElementById('panel-take')?.hidden`); shown != false {
+		t.Error("Instant mode shows a Take button")
+	}
 	b.eval(gridXp(13, simDst) + `.click()`)
 	tallyHas(t, a, ana, simDst, 13)
 	// The revoked key's open and the plain links before their sign-in are refused on purpose.
