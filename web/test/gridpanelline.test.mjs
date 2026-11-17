@@ -2,7 +2,7 @@
 // left, display order: { x: 2.5, y: 0.5 } is the middle of column 2, row 0.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lineCells, isLine, unitsOf, linePairs, lineStage } from '../gridpanelline.js';
+import { lineCells, isLine, unitsOf, linePairs, lineStage, snapLine, lineShown } from '../gridpanelline.js';
 import { createPicks } from '../gridpanelpick.js';
 import { createStage, STAGE_MAX } from '../gridpanelstage.js';
 
@@ -198,4 +198,108 @@ test('an empty line changes nothing', () => {
   const r = lineStage(st, [], env(), [1]);
   assert.equal(r.st, st);
   assert.equal(r.confirm, false);
+});
+
+// Snapping (no picks): the targets are evenly spaced, at k columns per row or one column per k rows.
+const snap = (a, b) => snapLine(a, b, dims).cells.map(({ i, j }) => [i, j]);
+
+test('a near-vertical line snaps to vertical: one column, every row', () => {
+  assert.deepEqual(snap(at(3.5, 1.5), at(3.8, 5.2)), [
+    [1, 3],
+    [2, 3],
+    [3, 3],
+    [4, 3],
+    [5, 3],
+  ]);
+});
+
+test('a near-diagonal line snaps to one column per row', () => {
+  assert.deepEqual(snap(at(0.5, 0.5), at(4.1, 4.7)), [
+    [0, 0],
+    [1, 1],
+    [2, 2],
+    [3, 3],
+    [4, 4],
+  ]);
+});
+
+test('a steep line snaps to one column per k rows and stages every k-th row', () => {
+  assert.deepEqual(snap(at(0.5, 0.5), at(3.5, 6.5)), [
+    [0, 0],
+    [2, 1],
+    [4, 2],
+    [6, 3],
+  ]);
+});
+
+test('a shallow line snaps to k columns per row', () => {
+  assert.deepEqual(snap(at(0.5, 0.5), at(9.2, 3.4)), [
+    [0, 0],
+    [1, 3],
+    [2, 6],
+    [3, 9],
+  ]);
+});
+
+test('a reversed line snaps the same way, start first', () => {
+  assert.deepEqual(snap(at(9.5, 3.5), at(0.5, 0.5)), [
+    [3, 9],
+    [2, 6],
+    [1, 3],
+    [0, 0],
+  ]);
+  assert.deepEqual(snap(at(4.5, 6.5), at(1.5, 0.5)), [
+    [6, 4],
+    [4, 3],
+    [2, 2],
+    [0, 1],
+  ]);
+});
+
+test('the snapped angle is the one nearest the drawn angle', () => {
+  // About 30 degrees from vertical: one column per two rows (26.6) is nearer than one per row (45).
+  assert.deepEqual(snap(at(0.5, 0.5), at(2.8, 4.6)), [
+    [0, 0],
+    [2, 1],
+    [4, 2],
+  ]);
+  // About 60 degrees: two columns per row (63.4) is nearer than one per row (45).
+  assert.deepEqual(snap(at(0.5, 0.5), at(5.7, 3.5)), [
+    [0, 0],
+    [1, 2],
+    [2, 4],
+    [3, 6],
+  ]);
+});
+
+test('a snapped line that ends on its start row stages nothing', () => {
+  assert.deepEqual(snap(at(0.5, 2.5), at(9.5, 2.6)), []);
+});
+
+test('a snapped line stops at the grid edge', () => {
+  assert.deepEqual(snap(at(26.5, 15.5), at(32.5, 21.5)).at(-1), [18, 29]);
+  assert.deepEqual(snap(at(26.5, 15.5), at(32.5, 21.5)).length, 4);
+});
+
+test('the snapped line runs from the start crosspoint centre to the last target centre', () => {
+  const s = snapLine(at(0.2, 0.9), at(3.4, 6.9), dims);
+  assert.deepEqual([s.a, s.b], [at(0.5, 0.5), at(3.5, 6.5)]);
+});
+
+test('with nothing picked a line stages its snapped targets', () => {
+  assert.deepEqual(linePairs(createPicks(), at(0.5, 0.5), at(4.3, 4.6), axes), [
+    { src: 30, dst: 7 },
+    { src: 10, dst: 3 },
+    { src: 20, dst: 5 },
+    { src: 40, dst: 9 },
+    { src: 50, dst: 1 },
+  ]);
+});
+
+test('the preview draws the snapped line with nothing picked, and the drawn line with picks', () => {
+  assert.deepEqual(lineShown(createPicks(), at(0.2, 0.9), at(3.4, 6.9), axes), { a: at(0.5, 0.5), b: at(2.5, 4.5) });
+  const p = { ...createPicks(), srcs: [10, 20] };
+  assert.deepEqual(lineShown(p, at(0.2, 0.9), at(3.4, 6.9), axes), { a: at(0.2, 0.9), b: at(3.4, 6.9) });
+  // Nothing to snap to yet: the drawn line, so the drag still shows.
+  assert.deepEqual(lineShown(createPicks(), at(0.5, 0.5), at(1.2, 0.8), axes), { a: at(0.5, 0.5), b: at(1.2, 0.8) });
 });

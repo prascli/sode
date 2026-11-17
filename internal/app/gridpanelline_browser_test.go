@@ -48,20 +48,21 @@ func TestChromeGridPanelLine(t *testing.T) {
 	gridKey(b, "Escape")
 	b.waitFor("Esc drops it", `!document.querySelector('.sode-gridpanel__xp[data-s="staged"]')`)
 
-	// A vertical line down source 7 from destination 1 to destination 4.
+	// A line down source 7 from destination 1 to destination 4, drawn a little off vertical: it snaps to vertical.
 	x0, y0 := at(7, 1, 0)
 	_, y1 := at(7, 4, 0)
 	mouse("mousePressed", x0, y0)
 	for k := 1; k <= 12; k++ {
-		mouse("mouseMoved", x0, y0+(y1-y0)*float64(k)/12)
+		mouse("mouseMoved", x0+8*float64(k)/12, y0+(y1-y0)*float64(k)/12)
 	}
-	b.waitFor("the line shows with numbered targets and the protected row skipped", `(() => {
+	b.waitFor("the line snaps to vertical with numbered targets and the protected row skipped", `(() => {
 		const n = (d) => `+gridXp(7, 0)+`.parentNode.querySelector('.sode-gridpanel__xp[data-src="7"][data-dst="' + d + '"]').dataset.n;
-		return !document.querySelector('.sode-gridpanel__lines').hidden && n(1) === '1' && n(2) === '2' && n(4) === '3' &&
+		const l = document.querySelector('.sode-gridpanel__line');
+		return !document.querySelector('.sode-gridpanel__lines').hidden && l.getAttribute('x1') === l.getAttribute('x2') && n(1) === '1' && n(2) === '2' && n(4) === '3' &&
 			`+gridXp(7, 3)+`.hasAttribute('data-skip');
 	})()`)
 	b.shot("drawing")
-	mouse("mouseReleased", x0, y1)
+	mouse("mouseReleased", x0+8, y1)
 	b.waitFor("the confirm lists three destinations", `document.getElementById('confirm-body').textContent.includes('3 destinations')`)
 	b.waitFor("the line is gone", `document.querySelector('.sode-gridpanel__lines').hidden && !document.querySelector('[data-n], [data-skip]')`)
 	b.shot("confirm")

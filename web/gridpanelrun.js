@@ -15,7 +15,7 @@ import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, followCursor, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
-import { isLine, linePairs, lineStage } from './gridpanelline.js';
+import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
 import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
@@ -137,7 +137,7 @@ export function gridBody(ctx, first) {
   const preview = () => {
     if (line) {
       const { kept, r } = lineDry();
-      g.line(line);
+      g.line(lineShown(picks, line.a, line.b, axes));
       return previewGridPanel(g, kept, r.over, r.skipped);
     }
     g.line(null);
