@@ -31,7 +31,7 @@ func TestChromeGridPanelEditor(t *testing.T) {
 
 	b.eval(`document.getElementById('tab-ed-sources').click(); true`)
 	src := `document.querySelector('#ed-sources-list li[data-id="5"]')`
-	b.waitFor("the Sources list follows the router", src+` !== null && document.querySelectorAll('#ed-sources-list li').length === 200 && document.getElementById('ed-sources-all').disabled`)
+	b.waitFor("the Sources list follows the router", src+` !== null && document.getElementById('ed-sources-state').textContent.startsWith('200 sources') && document.getElementById('ed-sources-all').disabled`)
 	b.eval(src + `.querySelector('[data-act="pin"]').click(); true`)
 	b.waitFor("the source is pinned", src+`.querySelector('[data-act="pin"]').getAttribute('aria-pressed') === 'true' && document.getElementById('ed-sources-state').textContent.includes('1 of 8 pinned')`)
 	b.eval(`document.querySelector('#ed-sources-list li[data-id="0"] [data-act="delete"]').click(); true`)

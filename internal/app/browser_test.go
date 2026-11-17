@@ -335,3 +335,19 @@ func (b *tab) shot(name string) {
 	_ = os.MkdirAll(dir, 0o755)
 	_ = os.WriteFile(filepath.Join(dir, strings.ReplaceAll(b.t.Name(), "/", "_")+"-"+name+".png"), r.Data, 0o644)
 }
+
+// metrics reads CDP Performance.getMetrics by name (call Performance.enable first). Durations are in seconds.
+func (b *tab) metrics() map[string]float64 {
+	var r struct {
+		Metrics []struct {
+			Name  string
+			Value float64
+		}
+	}
+	_ = json.Unmarshal(b.call("Performance.getMetrics", nil), &r)
+	m := map[string]float64{}
+	for _, x := range r.Metrics {
+		m[x.Name] = x.Value
+	}
+	return m
+}

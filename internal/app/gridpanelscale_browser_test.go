@@ -112,5 +112,28 @@ func TestChromeGridPanelScale(t *testing.T) {
 	// A press far from the start still stages.
 	b.eval(gridXp(2499, 749) + `.click()`)
 	b.waitFor("the press stages", gridXp(2499, 749)+`.dataset.s === 'staged'`)
+
+	// A staged route pulses, and only the staged crosspoints run the animation. An inherited property animated above
+	// the grid restyles every node under it each frame. At this size that took 4.7 s of every 10 s.
+	b.eval(gridXp(2498, 748) + `.click(); ` + gridXp(2497, 747) + `.click(); true`)
+	b.waitFor("three staged", `document.querySelectorAll('.sode-gridpanel__xp[data-s="staged"]').length === 3`)
+	b.waitFor("the staged crosspoints pulse", `document.getAnimations().filter((a) => a.effect?.target?.dataset?.s === 'staged').length === 3`)
+	if big := b.eval(`document.getAnimations().map((a) => a.effect.target).filter((n) => n.getElementsByTagName('*').length > 20).map((n) => n.className).join(' ')`); big != "" {
+		t.Errorf("an animation runs on an element with many nodes under it: %v", big)
+	}
+	b.waitFor("the staged crosspoints pulse in step", `(() => {
+		const t = document.getAnimations().filter((a) => a.effect?.target?.dataset?.s === 'staged').map((a) => (a.currentTime - a.effect.getTiming().delay) % 2000);
+		return Math.max(...t) - Math.min(...t) < 100;
+	})()`)
+	b.call("Performance.enable", nil)
+	m0 := b.metrics()
+	time.Sleep(3 * time.Second)
+	m1 := b.metrics()
+	style := (m1["RecalcStyleDuration"] - m0["RecalcStyleDuration"]) * 1000
+	t.Logf("3 s with three staged: style recalc %.0f ms, tasks %.0f ms", style, (m1["TaskDuration"]-m0["TaskDuration"])*1000)
+	// About 60 ms here, and about 1400 ms when the whole grid restyled each frame.
+	if style > 600 {
+		t.Errorf("3 s with three staged spent %.0f ms on style recalc, want under 600", style)
+	}
 	b.check()
 }
