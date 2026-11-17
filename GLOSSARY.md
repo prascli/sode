@@ -66,7 +66,7 @@ _Avoid_: batch, folder
 One row in History: a route from a take, or an External.
 
 **Stacked row**:
-One row in History for several changes to one destination on the same levels, each within 30 seconds of the one before. The changes can come from any browser, panel or router panel. The row shows the source before the first change and the source after the last. Open it to see each change.
+One row in History for several changes to one destination on the same levels, each within a set time of the one before. The time is 30 seconds unless This browser says otherwise. The changes can come from any browser, panel or router panel. The row shows the source before the first change and the source after the last. Open it to see each change.
 
 **Before**:
 What the router had on a destination immediately before a take. Undo restores it.

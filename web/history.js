@@ -58,8 +58,8 @@ function passes(e) {
 
 // Changes to one destination on the same levels show as one stacked row when each comes at most
 // this long after the one before. Think of a shader's preview punched about. The gap between
-// neighbours, not the whole span. Keep in step with docs/agents/history.md.
-export const STACK_GAP_MS = 30000;
+// neighbours, not the whole span. 0 is off. Keep in step with docs/agents/history.md.
+export const stackGapMs = () => Number(pref('stackGap')) * 1000;
 
 // A change that can join a stacked row: one route on its own, from any browser, panel or the
 // router itself. A failed take stays apart for its Retry; a follow belongs to its take. An undo
@@ -89,6 +89,7 @@ function buildRows(list) {
   const rows = [];
   const byGroup = new Map();
   const chains = new Map();
+  const gap = stackGapMs();
   // Follows go with the take they followed (e.follows) when loaded and shown; one whose take is
   // hidden stands alone if it passes the filters itself.
   const byId = new Map(list.map((e) => [e.id, e]));
@@ -126,7 +127,7 @@ function buildRows(list) {
     const k = `${e.levels.join(',')}${e.found ? ' found' : ''}`; // found and announced do not mix
     const t = Date.parse(e.time);
     const c = chains.get(e.dst);
-    if (stacks(e) && c && c.k === k && c.t - t <= STACK_GAP_MS && !searchActive() && passes(e)) {
+    if (stacks(e) && c && c.k === k && gap > 0 && c.t - t <= gap && !searchActive() && passes(e)) {
       c.list.push(orig);
       const follows = [...(c.row.e.follows || []), ...(e.follows || [])];
       c.row.e = { ...c.row.e, prev: e.prev, merged: c.list.length, chain: c.list, ...(follows.length ? { follows } : {}) };

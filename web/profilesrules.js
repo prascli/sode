@@ -12,6 +12,7 @@ const LABELS = {
   scrollTop: 'Scroll to top',
   setStack: 'Stacked sets',
   nextMode: 'Next chip',
+  stackGap: 'Stacked rows gap',
   searchFilters: 'Quick search uses filters',
   compact: 'Compact view',
 };

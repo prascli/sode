@@ -133,6 +133,7 @@ type DeviceDefaults struct {
 	SearchFilters bool           `yaml:"searchFilters" json:"searchFilters"`
 	SetStack      string         `yaml:"setStack" json:"setStack"`
 	NextMode      string         `yaml:"nextMode" json:"nextMode"`
+	StackGap      string         `yaml:"stackGap" json:"stackGap"`
 	Compact       bool           `yaml:"compact" json:"compact"`
 	Extra         map[string]any `yaml:",inline" json:"-"`
 }
@@ -170,7 +171,7 @@ func Defaults() Config {
 		SignInMode:           SignInPin,
 		API:                  DefaultAPISettings(),
 		GuestAPIScopes:       slices.Clone(DefaultGuestScopes),
-		DeviceDefaults:       DeviceDefaults{Theme: "system", Layout: "auto", Clock: "24", ScrollTop: true, SetStack: "and", NextMode: "number"},
+		DeviceDefaults:       DeviceDefaults{Theme: "system", Layout: "auto", Clock: "24", ScrollTop: true, SetStack: "and", NextMode: "number", StackGap: "30"},
 	}
 }
 
@@ -287,6 +288,7 @@ func (c *Config) Normalize() {
 	d.Clock = strings.ToLower(strings.TrimSpace(d.Clock))
 	d.SetStack = strings.ToLower(strings.TrimSpace(d.SetStack))
 	d.NextMode = strings.ToLower(strings.TrimSpace(d.NextMode))
+	d.StackGap = strings.TrimSpace(d.StackGap)
 	if d.Theme == "" {
 		d.Theme = "system"
 	}
@@ -301,6 +303,9 @@ func (c *Config) Normalize() {
 	}
 	if d.NextMode == "" {
 		d.NextMode = "number"
+	}
+	if d.StackGap == "" {
+		d.StackGap = "30"
 	}
 	c.HiddenDsts = strings.TrimSpace(c.HiddenDsts)
 	c.LegacyGrids, c.LegacyGridConfirm, c.Locks.LegacyGrid = nil, nil, nil
@@ -442,6 +447,11 @@ func (c Config) Validate() error {
 	case "number", "fuzzy":
 	default:
 		bad("default next must be number or fuzzy")
+	}
+	switch c.DeviceDefaults.StackGap {
+	case "0", "10", "30", "60", "120", "300":
+	default:
+		bad("default stacked rows gap must be 0, 10, 30, 60, 120 or 300 seconds")
 	}
 	for i, v := range c.LevelColors {
 		if h, ok := strings.CutPrefix(v, "#"); v != "" && (!ok || len(h) != 6 || strings.Trim(h, "0123456789abcdef") != "") {

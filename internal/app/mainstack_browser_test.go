@@ -86,3 +86,37 @@ func TestChromeMainStackedRow(t *testing.T) {
 
 	b.check()
 }
+
+// The stacked-row gap is a This browser setting. Three quick takes make one row at 30 seconds
+// (the default) and three rows with Off. The select applies at once, with no reload.
+func TestChromeMainStackGapSetting(t *testing.T) {
+	b := startBrowser(t)
+	sim := startSim(t)
+	a := simApp(t, sim)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { a.Run(ctx); close(done) }()
+	t.Cleanup(func() { cancel(); <-done })
+	srv := httptest.NewServer(a.Handler(web.FS))
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
+	key := userKey(t, a, "Ana")
+	waitNamesAndTally(t, a, key)
+	for _, src := range []int{10, 11, 12} {
+		body := fmt.Sprintf(`{"routes":[{"src":%d,"dst":2,"levels":[1]}]}`, src)
+		if rec := apiPost(a, "/api/v1/takes", key, body, nil); rec.Code != 200 {
+			t.Fatalf("take of source %d: %d %s", src, rec.Code, rec.Body)
+		}
+	}
+	b.open(srv.URL + "/")
+	rows := `document.querySelectorAll('#history > .sode__hist-row').length`
+	b.waitFor("one stacked row at the default gap", rows+` === 1`)
+	if got := b.eval(`document.querySelector('#cfg-stack-gap option').textContent`); got != "Everyone's default (30 seconds)" {
+		t.Fatalf("gap select offers %q, want a default of 30 seconds", got)
+	}
+	b.eval(`(() => { const s = document.getElementById('cfg-stack-gap'); s.value = '0'; s.dispatchEvent(new Event('change', {bubbles: true})); return true; })()`)
+	b.waitFor("three rows with stacking off", rows+` === 3`)
+	if got := b.eval(`localStorage.getItem('sode-stack-gap')`); got != "0" {
+		t.Fatalf("sode-stack-gap is %v, want 0", got)
+	}
+	b.check()
+}

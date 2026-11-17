@@ -133,14 +133,14 @@ test('histRows', async () => {
 });
 
 test('rapid changes to one destination stack, from any instance', async () => {
-  const { histRows, S, setFilter, stackBefore, tallyText, STACK_GAP_MS, FILTER_DEFAULT } = await import('./all.mjs');
+  const { histRows, S, setFilter, stackBefore, tallyText, stackGapMs, setPref, FILTER_DEFAULT } = await import('./all.mjs');
   S.cfg = { numberOffset: 1, filterSets: [] };
   S.levelBy = new Map([
     [1, {}],
     [2, {}],
   ]);
   setFilter(FILTER_DEFAULT);
-  assert.equal(STACK_GAP_MS, 30000);
+  assert.equal(stackGapMs(), 30000);
   const T = (s) => new Date(Date.UTC(2026, 9, 24, 12, 0, 0) + s * 1000).toISOString();
   const L = [1, 2];
   const e = (o) => ({ levels: L, ok: true, srcName: 'CAM', dstName: 'SHADE', dst: 3, ...o });
@@ -188,6 +188,17 @@ test('rapid changes to one destination stack, from any instance', async () => {
   setFilter({ ...FILTER_DEFAULT, ext: false });
   assert.equal(show([...hist]), '20 19 17<17,16 21 15 f14,13 12 11 10');
   setFilter(FILTER_DEFAULT);
+
+  // The gap is a This browser pref. The takes are 20 s apart, so 10 s and Off stack nothing.
+  setPref('stackGap', '10');
+  assert.equal(stackGapMs(), 10000);
+  assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
+  setPref('stackGap', '300');
+  assert.equal(show(hist), '20<20,19,18,17,16 21 15 f14,13 12 11 10');
+  setPref('stackGap', '0');
+  assert.equal(stackGapMs(), 0);
+  assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
+  setPref('stackGap', '');
 });
 
 test('filter sets', async () => {
