@@ -30,9 +30,9 @@ const bandFits = `(() => {
 })()`
 
 // The Grid panel page at 1440 by 900. The header, the Levels box and the search boxes are one band, the deck. Its
-// header row holds the title, the main page's Server and Router status, Full screen and the Panels link, and the Lock
-// chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes
-// with the Filter switch, then Clear and the red Take with the note over them. Nothing in the band moves as words
+// header row holds the title, the main page's Server and Router status, Full screen and the Panels link. The Lock chip
+// names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes and the
+// Filter switch. Then come Clear and the red Take with the note over them. Nothing in the band moves as words
 // change. It checks the Sources and Destinations words in the corner, the picked row and column washes and the staged ring. The
 // cursor ring, the staged ring and Take pulse in one phase. The grid goes down to the window's bottom and Full width
 // and Kiosk mode are gone. The band fits at 1280 by 800 and 1920 by 1080, and 8 pins on each edge leave a short

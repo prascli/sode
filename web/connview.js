@@ -1,5 +1,5 @@
-// The Server and Router status with the router's address: the main page's top right (index.html #conn, desktop.js)
-// and the Grid panel's header (gridpanelheadview.js) draw the same block.
+// The Server and Router status with the router's address. The main page's top right (index.html #conn, desktop.js)
+// and the Grid panel's header (gridpanelheadview.js) draw this one block.
 import { el, S, connState, setDot, routerTitle } from './core.js';
 
 // n is { root, srvDot, srvText, rtDot, rtText, addr }. Returns connState(), so a caller can act on a lost link.
