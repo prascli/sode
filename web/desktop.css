@@ -224,7 +224,6 @@
 .sode__down-arrow--up::before {
   content: "↑";
 }
-/* Visible scrollbar (styled, so macOS doesn't overlay and hide it). */
 .sode__scroll {
   display: flex;
   flex-direction: column;
@@ -233,29 +232,16 @@
   overflow-y: scroll;
   padding-right: var(--pb-space-2);
 }
-.sode__scroll::-webkit-scrollbar,
-.sode__sets-run::-webkit-scrollbar,
-.sode__bar::-webkit-scrollbar,
-.sode__box--levels .sode__levels::-webkit-scrollbar {
+/* The levels bar keeps a styled native bar; the other scrollers here get big ones (bigscroll.js). */
+.sode__bar::-webkit-scrollbar {
   height: var(--pb-space-2);
   width: var(--pb-space-2);
 }
-.sode__scroll::-webkit-scrollbar-track,
-.sode__menu::-webkit-scrollbar-track,
-.sode__sets-run::-webkit-scrollbar-track,
-.sode__bar::-webkit-scrollbar-track,
-.sode__box--levels .sode__levels::-webkit-scrollbar-track {
+.sode__bar::-webkit-scrollbar-track {
   background: var(--pb-edge-soft);
 }
-.sode__scroll::-webkit-scrollbar-thumb,
-.sode__menu::-webkit-scrollbar-thumb,
-.sode__sets-run::-webkit-scrollbar-thumb,
-.sode__bar::-webkit-scrollbar-thumb,
-.sode__box--levels .sode__levels::-webkit-scrollbar-thumb {
+.sode__bar::-webkit-scrollbar-thumb {
   background: var(--pb-text-muted);
-}
-.sode__menu::-webkit-scrollbar {
-  width: calc(var(--pb-space-2) * 2);
 }
 .sode__feed {
   display: flex;
