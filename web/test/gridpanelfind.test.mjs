@@ -21,10 +21,12 @@ test('a new search is empty and in Find mode on both bars', () => {
   assert.equal(f.mode, 'find');
 });
 
-test('matches keep panel order, not score order, with no cut-off', () => {
-  // "cam 12" scores best on an exact name, but panel order puts 3 first.
-  assert.deepEqual(findMatches([3, 4, 1, 0, 2], names.sources, 'cam 1', 1), [4, 1]);
-  assert.deepEqual(findMatches([4, 3, 1], names.sources, 'cam', 1), [4, 3, 1]);
+test('matches go best first, as on the main page, with no cut-off', () => {
+  // An exact name, then the shorter prefix; equal scores keep panel order.
+  assert.deepEqual(findMatches([3, 4, 1, 0, 2], names.sources, 'cam 1', 1), [1, 4]);
+  assert.deepEqual(findMatches([4, 3, 1], names.sources, 'cam', 1), [3, 1, 4]);
+  // Letters in order match too, but after every better match, wherever they are in the panel.
+  assert.deepEqual(findMatches([0, 2, 1], names.sources, 'c', 1), [1, 0]);
 });
 
 test('numbers match as shown, with the number offset', () => {

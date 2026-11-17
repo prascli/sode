@@ -68,7 +68,8 @@ export function gridBody(ctx, first) {
   let full = { srcs: [], dsts: [] };
   // A load starts with no search. A live update keeps the search.
   let find = createFind();
-  let matches = { srcs: [], dsts: [] }; // findMatches for each box, in full order
+  let matches = { srcs: [], dsts: [] }; // findMatches for each box, best first
+  let matched = { srcs: new Set(), dsts: new Set() }; // the same, for the paint of each drawn name
   let boxes = null;
   let shownSrcs = new Set();
   let out = []; // staged routes left out (gridpanelrights.js), as of the last render
@@ -151,7 +152,7 @@ export function gridBody(ctx, first) {
     held: (d) => st.staged.some((x) => x.dst === d),
     picked: (kind, n) => picks[kind].includes(n),
     // Filter shows only matches, so only Find marks them.
-    found: (kind, n) => find.mode === 'find' && matches[kind].includes(n),
+    found: (kind, n) => find.mode === 'find' && matched[kind].has(n),
     leftOut: (s, d) => out.some((r) => r.src === s && r.dst === d),
     protected: (d) => env.protectedDsts.has(d),
     art: (kind, n) => nameArtOf(kind, n),
@@ -231,6 +232,7 @@ export function gridBody(ctx, first) {
   const rebuild = () => {
     const next = arrange(panel, namesReply, { find, picks, cur, axes });
     matches = next.matches;
+    matched = { srcs: new Set(matches.srcs), dsts: new Set(matches.dsts) };
     if (drawn && sameAxes(drawn.full, next.full) && sameAxes(drawn.axes, next.axes)) return;
     drawn = { full: next.full, axes: next.axes };
     ({ cur, axes, full, picks } = next);
@@ -246,7 +248,7 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
-      boxes = findBoxes(g.head, { onText: findText, onMode: findMode });
+      boxes = findBoxes(g.head, { onText: findText, onMode: findMode, onStep: findStep });
       gest = lineGestures(g, {
         start: lineStart,
         move: lineMove,
@@ -271,7 +273,7 @@ export function gridBody(ctx, first) {
     if (k < 0 || !g) return;
     ptr = null;
     setCursor(kind === 'srcs' ? { i: cur.i, j: k } : { i: k, j: cur.j });
-    g.reveal(cur);
+    g.glide(kind, k);
   }
 
   function findText(kind, text) {

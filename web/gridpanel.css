@@ -458,6 +458,32 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__dst[data-found]:not([data-picked]) {
   box-shadow: inset calc(var(--pb-border-w) * 4) 0 0 var(--pb-status-warn-fill);
 }
+/* The match Find went to pulses (gridpanelview.js glide; HIT_MS there is 3 x 0.45s). Two equal animations, so a new
+   match restarts the pulse on a node that has the last one. */
+.sode-gridpanel__src[data-hit="0"],
+.sode-gridpanel__dst[data-hit="0"] {
+  animation: sode-gridpanel-hit-a 0.45s ease-out 3;
+}
+.sode-gridpanel__src[data-hit="1"],
+.sode-gridpanel__dst[data-hit="1"] {
+  animation: sode-gridpanel-hit-b 0.45s ease-out 3;
+}
+@keyframes sode-gridpanel-hit-a {
+  50% {
+    filter: brightness(2);
+  }
+}
+@keyframes sode-gridpanel-hit-b {
+  50% {
+    filter: brightness(2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sode-gridpanel__src[data-hit],
+  .sode-gridpanel__dst[data-hit] {
+    animation: none;
+  }
+}
 /* The search boxes, in the corner where the bars meet (gridpanelfindbox.js). A role bar ties each to its bar. */
 .sode-gridpanel__head {
   align-content: center;
@@ -524,6 +550,17 @@ html:has(.sode-gridpanel) {
 }
 .sode-gridpanel__find[data-counted] .sode-gridpanel__find-input {
   padding-inline-end: calc(var(--pb-space-10) * 2 + var(--pb-space-5));
+}
+/* Previous and next match, beside the box, as tall as it. */
+.sode-gridpanel__find-step {
+  flex: none;
+  height: 1.8rem;
+  min-height: 0;
+  padding: 0;
+  width: 1.5rem;
+}
+.sode-gridpanel__find-step[hidden] {
+  display: none;
 }
 /* The one mode button, beside the Destinations word. One width for Find and Filter. */
 .sode-gridpanel__find-mode {
