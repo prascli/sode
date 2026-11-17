@@ -965,6 +965,24 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* A Grid panel has no cells, size or Pages (paneleditor.js sets data-type); its lists fill the sidebar. */
+.sode-ed[data-type="grid"] .sode-ed__body {
+  grid-template-columns: minmax(0, 40rem);
+}
+.sode-ed[data-type="grid"] .sode-ed__main,
+.sode-ed[data-type="grid"] #ed-templates {
+  display: none;
+}
+.sode-pages__row.sode-edge__row {
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.sode-edge__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pb-space-2);
+}
 .sode-ed__main {
   align-items: start;
   display: grid;

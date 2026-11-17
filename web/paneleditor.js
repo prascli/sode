@@ -55,6 +55,9 @@ import { addPage, movePage, renamePage, enablePage, deletePage, copyPage, openCl
 import { createPageBar } from './editorpagebar.js';
 import { createPageView } from './editorpageview.js';
 import { askCopyTo } from './editorpagecopy.js';
+import { isGridPanel } from './gridpaneledges.js';
+
+const GRID_EDGE = Object.freeze({ members: 'all' });
 
 const say = (id, text) => {
   const n = $(id);
@@ -75,6 +78,7 @@ export async function runEditor() {
   let open = [''];
   let list = [];
   let names = namesFrom({});
+  let routerNames = {}; // GET /names as read, for the Grid panel's list tabs
   let discardAsked = ''; // the panel the user tried to leave unsaved; a second try discards.
   const menuSections = []; // (grid) => items: where Find and later actions plug in.
   const keyHooks = []; // (event) => true when a grid key was handled (Find handles typed text and Enter).
@@ -92,6 +96,10 @@ export async function runEditor() {
     acts: edits.acts ?? loaded?.acts ?? (trusted ? 'both' : 'session'),
     slug: edits.slug ?? loaded?.slug ?? '',
     clientRights: edits.clientRights,
+    // A Grid panel's type is chosen once, before the first save; the server keeps a stored one.
+    type: edits.type ?? loaded?.type ?? 'buttons',
+    sources: edits.sources ?? loaded?.sources ?? GRID_EDGE,
+    destinations: edits.destinations ?? loaded?.destinations ?? GRID_EDGE,
   });
   const fieldsChanged = () => fieldWatchers.forEach((fn) => fn());
 
@@ -445,6 +453,8 @@ export async function runEditor() {
 
   function refresh() {
     const ro = readOnly();
+    // Grid panels have no cells, size or Pages: CSS hides the grid, the Pages bar and Templates.
+    document.querySelector('.sode-ed').dataset.type = isGridPanel(fields()) ? 'grid' : 'buttons';
     const live = livePages();
     grid.paint(g, names, { readOnly: ro, art, defaults, pages: live, page: focus });
     openView.paint(live, open, focus, { rows: g.rows, cols: g.cols, names, fixed: fixedOn(), readOnly: ro, art, defaults });
@@ -695,7 +705,8 @@ export async function runEditor() {
   (async () => {
     try {
       await loadList();
-      names = namesFrom(await sessionFetch('api/v1/names').then((r) => (r.ok ? r.json() : {})));
+      routerNames = await sessionFetch('api/v1/names').then((r) => (r.ok ? r.json() : {}));
+      names = namesFrom(routerNames);
       await loadDefaults();
       await openPanel(editorTarget(location.search).id, false);
     } catch (err) {
@@ -737,6 +748,7 @@ export async function runEditor() {
     // Saves now; answers '' when stored, else the refusal text.
     save,
     names: () => names,
+    routerNames: () => routerNames,
     addMenuSection: (fn) => menuSections.push(fn),
     addKeyHook: (fn) => keyHooks.push(fn),
     // Find's fill order, which Wrap follows.
