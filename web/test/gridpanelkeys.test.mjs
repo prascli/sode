@@ -25,6 +25,13 @@ test('Esc drops picks first, then staged routes, and only while either exists, s
   assert.equal(gridKeyAction(key('Escape'), ctx({ staged: 0 })), null);
 });
 
+test('g jumps to the current source, G steps through the destinations that have the source, u stages Undo', () => {
+  assert.equal(gridKeyAction(key('g', { code: 'KeyG' }), ctx()), 'jump');
+  assert.equal(gridKeyAction(key('G', { code: 'KeyG', shiftKey: true }), ctx()), 'step');
+  assert.equal(gridKeyAction(key('u', { code: 'KeyU' }), ctx({ staged: 0 })), 'undo');
+  for (const k of ['g', 'u']) assert.equal(gridKeyAction(key(k, { code: `Key${k.toUpperCase()}` }), ctx({ inControl: true })), null);
+});
+
 test('a key with Ctrl, Cmd or Alt held is not the grid’s', () => {
   for (const mod of ['ctrlKey', 'metaKey', 'altKey']) assert.equal(gridKeyAction(key('Enter', { [mod]: true }), ctx()), null);
 });

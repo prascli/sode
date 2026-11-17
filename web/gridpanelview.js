@@ -182,8 +182,9 @@ const cross = (rows, cols) => rows.flatMap((i) => cols.map((j) => [i, j]));
 
 // host is the run's grid element; axes is gridAxes plus srcPins and dstPins. onPress({ src, dst }) is a crosspoint
 // press. onName(kind, n, e) is a click on a name, kind 'srcs' or 'dsts'. onPoint(clientX, clientY) is each pointer
-// move over the scroller. Returns the drawn grid (docs/agents/panels.md).
-export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
+// move over the scroller. onJump(kind, n) is a right-click: kind 'xp' with n { src, dst }, or 'srcs' or 'dsts' with a
+// router number. Returns the drawn grid (docs/agents/panels.md).
+export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump }) {
   host.replaceChildren();
   host.removeAttribute('style');
   host.classList.add('sode-gridpanel');
@@ -378,6 +379,15 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
     if (xp) return onPress(xpOf(xp));
     const name = e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
     if (name) onName(name.dataset.src ? 'srcs' : 'dsts', Number(name.dataset.src ?? name.dataset.dst), e);
+  });
+  // Nodes move between items on a scroll, so the item is read from the node at the click.
+  field.addEventListener('contextmenu', (e) => {
+    const xp = e.target.closest('.sode-gridpanel__xp');
+    const name = !xp && e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
+    if (!xp && !name) return;
+    e.preventDefault();
+    if (xp) onJump?.('xp', xpOf(xp));
+    else onJump?.(name.dataset.src ? 'srcs' : 'dsts', Number(name.dataset.src ?? name.dataset.dst));
   });
   // A Shift-click would otherwise extend a text selection on the page.
   field.addEventListener('mousedown', (e) => {
