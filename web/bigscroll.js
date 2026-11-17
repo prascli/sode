@@ -314,7 +314,8 @@ function track(scroller, axis, little, page) {
   };
   // Over the window's edge the wheel reaches the page by itself; next to an element it would not.
   function onWheel(e) {
-    if (page) return;
+    // A pinch comes as a wheel with ctrlKey; it keeps the browser's zoom.
+    if (page || e.ctrlKey) return;
     e.preventDefault();
     const d = wheelPx(e.deltaX, e.deltaY, e.deltaMode, axis, view());
     setPos(pos() + d);
