@@ -99,7 +99,10 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 - `gridConfirm` wraps `keyConfirm` and `gridSummary`. The verb comes from `plan.verb` (`take` or `undo`). An Undo plan has `undoId`, and the replace ask has `replace: n` and `next`. `send({ routes, undoId? })` posts to `/panels/{id}/undo` when `undoId` is set, else to `api/v1/takes`.
 - The confirm's markup ids are fixed (`#confirm` and its parts in `panel.html`, the same as `keyconfirm.js`). The editor page has none, so Enter does nothing in Test it live. `lockout.js` reads `S.cfg`, so the configured lockout applies only after the panel socket's hello (500 ms before it). Instant mode holds nothing staged for a one-pair press, and a multi-route press waits on its confirm (`confirmRoutes`, `cancelConfirm`).
 - `.sode__plan-item`, its parts and `.sode__keys` are in `base.css`, since the panel page needs them.
-- The Take button `#panel-take` is made by the run and appended to `#panel-levels`. It shows on every layout in Take mode and never in an embedded run. It has no animation of its own while it is not armed.
+- The Take button `#panel-take` is made by the run and appended to `#panel-levels`. It shows on every layout in Take mode and never in an embedded run. It has no animation of its own while it is not armed. On the desktop layout it has a band column of its own (column 4), as the Levels input has column 3.
+- The run makes the header parts (`gridpanelheadview.js`, words in `gridpanelhead.js`) on the panel page only. Its stop puts the title and instance name back. The signed-in user comes from lock.js's `access` event, subscribed one time at import, since `on()` has no unsubscribe. The Router box reads `link` (GET /status) that `panelrun.js` passes to `body.data`. `ctx.keyed()` tells a page with a key. Full screen's words are `::before` from `aria-label`, since the tip uses `::after`. `#panel-full` is hidden by CSS. `chrome.show(base, titleBar, grid)` moves the Panels link into the header while it shows.
+- Picked rows and columns are `data-row` and `data-col` on crosspoints, set in `paintXp`. The staged ring is a second child of each crosspoint (`.sode-gridpanel__stage`), made in `makeXp`, never on a scroll. Its background is `pieFill` of the staged levels and it reads the crosspoint's `--pulse`.
+- The Sources row (`.sode-gridpanel__bar`) is made by `buildGridPanel` before the frame. The Destinations word is the last child of `g.head`, so `findBoxes` prepends.
 - Rights and protection (`gridpanelrights.js`): `otherSources`, `pressRefusal`, `leftOut(st, world)` with `why` of `rights`, `gone` or `protected`, and `keepLive`. A Diagonal and a Drawn line pass their pairs through `stageable`, which gives `err` only when every target is protected.
 
 ### Input
@@ -140,10 +143,11 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 - `TestChromeGridPanelScale` runs 2500 by 750 (`SIM_SOURCES`, `SIM_DESTS`), with `gridNodesMax` 4000. It does not assert the open time or the scroll time.
 - A live update check waits for the banner first. The countdown is 10 s plus a 5 s check. Set a Default artwork change with `a.artDefaults.set`, since the REST PUT needs a Trusted user.
 - Two taps on one name inside 350 ms are a double-tap, so a check that taps a name twice to unpick must wait.
+- `TestChromeGridPanelLook` runs at 1440 by 900. It checks the header, the axis labels, the washes and the staged ring. It also checks the Take button's size and place, the grid down to the bottom and the panels page's Grid picture.
 
-### Open items
+### Panels page
 
-- The panels page draws a Grid panel from no `rows` or `cols` (`thumb` and the `rows by cols` line in `panelslist.js`).
+- The panels page draws a Grid panel from `GRID_THUMB` and `gridThumbCells` (`panelsrules.js`), and the words are `gridSize`. An "all" edge reads "all", since the page reads no names.
 
 ## Undo cell
 
