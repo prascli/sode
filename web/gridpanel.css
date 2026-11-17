@@ -64,8 +64,8 @@ html:has(.sode-gridpanel) {
   min-height: 0;
 }
 /* Lines and boxes between the bands have no padding of their own. A kiosk fixes the foot to the bottom instead. */
-:root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) > :is(.sode__hint, .sode-panel__device, .pb-btn),
-:root:not([data-layout="phone"], [data-sode-kiosk]) .sode-panels:has(.sode-gridpanel) > .sode-panel__foot {
+.sode-panels:has(.sode-gridpanel) > :is(.sode__hint, .sode-panel__device, .pb-btn),
+:root:not([data-sode-kiosk]) .sode-panels:has(.sode-gridpanel) > .sode-panel__foot {
   margin: var(--pb-space-4) var(--pb-space-5);
 }
 :root:not([data-layout="phone"]):has(.sode-gridpanel) .sode-lock__who {

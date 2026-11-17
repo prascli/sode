@@ -30,11 +30,11 @@ func touch(b *tab, expr string, hold time.Duration) {
 func tap(b *tab, expr string) { touch(b, expr, 30*time.Millisecond) }
 
 // A Grid panel on the phone layout, by touch only, on a 2500 by 750 router. The page is one screen high: one band,
-// then the grid, with at least 5 columns and 11 rows of crosspoints. More opens the rest of the band. No cursor
-// shows. The corner gives the shown ranges. An edge scroll during a line is capped, even with the finger far past
-// the edge. Taps add names to the picks, a long-press adds a range, and the numbered targets show with no hover. A
-// tap on a crosspoint stages the Diagonal and the Take button opens the confirm. A double-tap on a name jumps and
-// leaves the picks as they were. There is no key list.
+// then the grid, with at least 5 columns and 11 rows of crosspoints. More opens the rest of the band, and the band's
+// levels follow the Levels box. No cursor shows. The corner gives the shown ranges. An edge scroll during a line is
+// capped, even with the finger far past the edge. Taps add names to the picks, a long-press adds a range, and the
+// numbered targets show with no hover. A tap on a crosspoint stages the Diagonal and the Take button opens the
+// confirm. A double-tap on a name jumps and leaves the picks as they were. There is no key list.
 func TestChromeGridPanelPhone(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t, "SIM_SOURCES=2500", "SIM_DESTS=750")
@@ -81,6 +81,12 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	tap(b, `document.getElementById('panel-more')`)
 	b.waitFor("More opens the Find boxes and the Levels box", `!!document.querySelector('.sode-gridpanel__finds').offsetParent && !!document.getElementById('panel-lvl').offsetParent`)
 	b.waitFor("the open band does not widen the page", `document.documentElement.scrollWidth <= innerWidth`)
+	lvChip := `document.querySelector('.sode-gridpanel__lv').textContent`
+	b.waitFor("the band shows the levels a press stages", lvChip+` === 'Levels1–2'`)
+	tap(b, `document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]')`)
+	b.waitFor("a level pick changes the band's levels", lvChip+` === 'Levels1–3'`)
+	tap(b, `document.querySelector('#panel-lvl-pick .sode__pick[data-ui="3"]')`)
+	b.waitFor("and back", lvChip+` === 'Levels1–2'`)
 	tap(b, `document.getElementById('panel-more')`)
 	b.waitFor("More closes them", `!document.querySelector('.sode-gridpanel__finds').offsetParent`)
 

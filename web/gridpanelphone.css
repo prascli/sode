@@ -18,7 +18,8 @@
   column-gap: var(--pb-space-2);
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto auto;
-  padding: var(--pb-space-2);
+  /* viewport-fit=cover (panel.html): a Home Screen copy draws under the status bar. */
+  padding: max(var(--pb-space-2), env(safe-area-inset-top)) var(--pb-space-2) var(--pb-space-2);
   row-gap: var(--pb-space-2);
 }
 :root[data-layout="phone"] .sode-gridpanel__deck > .sode-gridpanel__levels:not([hidden]) {

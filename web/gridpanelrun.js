@@ -207,7 +207,7 @@ export function gridBody(ctx, first) {
   };
 
   const render = () => {
-    head?.paintLevels();
+    paintLevels();
     dirty = false;
     out = leftOut(st, world());
     if (g) {
@@ -418,6 +418,7 @@ export function gridBody(ctx, first) {
   const lvl = boxNode
     ? levelBox(document.getElementById('panel-lvl'), document.getElementById('panel-lvl-pick'), document.getElementById('panel-lvl-all'), boxSource, {
         hold: 'pointerdown',
+        onChange: () => paintLevels(),
       })
     : null;
   if (boxNode) boxNode.hidden = false;
@@ -438,6 +439,7 @@ export function gridBody(ctx, first) {
     if (fill) lvl.set(fill);
   }
 
+  const paintLevels = () => head?.paintLevels(levelTextOf(pressLevels(), tally?.levels || [], tally?.levelNumbering));
   const pressLevels = () => {
     if (lvl) return stageLevels(lvl.levels(), tally, panel.rights);
     const src = boxSource();

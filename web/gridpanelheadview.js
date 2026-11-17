@@ -57,23 +57,20 @@ export function gridHead(ui, count) {
   const toggle = () => open(!deck.hasAttribute('data-open'));
   more.addEventListener('click', toggle);
   lv.addEventListener('click', toggle);
-  const input = box?.querySelector('input');
-  const paintLevels = () => {
-    const t = input?.value.trim() || 'none';
+  // text is the levels a press stages, in words; the band is the only place they show while the rest is closed.
+  const paintLevels = (text) => {
+    const t = text || 'none';
     if (lvText.data !== t) lvText.data = t;
   };
-  input?.addEventListener('input', paintLevels);
   box?.prepend(more, lv);
-  paintLevels();
   return {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
-    // The run calls this on each render, since a fill of the box from code sends no input event.
+    // The run calls this on each render and on each Levels box change.
     paintLevels,
     stop() {
       more.remove();
       lv.remove();
-      input?.removeEventListener('input', paintLevels);
       conns.delete(conn);
       delete ui.tools;
       id.replaceWith(ui.title, ui.name);
