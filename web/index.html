@@ -53,7 +53,8 @@
             <input id="dst" class="pb-input sode__input" placeholder=" " role="combobox" aria-expanded="false" aria-controls="dst-menu" aria-autocomplete="list" spellcheck="false">
             <kbd class="sode__key-note" aria-hidden="true">d</kbd>
           </span>
-          <div class="sode__menu-pop"><ul id="dst-menu" class="pb-menu sode__menu" role="listbox" aria-label="Destinations" hidden></ul><div class="sode__menu-count" id="dst-count" aria-hidden="true" hidden></div><div class="sode__menu-all" id="dst-all" hidden><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" tabindex="-1">Show all destinations</button></div></div>
+          <div class="sode__menu-pop"><ul id="dst-menu" class="pb-menu sode__menu" role="listbox" aria-label="Destinations" hidden></ul><div class="sode__menu-count" id="dst-count" aria-hidden="true" hidden></div></div>
+          <div class="sode__menu-all" id="dst-all" hidden><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" tabindex="-1">Show all destinations</button></div>
         </div>
         <div class="sode__chips" id="dst-chips" role="list" aria-label="Destinations to take to" hidden></div>
       </div>
@@ -181,6 +182,10 @@
           <span class="pb-select-wrap"><select id="cfg-set-stack" class="pb-select" data-pref="setStack"></select></span>
         </div>
         <div class="sode__field">
+          <label for="cfg-stack-gap">Stack quick changes to one destination</label>
+          <span class="pb-select-wrap"><select id="cfg-stack-gap" class="pb-select" data-pref="stackGap"></select></span>
+        </div>
+        <div class="sode__field">
           <label for="cfg-next-mode">Next match behavior</label>
           <span class="pb-select-wrap"><select id="cfg-next-mode" class="pb-select" data-pref="nextMode"></select></span>
         </div>
@@ -238,6 +243,10 @@
         <div class="sode__field">
           <label for="gcfg-set-stack">Stacked filters behavior</label>
           <span class="pb-select-wrap"><select id="gcfg-set-stack" class="pb-select" data-gpref="setStack"></select></span>
+        </div>
+        <div class="sode__field">
+          <label for="gcfg-stack-gap">Stack quick changes to one destination</label>
+          <span class="pb-select-wrap"><select id="gcfg-stack-gap" class="pb-select" data-gpref="stackGap"></select></span>
         </div>
         <div class="sode__field">
           <label for="gcfg-next-mode">Next match behavior</label>
@@ -684,6 +693,7 @@
       <dl>
         <dt><kbd>Tab</kbd></dt><dd>Next box</dd>
         <dt><kbd>+</kbd> <kbd data-mac="⌘Enter">Ctrl+Enter</kbd> <kbd data-mac="⌃Enter" hidden></kbd></dt><dd>Add destination</dd>
+        <dt><kbd data-mac="⌘click">Ctrl+click</kbd> <kbd data-mac="⌃click" hidden></kbd></dt><dd>Add a destination from History or the match list</dd>
         <dt><kbd data-mac="⌃s">Ctrl+s</kbd> <kbd data-mac="⌃d">Ctrl+d</kbd> <kbd data-mac="⌃f">Ctrl+f</kbd></dt><dd>Last take's source, destination, levels</dd>
         <dt><kbd data-mac="⌃⇧s">Ctrl+Shift+s</kbd> <kbd data-mac="⌃⇧d">Ctrl+Shift+d</kbd></dt><dd>Last take's source, destination, the next one (repeat for more)</dd>
         <dt><kbd>Enter</kbd></dt><dd>Take</dd>

@@ -38,6 +38,7 @@ var PrefValues = map[string][]string{
 	"scrollTop":     {"on", "off"},
 	"setStack":      {"and", "or"},
 	"nextMode":      {"number", "fuzzy"},
+	"stackGap":      {"0", "10", "30", "60", "120", "300"},
 	"searchFilters": {"on", "off"},
 	"compact":       {"on", "off"},
 }

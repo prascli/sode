@@ -55,7 +55,7 @@ html {
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-4);
   padding: var(--pb-space-2) var(--pb-space-3);
-  position: fixed;
+  position: absolute;
   right: calc(var(--pb-space-5) + var(--sode-page-bar));
   top: var(--pb-space-4);
   z-index: var(--pb-z-sticky);
@@ -286,10 +286,14 @@ html {
 .sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-input {
   background-image: linear-gradient(var(--pb-dest), var(--pb-dest));
 }
+/* One size for every source and destination chip, buttons (sode__end--pick) included: the height of
+   patchbay's .pb-chip under the Destination box. Its edge is 2px, this one is 1px, so the padding takes the other px. */
 .sode__end {
   border: var(--pb-border-w) solid var(--pb-edge);
   color: var(--pb-text-strong);
-  padding: var(--pb-space-2) var(--pb-space-4);
+  font-size: var(--pb-text-sm);
+  line-height: 0.875rem;
+  padding: calc(var(--pb-space-1) + var(--pb-border-w)) var(--pb-space-4);
 }
 .sode__end--src {
   border-left: var(--sode-side-w) solid var(--pb-source);
@@ -801,12 +805,19 @@ html {
   gap: var(--pb-space-5);
   min-width: 0;
 }
+/* The edge of the destination chips under the Destination box (pb-chip--static). On the desktop also their text size and
+   padding; the phone keeps the smaller chip, so Last and Next fit beside its box name. */
 .pb-chip.sode__last {
+  border-color: var(--pb-edge-light);
   font-size: var(--pb-text-xs);
   gap: var(--pb-space-2);
   max-width: 100%;
   min-width: 0;
   padding: 0 var(--pb-space-2);
+}
+:root:not([data-layout="phone"]) .pb-chip.sode__last {
+  font-size: var(--pb-text-sm);
+  padding: var(--pb-space-1) var(--pb-space-4);
 }
 .sode__last-text {
   min-width: 0;
@@ -1044,10 +1055,14 @@ html[data-shift] .sode__next > .sode__next-open {
   padding-top: var(--pb-space-5);
 }
 
-/* An open dialog keeps the page behind it still: wheel and touch over the scrim must not scroll Settings. */
+/* An open dialog keeps the page behind it still: wheel and touch over the scrim must not scroll Settings.
+   The lock goes on body, which passes it to the viewport. Overflow on html would stop that, and body (height:100% in
+   patchbay) would scroll on its own, so the page's scroll range would shrink and Settings would jump up. */
 html:has(.sode__scrim:not([hidden])) {
-  overflow: hidden;
   scrollbar-gutter: stable;
+}
+html:has(.sode__scrim:not([hidden])) > body {
+  overflow-y: hidden;
 }
 .sode__scrim .pb-modal__body {
   overscroll-behavior: contain;
