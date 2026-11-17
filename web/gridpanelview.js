@@ -61,9 +61,9 @@ const makeName = (cls, role) => () => {
   n.append(document.createTextNode(''));
   return n;
 };
-// The artwork beside a name: Icon A as a sprite icon, an image or a mask (a library SVG, in the text colour), then
-// Icon B. All four exist from the start and a paint shows some, so a scroll changes attributes and never childList.
-// The last child of a name; it comes before the text in the layout (CSS order).
+// The artwork beside a name: Icon A as a sprite icon, an image or a mask, then Icon B. A mask is a library SVG in
+// the text colour. All four exist from the start and a paint shows some, so a scroll changes attributes and never
+// childList. The last child of a name; it comes before the text in the layout (CSS order).
 const makeArt = () => {
   const row = el(
     'span',
@@ -100,7 +100,7 @@ const makeDst = () => {
 const show = (n, on) => {
   if (n.hidden === on) n.hidden = !on;
 };
-// art is { icon, url, mask, b } from view.art (any part may be missing), or null.
+// art is { icon, url, mask, b } from view.art (a part can be missing), or null.
 function paintArt(row, art) {
   const [svg, img, mask, b] = row.children;
   setText(b, art?.b || '');
