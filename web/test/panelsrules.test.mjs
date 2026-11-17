@@ -295,7 +295,7 @@ test('a Grid panel on the list says how many sources and destinations it holds, 
   assert.equal(all.size, 'large');
   assert.deepEqual(
     all.tiles.map((x) => x.label),
-    ['a', 'l', 'l', '4'],
+    ['A', 'L', 'L', '4'],
   );
   // One character per square, centred. Large has 8 squares, so "750" leaves 5 spare and takes a half square; "40" in Medium leaves 3 and does too.
   const s750 = gridThumb({ sources: edge(750), destinations: edge(2) });
