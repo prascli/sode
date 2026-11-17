@@ -4,7 +4,7 @@
 // Everything shown comes from the view that paint is given. docs/agents/panels.md has the layer plan.
 import { el, icon } from './core.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, scrollFor } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor } from './gridpanelwindow.js';
 
 const OVER = 4; // items drawn past each end of the view, so a fast scroll shows fewer blank crosspoints
 
@@ -132,9 +132,9 @@ const range = (lo, hi) => Array.from({ length: Math.max(0, hi - lo) }, (_, k) =>
 const cross = (rows, cols) => rows.flatMap((i) => cols.map((j) => [i, j]));
 
 // host is the run's grid element; axes is gridAxes plus srcPins and dstPins. onPress({ src, dst }) is a crosspoint
-// press. onName(kind, n, e) is a click on a name, kind 'srcs' or 'dsts'. onAt({ src, dst } or null) gives the
-// crosspoint under the pointer. Returns the drawn grid (docs/agents/panels.md).
-export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
+// press. onName(kind, n, e) is a click on a name, kind 'srcs' or 'dsts'. onPoint(clientX, clientY) is each pointer
+// move over the scroller. Returns the drawn grid (docs/agents/panels.md).
+export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
   host.replaceChildren();
   host.removeAttribute('style');
   host.classList.add('sode-gridpanel');
@@ -144,7 +144,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
   const top = layer('sode-gridpanel__top');
   const side = layer('sode-gridpanel__side');
   const corner = layer('sode-gridpanel__corner');
-  const field = el('div', 'sode-gridpanel__field', body, overlay, side, top, corner);
+  // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
+  // pinned item it must draw above the sticky bands.
+  const cursor = el('div', 'sode-gridpanel__cursor', el('span', 'sode-gridpanel__ring'));
+  cursor.setAttribute('aria-hidden', 'true');
+  const field = el('div', 'sode-gridpanel__field', body, overlay, side, top, corner, cursor);
   field.setAttribute('role', 'group');
   field.setAttribute('aria-label', 'Crosspoints');
   // The probe is the Destination bar width by the Source bar height, with one crosspoint inside. CSS sets the
@@ -238,6 +242,31 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
   });
   const spans = () => ({ rows: axisSpan(axis(false)), cols: axisSpan(axis(true)) });
 
+  // Display position { i, j } of the cursor, -1 on a bar. A bar or pinned item is sticky, so each draw places it again.
+  let cur = { i: -1, j: -1 };
+  let curKey = '';
+  const placeCursor = () => {
+    const ra = axis(false);
+    const ca = axis(true);
+    const x = placeAt(cur.j, ca);
+    const y = placeAt(cur.i, ra);
+    const w = cur.j < 0 ? px.w : px.xp;
+    const h = cur.i < 0 ? px.h : px.xp;
+    const band = cur.i < ra.pins || cur.j < ca.pins;
+    // Above the bands, a part that scrolls is hidden once it is under them, so it does not cover a name.
+    const under = (k, a, at) => k >= a.pins && at + a.size <= a.offset + a.head + a.pins * a.size;
+    const hide = band && (under(cur.i, ra, y) || under(cur.j, ca, x));
+    const key = `${x},${y},${w},${h},${band},${hide}`;
+    if (key === curKey) return;
+    curKey = key;
+    cursor.style.transform = `translate(${x}px, ${y}px)`;
+    cursor.style.width = `${w}px`;
+    cursor.style.height = `${h}px`;
+    setData(cursor, 'band', band ? '' : undefined);
+    setData(cursor, 'bar', cur.i < 0 || cur.j < 0 ? '' : undefined);
+    cursor.hidden = hide;
+  };
+
   const reserve = () => {
     const r = spanMax(axis(false));
     const c = spanMax(axis(true));
@@ -264,6 +293,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
     pools.dsts.sync(rs.map((i) => [i, 0]));
     pools.srcPinned.sync(cp.map((j) => [0, j]));
     pools.dstPinned.sync(rp.map((i) => [i, 0]));
+    placeCursor();
     for (const f of listeners) f();
   };
 
@@ -285,6 +315,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
   // A new window or layout size changes how many items show, and a font size change changes px.
   const ro = new ResizeObserver(() => {
     measure();
+    curKey = '';
     reserve();
     draw();
   });
@@ -301,11 +332,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
   field.addEventListener('mousedown', (e) => {
     if (e.shiftKey) e.preventDefault();
   });
-  field.addEventListener('pointerover', (e) => {
-    const xp = e.target.closest('.sode-gridpanel__xp');
-    onAt(xp ? xpOf(xp) : null);
-  });
-  field.addEventListener('pointerleave', () => onAt(null));
+  const onMove = (e) => onPoint(e.clientX, e.clientY);
+  scroll.addEventListener('pointermove', onMove, { passive: true });
   measure();
   setAxes(axes);
 
@@ -329,6 +357,30 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
     // Cell px sizes: xp is one crosspoint, w the Destination bar width, h the Source bar height.
     metrics: () => ({ ...px }),
     spans,
+    // The display cell { i, j } under a client point, -1 on a bar, or null past the last item or on a scrollbar.
+    cellAt(x, y) {
+      const r = scroll.getBoundingClientRect();
+      const cx = x - r.left - scroll.clientLeft;
+      const cy = y - r.top - scroll.clientTop;
+      if (cx >= scroll.clientWidth || cy >= scroll.clientHeight) return null;
+      const j = slotAt(cx, axis(true));
+      const i = slotAt(cy, axis(false));
+      return i === null || j === null ? null : { i, j };
+    },
+    // Places the cursor at display cell { i, j }. Only the cursor node changes.
+    cursor(c) {
+      cur = c;
+      setData(cursor, 'i', String(c.i));
+      setData(cursor, 'j', String(c.j));
+      placeCursor();
+    },
+    // Whole scrolling rows and columns one screen shows.
+    page: () => ({ rows: pageOf(axis(false)), cols: pageOf(axis(true)) }),
+    // Scrolls as little as it can to show display cell { i, j } whole; a bar (-1) keeps that axis where it is.
+    revealCell({ i, j }) {
+      if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true));
+      if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false));
+    },
     // The crosspoint under a client point, or null on a name, a gap or outside.
     hit(x, y) {
       const r = scroll.getBoundingClientRect();
@@ -379,6 +431,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onAt }) {
     stop() {
       ro.disconnect();
       scroll.removeEventListener('scroll', onScroll);
+      scroll.removeEventListener('pointermove', onMove);
       listeners.clear();
     },
   };

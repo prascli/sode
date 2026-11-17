@@ -1,7 +1,7 @@
 // Which part of a Grid panel is drawn (gridpanelwindow.js): one axis at a time, in px, pinned items at the edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisSpan, spanMax, indexAt, scrollFor, pinsOf } from '../gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, pinsOf } from '../gridpanelwindow.js';
 
 // 2500 sources of 70 px after a 220 px name column, in a 1060 px wide view: 12 to 13 columns show.
 const ax = (over = {}) => ({ n: 2500, pins: 0, size: 70, head: 220, offset: 0, view: 1280, over: 0, ...over });
@@ -76,4 +76,25 @@ test('spanMax is the longest span at any offset, so nodes made up front are neve
     assert.ok(spanMax(a) >= most, `${JSON.stringify(over)}: ${spanMax(a)} < ${most}`);
     assert.ok(spanMax(a) <= most + 1, `${JSON.stringify(over)}: ${spanMax(a)} well over ${most}`);
   }
+});
+
+test('slotAt tells the name bar (-1) from past the last item (null)', () => {
+  assert.equal(slotAt(100, ax()), -1);
+  assert.equal(slotAt(220, ax()), 0);
+  assert.equal(slotAt(290, ax({ offset: 7000 })), 101);
+  assert.equal(slotAt(400, ax({ n: 2 })), null);
+  assert.equal(slotAt(-1, ax()), null, 'before the view');
+});
+
+test('pageOf is the whole scrolling items one screen shows, at least one', () => {
+  // 1280 - 220 = 1060 px: 15 whole items of 70.
+  assert.equal(pageOf(ax()), 15);
+  assert.equal(pageOf(ax({ pins: 3 })), 12);
+  assert.equal(pageOf(ax({ view: 250 })), 1);
+});
+
+test('placeAt is an item start in content px; a pinned item and the bar follow the scroll', () => {
+  assert.equal(placeAt(-1, ax({ offset: 7000 })), 7000);
+  assert.equal(placeAt(1, ax({ pins: 2, offset: 7000 })), 7000 + 220 + 70);
+  assert.equal(placeAt(100, ax({ pins: 2, offset: 7000 })), 220 + 100 * 70);
 });
