@@ -51,6 +51,10 @@ export function pinsOf(edge, order) {
   return k;
 }
 
+// How many of an edge's pins draw as pinned: at most half the room past the name bar. So 8 pins, the most an edge
+// holds, never fill a short or narrow window. The rest scroll with the other items; they come first in order.
+export const pinsShown = ({ pins, size, head, view }) => Math.min(pins, Math.max(0, Math.floor((view - head) / size / 2)));
+
 // As indexAt, but null past the last item or before the view, so a caller can tell that from the name bar (-1).
 export function slotAt(px, a) {
   if (px < 0) return null;

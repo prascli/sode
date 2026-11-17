@@ -14,7 +14,7 @@ func gridMenu(b *tab, node string) {
 
 // Jumps and Undo on a Grid panel in Take mode. Each destination starts on the source of its own number.
 // g and a right-click on a destination go to its current source. G and a right-click on a source step through
-// the destinations that have it. With a route staged, u asks first. Then it stages this instance's Undo in place
+// the destinations that have it. A right-click on a staged crosspoint unstages it. With a route staged, u asks first. Then it stages this instance's Undo in place
 // of the route. Enter and the confirm send the Undo, and the old source comes back.
 func TestChromeGridPanelUndo(t *testing.T) {
 	b := startBrowser(t)
@@ -39,6 +39,13 @@ func TestChromeGridPanelUndo(t *testing.T) {
 
 	gridMenu(b, `document.querySelector('.sode-gridpanel__dst[data-dst="2"]')`)
 	gridCursorOn(b, "a right-click on a destination goes to its current source", 2, 5)
+	b.waitFor("the jump pulses the crosspoint and both its names in one phase", `(() => {
+		const xp = document.querySelector('.sode-gridpanel__xp[data-hit][data-src="5"][data-dst="2"]');
+		const s = document.querySelector('.sode-gridpanel__src[data-hit][data-src="5"]'), d = document.querySelector('.sode-gridpanel__dst[data-hit][data-dst="2"]');
+		if (!xp || !s || !d || !(xp.dataset.hit === s.dataset.hit && s.dataset.hit === d.dataset.hit)) return false;
+		const t = [xp.firstElementChild.nextElementSibling, s, d].flatMap((n) => n.getAnimations()).filter((a) => a.animationName.startsWith('sode-gridpanel-hit'));
+		return t.length === 3 && Math.max(...t.map((a) => a.startTime)) - Math.min(...t.map((a) => a.startTime)) < 20;
+	})()`)
 	realKey(b, "j", "KeyJ", 74)
 	realKey(b, "g", "KeyG", 71)
 	gridCursorOn(b, "g goes along the row to the current source", 3, 3)
@@ -62,6 +69,11 @@ func TestChromeGridPanelUndo(t *testing.T) {
 	staged := func(src, dst int) string { return gridXp(src, dst) + `.dataset.s === 'staged'` }
 	b.eval(gridXp(9, 4) + `.click()`)
 	b.waitFor("a route staged", staged(9, 4))
+	gridMenu(b, gridXp(9, 4))
+	b.waitFor("a right-click on a staged crosspoint unstages it", `!(`+staged(9, 4)+`)`)
+	gridCursorOn(b, "and does not jump", 5, 5)
+	b.eval(gridXp(9, 4) + `.click()`)
+	b.waitFor("the route staged again", staged(9, 4))
 	realKey(b, "u", "KeyU", 85)
 	b.waitFor("u asks before it drops the staged route", `!document.getElementById('confirm').hidden && document.getElementById('confirm-body').textContent.includes('1 staged route')`)
 	b.shot("replace")

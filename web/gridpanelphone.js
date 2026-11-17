@@ -17,12 +17,13 @@ export function restPoint(picks, axes, cur) {
   };
 }
 
-// The Take button, on every layout: Enter for a phone, and the staged count beside the Levels box. Instant mode
-// holds nothing staged, so it has none. Armed is the look of a Take with routes waiting.
+// The Take button, on every layout: Enter for a phone. Its word never changes, so the band does not move; the note
+// beside it counts the staged routes. Instant mode holds nothing staged, so it has none. Armed is the look of a Take
+// with routes waiting.
 export function takeButton({ mode, staged, busy }) {
   const shown = mode === 'take';
   const n = shown ? staged : 0;
-  return { shown, disabled: !n || busy, armed: !!n && !busy, count: n ? String(n) : '' };
+  return { shown, disabled: !n || busy, armed: !!n && !busy };
 }
 
 // pickName's mods for a click on a name. On the phone a tap adds or removes one name, as Cmd-click does, and a

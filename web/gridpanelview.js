@@ -5,7 +5,7 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, OVER } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, pinsShown, OVER } from './gridpanelwindow.js';
 
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
 const GLIDE_MAX_MS = 3000; // a glide across 2500 sources takes about 1.5 s
@@ -21,6 +21,14 @@ export function joinPulse(node) {
     });
   joining.add(node);
 }
+
+// The number each name of a press preview carries, the same as its crosspoint's, so the two line up by eye. A name in
+// more than one numbered pair (a line's one source) gets '' and shows no number. key is 'src' or 'dst'.
+const pairNumbers = (pairs, key) => {
+  const m = new Map();
+  pairs.forEach((p, k) => m.set(p[key], m.has(p[key]) ? '' : String(k + 1)));
+  return m;
+};
 
 // A name node keeps one Text child, so a rename or a move is not a childList change.
 const setText = (n, t) => {
@@ -70,7 +78,7 @@ function paintXp(xp, s, d, view) {
   if (starts) joinPulse(xp);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
   if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
-  const state = out ? ', staged, left out of the take' : staged.length ? ', staged. Alt-click to unstage' : '';
+  const state = out ? ', staged, left out of the take' : staged.length ? ', staged. Right-click or Alt-click to unstage' : '';
   const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${prot ? ', protected' : ''}${state}`;
   if (xp.getAttribute('aria-label') !== label) xp.setAttribute('aria-label', label);
 }
@@ -228,9 +236,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const side = layer('sode-gridpanel__side');
   const corner = layer('sode-gridpanel__corner');
   // Where the bars meet: the run puts the search boxes here (gridpanelfindbox.js).
-  // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar.
-  const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, word, icon(arrow));
-  const head = el('div', 'sode-gridpanel__head', label('dst', 'Destinations', 'arrow-down'));
+  // The run puts the search boxes first, so the Destinations word stays last, next to the Destination bar. The
+  // Sources word is on its side at the corner's right edge, next to the Source bar, so it needs no arrow.
+  const label = (kind, word, ...arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), ...arrow);
+  const head = el('div', 'sode-gridpanel__head', label('src', 'Sources'), label('dst', 'Destinations', icon('arrow-down')));
   corner.append(head);
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
@@ -256,26 +265,58 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const scroll = el('div', 'pb-grid-body sode-gridpanel__scroll', field, probe);
   // Focus goes back here from a search box, so an embedded run (which needs focus in the grid) gets its keys.
   scroll.tabIndex = -1;
-  // The Sources row over the grid. It starts where the Source bar does.
-  const bar = el('div', 'sode-gridpanel__bar', label('src', 'Sources', 'arrow-right'));
-  host.append(bar, el('div', 'pb-grid sode-gridpanel__frame', scroll));
+  host.append(el('div', 'pb-grid sode-gridpanel__frame', scroll));
 
   let ax = axes;
   let srcAt = new Map(); // router number to display index
   let dstAt = new Map();
   let view = null;
   // The press preview (g.preview): numbered crosspoints by "s:d" and outlined names.
-  let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
+  let mark = { xps: new Map(), skip: new Set(), srcs: new Map(), dsts: new Map() };
   const marked = new Set(); // crosspoint nodes that carry a number
   let cur = { i: -1, j: -1 }; // The cursor's display position, -1 on a bar.
-  // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
-  // animations. Thus a new glide restarts the pulse on a node that still has the last one.
+  // What g.glide or g.jump went to, { srcs, dsts, seq } with router numbers (null for none), until its pulse ends. The
+  // crosspoint pulses when both are set. seq is 0 or 1 and picks one of two equal animations. Thus a new glide restarts
+  // the pulse on a node that still has the last one. Set when the scroll ends, so every part pulses in one phase.
   let hit = null;
-  let hitEnd = null; // { timer, done } of the pulse in progress
-  const hitOf = (kind, n) => (hit?.kind === kind && hit.n === n ? String(hit.seq) : undefined);
+  let seq = 1;
+  let hitEnd = null; // { timer, done } of the glide or pulse in progress
+  const hitOf = (kind, n) => (hit && hit[kind] === n ? String(hit.seq) : undefined);
+  const hitXp = (s, d) => (hit && hit.srcs === s && hit.dsts === d ? String(hit.seq) : undefined);
   const paintHits = () => {
     for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('srcs', Number(n.dataset.src)));
     for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) setData(n, 'hit', hitOf('dsts', Number(n.dataset.dst)));
+    for (const p of xpPools) for (const n of p.live.values()) setData(n, 'hit', hitXp(Number(n.dataset.src), Number(n.dataset.dst)));
+  };
+  // Scrolls to `to` ({ left, top }, either one) smoothly, then pulses `next` ({ srcs, dsts }) for HIT_MS.
+  const goTo = (to, next) => {
+    const m = read();
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (hitEnd) {
+      clearTimeout(hitEnd.timer);
+      scroll.removeEventListener('scrollend', hitEnd.done);
+    }
+    hit = null;
+    paintHits();
+    const done = () => {
+      scroll.removeEventListener('scrollend', done);
+      clearTimeout(hitEnd.timer);
+      seq = 1 - seq;
+      hit = { ...next, seq };
+      paintHits();
+      hitEnd.timer = setTimeout(() => {
+        hit = null;
+        hitEnd = null;
+        paintHits();
+      }, HIT_MS);
+    };
+    hitEnd = { timer: 0, done };
+    // No scrollend comes for a move under a pixel or on a browser without the event, so a timer ends it too.
+    const still = Object.entries(to).every(([k, v]) => Math.abs(v - (k === 'left' ? m.left : m.top)) < 1);
+    if (still) return done();
+    hitEnd.timer = setTimeout(done, GLIDE_MAX_MS);
+    scroll.addEventListener('scrollend', done);
+    scroll.scrollTo({ ...to, behavior: calm ? 'instant' : 'smooth' });
   };
   let px = { xp: 1, w: 1, h: 1 };
   const listeners = new Set();
@@ -296,7 +337,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     if (k === undefined && !skip) marked.delete(n);
     else marked.add(n);
   };
-  const markName = (n, on) => setData(n, 'target', on ? '' : undefined);
+  // v is the name's number in mark (a string), '' for a name in more than one numbered pair, undefined for none.
+  const markName = (n, v) => {
+    setData(n, 'target', v !== undefined ? '' : undefined);
+    setData(n, 'n', v || undefined);
+  };
   // The names of the crosspoint under the cursor; none while the cursor is on a bar.
   const cueOf = () => (cur.i >= 0 && cur.j >= 0 ? { src: ax.srcs[cur.j], dst: ax.dsts[cur.i] } : {});
   const cueName = (n, on) => setData(n, 'cue', on ? '' : undefined);
@@ -312,7 +357,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       setData(n, 'found', view.found('srcs', s) ? '' : undefined);
       paintArt(n.lastChild, view.art('srcs', s));
     }
-    markName(n, mark.srcs.has(s));
+    markName(n, mark.srcs.get(s));
     cueName(n, cueOf().src === s);
     setData(n, 'hit', hitOf('srcs', s));
   };
@@ -324,7 +369,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       paintDstMarks(n, d, view);
       paintArt(n.lastChild, view.art('dsts', d));
     }
-    markName(n, mark.dsts.has(d));
+    markName(n, mark.dsts.get(d));
     cueName(n, cueOf().dst === d);
     setData(n, 'hit', hitOf('dsts', d));
   };
@@ -336,6 +381,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     n.dataset.dst = d;
     if (view) paintXp(n, s, d, view);
     markXp(n, s, d);
+    setData(n, 'hit', hitXp(s, d));
   };
   const srcPut = (n, i, j) => {
     place(n, 0, j);
@@ -375,9 +421,15 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     };
   };
   const metricsNow = () => frame || read();
+  // The pins drawn as pinned on each edge (pinsShown), set by setAxes and a resize.
+  let pinned = { srcs: 0, dsts: 0 };
+  const pinsNow = (m = metricsNow()) => ({
+    srcs: pinsShown({ pins: ax.srcPins || 0, size: px.xp, head: px.w, view: m.cw }),
+    dsts: pinsShown({ pins: ax.dstPins || 0, size: px.xp, head: px.h, view: m.ch }),
+  });
   const axis = (cols, m = metricsNow()) => ({
     n: cols ? ax.srcs.length : ax.dsts.length,
-    pins: (cols ? ax.srcPins : ax.dstPins) || 0,
+    pins: cols ? pinned.srcs : pinned.dsts,
     size: px.xp,
     head: cols ? px.w : px.h,
     offset: cols ? m.left : m.top,
@@ -423,8 +475,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const m = metricsNow();
     const r = spanMax(axis(false, m));
     const c = spanMax(axis(true, m));
-    const rp = ax.dstPins || 0;
-    const cp = ax.srcPins || 0;
+    const rp = pinned.dsts;
+    const cp = pinned.srcs;
     pools.body.reserve(r * c);
     pools.top.reserve(rp * c);
     pools.side.reserve(r * cp);
@@ -444,8 +496,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const { rows, cols } = spans();
     const rs = range(rows.lo, rows.hi);
     const cs = range(cols.lo, cols.hi);
-    const rp = range(0, ax.dstPins || 0);
-    const cp = range(0, ax.srcPins || 0);
+    const rp = range(0, pinned.dsts);
+    const cp = range(0, pinned.srcs);
     pools.body.sync(cross(rs, cs));
     pools.top.sync(cross(rp, cs));
     pools.side.sync(cross(rs, cp));
@@ -460,12 +512,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
 
   const setAxes = (next) => {
     ax = next;
+    pinned = pinsNow();
     srcAt = new Map(ax.srcs.map((n, j) => [n, j]));
     dstAt = new Map(ax.dsts.map((n, i) => [n, i]));
     setVar(field, '--sode-cols', ax.srcs.length);
     setVar(field, '--sode-rows', ax.dsts.length);
-    setVar(field, '--sode-col-pins', ax.srcPins || 0);
-    setVar(field, '--sode-row-pins', ax.dstPins || 0);
+    setVar(field, '--sode-col-pins', pinned.srcs);
+    setVar(field, '--sode-row-pins', pinned.dsts);
     for (const p of Object.values(pools)) p.clear();
     reserve();
     draw();
@@ -477,12 +530,22 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const ro = new ResizeObserver(() => {
     measure();
     curKey = '';
+    // A size that changes how many pins fit redraws as new axes would; a scroll never gets here.
+    const p = pinsNow();
+    if (p.srcs !== pinned.srcs || p.dsts !== pinned.dsts) return setAxes(ax);
     reserve();
     draw();
   });
   ro.observe(scroll);
   ro.observe(probe);
   const xpOf = (xp) => ({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
+  // A press does not focus a crosspoint or a name: a focused button would draw its focus box at the next key. Focus
+  // goes to the scroller, so an embedded run still gets its keys.
+  field.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.sode-gridpanel__xp, .sode-gridpanel__src, .sode-gridpanel__dst')) return;
+    e.preventDefault();
+    scroll.focus({ preventScroll: true });
+  });
   field.addEventListener('click', (e) => {
     const xp = e.target.closest('.sode-gridpanel__xp');
     if (xp) return onPress(xpOf(xp), e);
@@ -556,7 +619,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // The scroller's body in client px: past the name bars and the pinned bands, inside the scrollbars.
     bodyBox() {
       const m = metricsNow();
-      return { left: m.x + px.w + (ax.srcPins || 0) * px.xp, top: m.y + px.h + (ax.dstPins || 0) * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
+      return { left: m.x + px.w + pinned.srcs * px.xp, top: m.y + px.h + pinned.dsts * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
     },
     // Draws the Drawn line from a to b, in crosspoint units, or hides it for null.
     line(seg) {
@@ -578,8 +641,10 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       return i === null || j === null ? null : { i, j };
     },
     // Places the cursor at display cell { i, j }. Only the cursor node changes.
-    cursor(c) {
+    // keys is true when a key moved it: only then does the cursor draw its box on a bar.
+    cursor(c, keys = false) {
       cur = c;
+      setData(cursor, 'keys', keys ? '' : undefined);
       setData(cursor, 'i', String(c.i));
       setData(cursor, 'j', String(c.j));
       placeCursor();
@@ -596,34 +661,21 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       if (j >= 0) scroll.scrollLeft = scrollFor(j, axis(true, read()));
       if (i >= 0) scroll.scrollTop = scrollFor(i, axis(false, read()));
     },
-    // Find: scrolls one axis so display item k of kind ('srcs' or 'dsts') is in the middle, smoothly, and pulses its
-    // name. The pulse ends HIT_MS after the scroll does; a node drawn for the name during the scroll pulses then.
+    // Find: scrolls one axis so display item k of kind ('srcs' or 'dsts') is in the middle, smoothly, then pulses its
+    // name.
     glide(kind, k) {
       const cols = kind === 'srcs';
-      const a = axis(cols, read());
-      const to = centreFor(k, a);
-      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      hit = { kind, n: ax[kind][k], seq: hit ? 1 - hit.seq : 0 };
-      paintHits();
-      if (hitEnd) {
-        clearTimeout(hitEnd.timer);
-        scroll.removeEventListener('scrollend', hitEnd.done);
-      }
-      const done = () => {
-        scroll.removeEventListener('scrollend', done);
-        clearTimeout(hitEnd.timer);
-        hitEnd.timer = setTimeout(() => {
-          hit = null;
-          hitEnd = null;
-          paintHits();
-        }, HIT_MS);
-      };
-      hitEnd = { timer: 0, done };
-      // No scrollend comes for a move under a pixel or on a browser without the event, so a timer ends it too.
-      if (Math.abs(to - a.offset) < 1) return done();
-      hitEnd.timer = setTimeout(done, GLIDE_MAX_MS);
-      scroll.addEventListener('scrollend', done);
-      scroll.scrollTo({ [cols ? 'left' : 'top']: to, behavior: calm ? 'instant' : 'smooth' });
+      const to = centreFor(k, axis(cols, read()));
+      goTo({ [cols ? 'left' : 'top']: to }, { srcs: cols ? ax.srcs[k] : null, dsts: cols ? null : ax.dsts[k] });
+    },
+    // A jump: scrolls so display cell { i, j } is in the middle on both axes, smoothly, then pulses the crosspoint and
+    // its two names. A bar (-1) keeps that axis where it is.
+    jump({ i, j }) {
+      const m = read();
+      const to = {};
+      if (j >= 0) to.left = centreFor(j, axis(true, m));
+      if (i >= 0) to.top = centreFor(i, axis(false, m));
+      goTo(to, { srcs: j >= 0 ? ax.srcs[j] : null, dsts: i >= 0 ? ax.dsts[i] : null });
     },
     // The crosspoint under a client point, or null on a name, a gap or outside.
     hit(x, y) {
@@ -657,8 +709,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       mark = {
         xps: new Map(pairs.map(({ src, dst }, k) => [`${src}:${dst}`, k + 1])),
         skip: new Set(skipped.map(({ src, dst }) => `${src}:${dst}`)),
-        srcs: new Set(pairs.map((p) => p.src)),
-        dsts: new Set(pairs.map((p) => p.dst)),
+        srcs: pairNumbers(pairs, 'src'),
+        dsts: pairNumbers(pairs, 'dst'),
       };
       for (const n of [...marked]) markXp(n, Number(n.dataset.src), Number(n.dataset.dst));
       for (const { src, dst } of [...pairs, ...skipped]) {
@@ -666,8 +718,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
         if (xp) markXp(xp, src, dst);
       }
       // The drawn names are a few dozen, so each is checked.
-      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.has(Number(n.dataset.src)));
-      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.has(Number(n.dataset.dst)));
+      for (const p of [pools.srcs, pools.srcPinned]) for (const n of p.live.values()) markName(n, mark.srcs.get(Number(n.dataset.src)));
+      for (const p of [pools.dsts, pools.dstPinned]) for (const n of p.live.values()) markName(n, mark.dsts.get(Number(n.dataset.dst)));
       setData(field, 'over', over && pairs.length ? '' : undefined);
       setData(field, 'marked', mark.srcs.size || mark.dsts.size ? '' : undefined);
     },

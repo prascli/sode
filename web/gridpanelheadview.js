@@ -1,52 +1,32 @@
-// A Grid panel's header parts. The title has a line that says whose panel it is. The Router, Mode and Signed in
-// boxes go with the header buttons. On the panel page they share one band, the deck, with the Levels box and the search
-// boxes (gridpanel.css lays it out). The run (gridpanelrun.js) makes them on the panel page only, and its stop puts
-// the page back. The words come from gridpanelhead.js.
-import { el, icon, on } from './core.js';
-import { routerStat, modeStat, whoStat, metaOf } from './gridpanelhead.js';
+// A Grid panel's header parts: the title and instance name, then the main page's Server and Router status
+// (connview.js), Full screen and the Panels link. The Lock chip names the user, as on the main page. On the panel
+// page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run
+// (gridpanelrun.js) makes them on the panel page only, and its stop puts the page back.
+import { el, on } from './core.js';
+import { connBox, paintConn } from './connview.js';
 
-// The signed-in user (lock.js). Subscribed at import, before connect(), so the first answer is not missed; core.js's
-// on() has no unsubscribe, so a run must not subscribe again.
-let user = '';
-on('access', (a) => (user = a.user || ''));
+// core.js's on() has no unsubscribe, so one subscription at import paints every head a run has made.
+const conns = new Set();
+on('conn', () => {
+  for (const c of conns) paintConn(c);
+});
 
-const setText = (n, t) => {
-  if (n.data !== t) n.data = t;
-};
-
-function stat(label, ...lead) {
-  const text = document.createTextNode('');
-  const box = el('div', 'sode-gridpanel__stat', el('span', 'pb-label', label), el('span', 'sode-gridpanel__stat-val', ...lead, text));
-  return { box, text };
-}
-
-// count is the run's "N staged" badge, which joins the line under the title.
+// count is the run's "N staged" badge; the note beside Take shows the count, so the deck hides this one.
 export function gridHead(ui, count) {
-  const badge = document.createTextNode('');
-  const size = document.createTextNode('');
-  const rights = document.createTextNode('');
-  // A part too long for the deck ends in an ellipsis on its own span, and tooltip.js shows it whole on hover.
-  const cut = (text) => el('span', 'sode-gridpanel__cut', text);
-  const meta = el(
-    'div',
-    'sode-gridpanel__meta',
-    el('span', 'pb-badge pb-badge--info', icon('share-2'), badge),
-    el('span', null, icon('grid-3x3'), cut(size)),
-    el('span', null, cut(rights)),
-    count,
-  );
-  const dot = el('span', 'pb-dot');
-  dot.setAttribute('aria-hidden', 'true');
-  const router = stat('Router', dot);
-  const mode = stat('Mode');
-  const who = stat('Signed in', icon('users'));
-  const stats = el('div', 'sode-gridpanel__stats', router.box, mode.box, who.box);
-  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ui.title, ui.name), meta);
+  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ui.title, ui.name), count);
   ui.head.prepend(id);
-  // The status boxes and the header buttons in one group; the Panels link joins it (panelfull.js).
+  const conn = connBox();
+  conns.add(conn);
+  paintConn(conn);
+  // Full screen is a ghost icon button, as the Panels link beside it is.
+  const screenCls = ['pb-btn--outline', 'pb-btn--sm'].filter((c) => ui.screen?.classList.contains(c));
+  ui.screen?.classList.remove(...screenCls);
+  ui.screen?.classList.add('pb-btn--ghost');
+  // The status and the header buttons in one group; the Panels link joins it (panelfull.js). Kiosk mode and Full
+  // width stay in it for their code, and gridpanel.css hides them.
   const btns = [ui.kiosk, ui.screen, ui.full].filter(Boolean);
   const after = btns.at(-1)?.nextSibling ?? null;
-  const tools = el('div', 'sode-gridpanel__tools', stats, ...btns);
+  const tools = el('div', 'sode-gridpanel__tools', conn.root, ...btns);
   ui.head.insertBefore(tools, after);
   if (ui.home && ui.head.contains(ui.home)) tools.append(ui.home);
   ui.tools = tools;
@@ -60,26 +40,16 @@ export function gridHead(ui, count) {
   };
   const deck = el('div', 'sode-gridpanel__deck');
   ui.head.before(deck);
-  deck.append(ui.head, rule(1), ...(box ? [box] : []), rule(2), finds, rule(3));
+  deck.append(ui.head, ...(box ? [box] : []), rule(1), finds, rule(2));
   return {
-    // link is GET /status's answer (null without the status scope); srcs and dsts count the grid's items.
-    paint({ link, mode: m, keyed, panel, srcs, dsts, canTake }) {
-      const r = routerStat(link);
-      setText(router.text, r.text);
-      const cls = `pb-dot pb-dot--${r.tone}`;
-      if (dot.className !== cls) dot.className = cls;
-      setText(mode.text, modeStat(m));
-      setText(who.text, whoStat({ user, keyed }));
-      const t = metaOf({ panel, user, keyed, srcs, dsts, canTake });
-      setText(badge, t.badge);
-      setText(size, t.size);
-      setText(rights, t.rights);
-    },
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
     stop() {
+      conns.delete(conn);
       delete ui.tools;
       id.replaceWith(ui.title, ui.name);
+      ui.screen?.classList.remove('pb-btn--ghost');
+      ui.screen?.classList.add(...screenCls);
       tools.replaceWith(...btns);
       if (ui.home?.parentNode === tools) ui.head.append(ui.home);
       deck.replaceWith(ui.head);

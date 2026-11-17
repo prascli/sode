@@ -3,14 +3,16 @@
 // the grid's. ctx is { staged, picks, inControl, bar, finding, line }. staged counts staged routes and picks counts
 // picked names. inControl is true when focus is on a header button or a field. bar is barOf(cursor) in
 // gridpanelcursor.js. finding is true while a box has text. line is true while a Drawn line shows. A move action is
-// a name in gridpanelcursor.js MOVES. 'range:<move>' is a Shift move along a bar, which extends the pick.
+// a name in gridpanelcursor.js MOVES. 'range:<move>' is a Shift move along a bar or across the crosspoints, which
+// extends the pick.
 import { chord } from './keys.js';
 import { MOVES } from './gridpanelcursor.js';
 
 const free = (act) => (c) => (c.inControl ? null : act);
 const onBar = (c) => c.bar === 'srcs' || c.bar === 'dsts';
 const named = (act) => (c) => (!c.inControl && onBar(c) ? act : null);
-const range = (kind, move) => (c) => (!c.inControl && c.bar === kind ? `range:${move}` : null);
+// On a crosspoint (bar null) a Shift move extends the pick of the names it crosses: sources across, destinations down.
+const range = (kind, move) => (c) => (!c.inControl && (c.bar === kind || c.bar === null) ? `range:${move}` : null);
 const keys = () => 'keys';
 
 // The line goes first, then picks, then staged routes. The Clear button beside Take uses it too.

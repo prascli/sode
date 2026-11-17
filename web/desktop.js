@@ -1,6 +1,7 @@
 // Desktop layout: three boxes, Tab between them, churning-key confirm.
 
-import { $, el, S, on, connState, routerTitle, needsLink, renderDown, setDot, search, dstLabel, dstItem, srcItem, keepSearch } from './core.js';
+import { $, el, S, on, needsLink, renderDown, search, dstLabel, dstItem, srcItem, keepSearch } from './core.js';
+import { paintConn } from './connview.js';
 import { levelBar, allLevels, levelSource } from './levelview.js';
 import { levelBox } from './levelbox.js';
 import { fedBy, bySource, currentlyNodes, pickEnd } from './routes.js';
@@ -59,14 +60,14 @@ const active = () => layout() === 'desktop' && document.documentElement.dataset.
 // ---- connection
 
 function renderConn() {
-  const c = connState();
-  setDot($('conn-srv-dot'), $('conn-srv-text'), [c.ws[0], 'Server']);
-  setDot($('conn-rt-dot'), $('conn-rt-text'), [c.rt[0], 'Router']);
-  const [label, isName] = routerTitle();
-  $('conn-addr').textContent = label;
-  $('conn-addr').classList.toggle('sode__conn-addr--name', isName);
-  $('conn').classList.toggle('sode__conn--ok', c.ok);
-  $('conn').title = [c.ws[1], `${c.rt[1]} ${S.routerAddr}`, S.router !== 'up' && S.routerLastErr].filter(Boolean).join('\n');
+  const c = paintConn({
+    root: $('conn'),
+    srvDot: $('conn-srv-dot'),
+    srvText: $('conn-srv-text'),
+    rtDot: $('conn-rt-dot'),
+    rtText: $('conn-rt-text'),
+    addr: $('conn-addr'),
+  });
   document.documentElement.dataset.conn = c.down ? 'down' : 'up';
   renderDown($('conn-down'), c);
 }

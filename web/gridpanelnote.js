@@ -18,7 +18,7 @@ export function clearNote(host, before, onClear) {
   clear.setAttribute('aria-keyshortcuts', 'Escape');
   clear.classList.add('pb-tip--end');
   // Clear drops every staged route; the tip gives the way to drop only one.
-  clear.dataset.pbTip = 'Esc. To unstage one route, Alt-click it or press Delete on it';
+  clear.dataset.pbTip = 'Esc. To unstage one route, right-click it, Alt-click it or press Delete on it';
   clear.addEventListener('click', onClear);
   // A press keeps focus where it was, so the grid keeps its keys.
   clear.addEventListener('mousedown', (e) => e.preventDefault());
