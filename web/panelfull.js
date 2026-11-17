@@ -65,8 +65,9 @@ export function initChrome(ui) {
     ui.head.hidden = headHidden(kiosk, titleBar);
     ui.home.hidden = kiosk;
     // A Grid panel reaches the bottom of the window, so its Panels link goes in the header while the header shows.
+    // It goes at the end of the tools group when there is one (gridpanelheadview.js).
     const inHead = grid && !ui.head.hidden;
-    if (inHead !== (ui.home.parentNode === ui.head)) (inHead ? ui.head : ui.main).append(ui.home);
+    if (inHead !== ui.head.contains(ui.home)) (inHead ? ui.head.querySelector('.sode-gridpanel__tools') || ui.head : ui.main).append(ui.home);
     document.documentElement.toggleAttribute('data-sode-kiosk', kiosk); // hides the Lock bar too (panels.css)
     setIcon(ui.kiosk, kioskWords(kiosk));
     ui.kiosk.setAttribute('aria-pressed', String(kiosk));

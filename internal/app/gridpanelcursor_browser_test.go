@@ -33,7 +33,7 @@ func gridCursorOn(b *tab, what string, i, j int) {
 }
 
 // One cursor for keys and the pointer. It starts at the corner. Physical h/j/k/l and arrows move it, Space stages at
-// it and a second Space unstages, PageDown scrolls one screen, Home goes back. A pointer move places the cursor and
+// it and a second Space opens the take confirm, PageDown scrolls one screen, Home goes back. A pointer move places the cursor and
 // changes nothing else on the page but the outline on its names. After a pointer move a scroll moves the cursor with the content under the
 // pointer; after a key a scroll leaves it. The pointer-to-cursor delay is reported, not asserted.
 func TestChromeGridPanelCursor(t *testing.T) {
@@ -85,7 +85,9 @@ func TestChromeGridPanelCursor(t *testing.T) {
 	b.waitFor("Space stages at the cursor", staged)
 	b.waitFor("one route staged", `document.getElementById('panel-staged').textContent === '1 staged'`)
 	realKey(b, " ", "Space", 32)
-	b.waitFor("a second Space unstages", `!(`+staged+`)`)
+	b.waitFor("a second Space opens the take confirm", `!document.getElementById('confirm').hidden`)
+	b.eval(`document.getElementById('confirm-cancel').click(); document.getElementById('panel-clear').click(); true`)
+	b.waitFor("Cancel and Clear drop it", `document.getElementById('confirm').hidden && !(`+staged+`)`)
 
 	realKey(b, "PageDown", "PageDown", 34)
 	b.waitFor("PageDown moves one screen and scrolls to show it", `(() => {

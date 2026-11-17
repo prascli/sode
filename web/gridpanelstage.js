@@ -29,14 +29,14 @@ export const pressCrosspoint = (st, xp, levels) => stageRoutes(st, [xp], levels)
 
 // One press: pairs is [{ src, dst }], a single crosspoint or a Diagonal (gridpanelpick.js), no destination twice.
 // Returns { st, send, confirm }. confirm asks for the take confirm at once: a press of more than one route confirms
-// even in Instant mode. Only a one-route press on a staged crosspoint unstages it.
+// even in Instant mode. A one-route press on a staged crosspoint is the second press, also on a staged Diagonal or
+// line. It keeps the stage and asks for the take confirm.
 export function stageRoutes(st, pairs, levels) {
   const base = st.mode === 'instant' ? [] : st.staged;
   const none = { send: null, confirm: false };
   if (pairs.length === 1) {
     const { src, dst } = pairs[0];
-    if (base.some((x) => x.dst === dst && x.src === src))
-      return { st: { ...st, staged: base.filter((x) => !(x.dst === dst && x.src === src)), error: null }, ...none };
+    if (base.some((x) => x.dst === dst && x.src === src)) return { st: { ...st, error: null }, send: null, confirm: true };
   }
   if (!levels.length) return { st: fail(st, 'no-levels'), ...none };
   const dsts = new Set(pairs.map((x) => x.dst));

@@ -69,7 +69,8 @@ func signInOnPad(b *tab) {
 	b.eval(`document.querySelector('.sode-lock__key[data-key="enter"]').click()`)
 }
 
-// A Grid panel in Take mode, signed in as a user. A press stages and a second press unstages. Another source in a
+// A Grid panel in Take mode, signed in as a user. A press stages and a second press opens the take confirm; Clear
+// drops the route. Another source in a
 // staged row replaces the route. Enter opens the churning-letter confirm, and the take is one History Group.
 func TestChromeGridPanelTake(t *testing.T) {
 	b := startBrowser(t)
@@ -96,7 +97,11 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.eval(gridXp(12, 4) + `.click()`)
 	b.waitFor("a press stages", staged(12, 4))
 	b.eval(gridXp(12, 4) + `.click()`)
-	b.waitFor("a second press unstages", `!(`+staged(12, 4)+`)`)
+	b.waitFor("a second press opens the take confirm", `!document.getElementById('confirm').hidden && document.getElementById('confirm-body').textContent.includes('Destination ')`)
+	b.eval(`document.getElementById('confirm-cancel').click(); true`)
+	b.waitFor("Cancel keeps the route staged", `document.getElementById('confirm').hidden && `+staged(12, 4))
+	b.eval(`document.getElementById('panel-clear').click(); true`)
+	b.waitFor("Clear drops it", `!(`+staged(12, 4)+`)`)
 	b.eval(gridXp(11, 2) + `.click()`)
 	b.eval(gridXp(simSrc, 2) + `.click()`)
 	b.waitFor("another source in the row replaces the route", staged(simSrc, 2)+` && !(`+staged(11, 2)+`)`)

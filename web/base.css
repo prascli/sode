@@ -208,6 +208,11 @@ html {
   color: var(--sode-ink, var(--pb-text-on-accent));
 }
 
+/* The main page's Source, Destination and Levels boxes; a Grid panel's Levels box is the same box (gridpanel.css). */
+.pb-input.sode__input {
+  font-size: var(--pb-text-xl);
+  height: calc(var(--pb-control-h-lg) * 1.6);
+}
 /* The level picker: the main page and the panel editor use it. */
 .sode__levels {
   align-items: center;

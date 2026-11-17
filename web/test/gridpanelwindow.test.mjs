@@ -1,7 +1,7 @@
 // Which part of a Grid panel is drawn (gridpanelwindow.js): one axis at a time, in px, pinned items at the edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf } from '../gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf, wheelAcross } from '../gridpanelwindow.js';
 
 // 2500 sources of 70 px after a 220 px name column, in a 1060 px wide view: 12 to 13 columns show.
 const ax = (over = {}) => ({ n: 2500, pins: 0, size: 70, head: 220, offset: 0, view: 1280, over: 0, ...over });
@@ -110,4 +110,23 @@ test('placeAt is an item start in content px; a pinned item and the bar follow t
   assert.equal(placeAt(-1, ax({ offset: 7000 })), 7000);
   assert.equal(placeAt(1, ax({ pins: 2, offset: 7000 })), 7000 + 220 + 70);
   assert.equal(placeAt(100, ax({ pins: 2, offset: 7000 })), 220 + 100 * 70);
+});
+
+// The horizontal scroll bar of a 1000 by 600 px scroller at the window's top left, 36 px high, with 80 px crosspoints.
+const bar = { left: 0, right: 980, top: 564, bottom: 600, line: 80, page: 980 };
+const wheel = (o) => ({ clientX: 500, clientY: 580, deltaX: 0, deltaY: 100, deltaMode: 0, ctrlKey: false, ...o });
+
+test('a vertical wheel over the horizontal scroll bar scrolls across, by lines or pages as the wheel gives them', () => {
+  assert.equal(wheelAcross(wheel(), bar), 100);
+  assert.equal(wheelAcross(wheel({ deltaY: -40 }), bar), -40);
+  assert.equal(wheelAcross(wheel({ deltaY: 3, deltaMode: 1 }), bar), 240);
+  assert.equal(wheelAcross(wheel({ deltaY: 1, deltaMode: 2 }), bar), 980);
+});
+
+test('a wheel past the bar, a mostly sideways wheel or a pinch zoom is left to the browser', () => {
+  assert.equal(wheelAcross(wheel({ clientY: 563 }), bar), 0);
+  assert.equal(wheelAcross(wheel({ clientX: 990 }), bar), 0);
+  assert.equal(wheelAcross(wheel({ deltaX: 120 }), bar), 0);
+  assert.equal(wheelAcross(wheel({ ctrlKey: true }), bar), 0);
+  assert.equal(wheelAcross(wheel({ deltaY: 0 }), bar), 0);
 });

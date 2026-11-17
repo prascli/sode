@@ -67,3 +67,12 @@ export function placeAt(i, { pins, size, head, offset }) {
   if (i < 0) return offset;
   return i < pins ? offset + head + i * size : head + i * size;
 }
+
+// The px across that a wheel scrolls when it turns over the horizontal scroll bar, else 0. A trackball or a mouse wheel
+// gives deltaY, so over that bar it moves the grid across. bar is the bar in client px, with line and page as the px of
+// one line and one page (deltaMode 1 and 2). A sideways wheel and a pinch (ctrlKey) keep the browser's own scroll.
+export function wheelAcross(e, bar) {
+  if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return 0;
+  if (e.clientX < bar.left || e.clientX >= bar.right || e.clientY < bar.top || e.clientY >= bar.bottom) return 0;
+  return e.deltaY * (e.deltaMode === 1 ? bar.line : e.deltaMode === 2 ? bar.page : 1);
+}

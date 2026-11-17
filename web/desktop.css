@@ -22,10 +22,6 @@
   gap: var(--pb-space-2);
   position: relative;
 }
-.pb-input.sode__input {
-  font-size: var(--pb-text-xl);
-  height: calc(var(--pb-control-h-lg) * 1.6);
-}
 .sode__entry {
   display: flex;
   gap: var(--pb-space-2);
