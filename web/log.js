@@ -12,6 +12,7 @@ import { PRESETS, DEFAULT_PRESET, presetText, slotLabel, rangeFor, slotFor, summ
 import { uptimeBars } from './uptimebars.js';
 import './brand.js';
 import './lock.js';
+import { bigScrollAll } from './bigscroll.js';
 
 on('brand', ({ text }) => {
   document.querySelector('.sode-log__title').textContent = `${text} Communication Log`;
@@ -642,4 +643,5 @@ setInterval(refreshUptime, 60_000);
 
 initFilters();
 initUptime();
+bigScrollAll();
 connect();
