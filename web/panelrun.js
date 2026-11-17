@@ -188,7 +188,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   const applyLook = (p) => {
     const look = lookOf(p.settings || {});
     if (!embedded) {
-      chrome.show(kioskOf(location.hash, p), look.titleBar);
+      chrome.show(kioskOf(location.hash, p), look.titleBar, isGridPanel(p));
       document.title = p.name;
       document.documentElement.toggleAttribute('data-sode-landscape', look.landscape);
     }
@@ -229,6 +229,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     poll: () => poll(),
     ready: () => ready,
     instance: () => instance,
+    keyed: () => !!key,
     touched() {
       wake?.retry();
       if (wantsFullscreen(look) && !embedded) enterFullscreen(document, look.landscape);
@@ -265,7 +266,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       if (nm) namesAt = Date.now();
       const off = offlineOf({ failed: false, routerUp: link ? link.routerUp : true });
       showOffline(off);
-      body.data({ tally, prot, nm, pr, first: !ready && !off });
+      body.data({ tally, prot, nm, pr, link, first: !ready && !off });
       ready = !off;
       say(ui.note, '');
     } catch (e) {

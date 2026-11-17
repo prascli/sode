@@ -64,13 +64,15 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 
 ### The page
 
-- Layout: the Source bar is across the top, the Destination bar is down the side and the crosspoints fill the rest. The Levels box is above the grid. In Take mode, a Take button sits beside the Levels box with the number of staged routes. The page fills the window and the grid goes to the edges.
+- Layout: the Source bar is across the top, the Destination bar is down the side and the crosspoints fill the rest. The Levels box is a band above the grid. In Take mode, a Take button is at the right end of that band and shows the number of staged routes. On the desktop layout it is 192 by 64 px. A "Sources" row over the grid and a "Destinations" word in the corner, below the search boxes, name the two bars in their role colours. The page fills the window, and the grid goes to the edges and to the bottom.
+- Header: the title is over a line that says whose panel it is ("Your panel", "Shared with you", "Link with key" or "Public"), its size ("Grid panel, 56 sources by 46 destinations") and "Can view and take" or "Can view only". Then come three boxes. Router says Connected, Offline or Unknown, with a dot. Mode says Take or Instant. Signed in names the user, or says Guest, or API client for a page with a key. Full screen shows its words. The Panels link is in the header while the header shows. With the title bar off it goes back to the bottom left. On the phone layout the header has no boxes and no line under the title.
+- A picked row or column of crosspoints has a wash of its role colour, and a crosspoint in both has a neutral wash. The crosshairs show through.
 - Pinned sources and destinations stay at the top and side edges while the rest scrolls, and their crosspoints stay with them. The corner holds what is pinned on both axes, and the two search boxes. The grid scrolls on both axes, and its scrollbars are thick and always show.
 - Names show as text, with the item's artwork beside them: its own `art` and `artB`, else its Default artwork. Hide text does not apply, since a name always shows as text.
-- A crosspoint shows a pie of the destination's levels. A level that has the crosspoint's source is filled. A destination whose current source is not on the panel names that source, plus "+N" for more. A protected destination shows a lock and "Protected", and its crosspoints stage nothing.
+- A crosspoint shows a pie of the destination's levels. A level that has the crosspoint's source is filled. A staged crosspoint has a pulsing ring with the same slices, filled for the staged levels. A destination whose current source is not on the panel names that source, plus "+N" for more. A protected destination shows a lock and "Protected", and its crosspoints stage nothing.
 - The cursor is a ring on one crosspoint. It grows and shrinks, and it is still when reduced motion is set. The mouse and the keys share it (see Keys).
 - The page draws only what shows (`web/gridpanelview.js`, window maths in `gridpanelwindow.js`). It was tested at 2500 sources by 750 destinations. The number of nodes stays bounded, and a scroll adds or removes none.
-- Authentication mode, sharing and Assign work as on a Buttons panel. So do the page lock, the Lock bar and the Offline message. A Grid panel has no Pages, Take cell, Preset cell or Fixed destination. Full width has no button on a Grid panel, since the page already fills the window.
+- Authentication mode, sharing and Assign work as on a Buttons panel. So do the page lock, the Lock bar and the Offline message. A Grid panel has no Pages, Take cell, Preset cell or Fixed destination. A Grid panel is always full width, so it has no Full width button.
 
 ### Levels, staging and the take
 
@@ -123,10 +125,6 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 - The router list is in router order, limited to the Rights. Find narrows it, and a range such as `101-140` uses the numbers as shown. Click, Shift-click and Cmd or Ctrl-click select. Enter in Find selects every row shown. Add puts the selection at the end in router order and skips items that the panel has.
 - Both lists draw only the rows in view, so a Pin, Remove or Move on a list of thousands takes milliseconds.
 - Test it live runs the saved panel in place of the tabs. It has no confirm, so Enter does nothing there in Take mode. It has no key list. The Share button works as for a Buttons panel.
-
-### Known gaps
-
-- The panels page (`/panels`) draws no picture of a Grid panel and reads "0 by 0 grid" under its name, since the picture comes from `rows` and `cols`.
 
 ## Authentication
 
@@ -267,7 +265,7 @@ Proposed, not prototyped.
 - Offline (`offlineOf` in `panelrules.js`): the page goes Offline when a poll fails with no answer or a 5xx, or when `GET /status` says `routerUp` is false. It then blurs every other element, blocks presses and shows a large framed Offline message (`pb-state-offline`). The message has a sentence that says which one is gone: Sode or the router. It clears on the next good poll. A key without the `status` scope gets 403 there, which counts as an unknown router link, not down. A session that is not signed in yet is not Offline. `TestChromePanelOfflineAndFullWidth` stops the Sode API and the simulator.
 - Full width: the header button (`panelfull.js`) drops the page's width cap and padding and is remembered in `localStorage` as `sode-panel-full`. A panel without a title bar, or in kiosk, has no button.
 - Header buttons, left of Full width and the same icon size: Full screen and Kiosk. Full screen uses the browser Fullscreen API (`panelfeel.js`). It tracks `fullscreenchange` and is hidden where the browser refuses it. Kiosk turns kiosk on for this open page only. The panel setting and `#kiosk=1` give the starting state, and a reload returns to it. The header is gone in kiosk. So the way back is the Escape key (unless a dialog already handled it) and a faint button in the top right corner. The button has 25% opacity, full on hover or focus. The rules are in `panelchromerules.js`.
-- The Panels link is an icon-only ghost button with the Sode Panels logo at the bottom left, as on Sode's main page. It is fixed on the desktop layout, and the page is padded so it never covers the grid. On a phone it is in the flow at the end. A kiosk hides it with the header.
+- The Panels link is an icon-only ghost button with the Sode Panels logo at the bottom left, as on Sode's main page. On a Grid panel it is in the header while the header shows. It is fixed on the desktop layout, and the page is padded so it never covers the grid. On a phone it is in the flow at the end. A kiosk hides it with the header.
 - The Current cell reads "<destination> is currently:" for the viewed destination, and its caption when it has one. The Take cell is solid when nothing is staged, and pulses when a route waits for it. It fills left to right (a transition, not an animation) while a hold or double-press guard waits.
 
 ## Look and device settings (as built)

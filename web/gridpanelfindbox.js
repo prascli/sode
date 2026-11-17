@@ -33,7 +33,7 @@ export function findBoxes(host, { onText, onMode }) {
     return { wrap, input, count, mode };
   };
   const boxes = { srcs: make('srcs'), dsts: make('dsts') };
-  host.append(boxes.srcs.wrap, boxes.dsts.wrap);
+  host.prepend(boxes.srcs.wrap, boxes.dsts.wrap);
   return {
     input: (kind) => boxes[kind].input,
     // 'srcs' or 'dsts' when node is in that box, else null.

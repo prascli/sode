@@ -75,14 +75,15 @@ func TestChromeGridPanelKeys(t *testing.T) {
 	b.waitFor("Space stages the Diagonal", staged(1, 0)+` && `+staged(2, 1)+` && `+staged(3, 2))
 	b.waitFor("three routes staged", `document.getElementById('panel-staged').textContent === '3 staged'`)
 
-	// A focused header button takes Space and Enter, not the grid.
-	b.eval(`document.getElementById('panel-full').focus(); true`)
+	// A focused button outside the grid (the Levels box's Select All) takes Space and Enter, not the grid.
+	b.waitFor("Select All", `document.getElementById('panel-lvl-all').textContent.includes('All')`)
+	b.eval(`document.getElementById('panel-lvl-all').focus(); true`)
 	realKey(b, " ", "Space", 32)
-	b.waitFor("Space works the focused header button", `document.getElementById('panel-full').getAttribute('aria-pressed') === 'true'`)
+	b.waitFor("Space works the focused button", `document.getElementById('panel-lvl-all').textContent.includes('None')`)
 	realKeyMods(b, "Enter", "Enter", 13, 0)
-	b.waitFor("Enter works the focused header button", `document.getElementById('panel-full').getAttribute('aria-pressed') === 'false'`)
+	b.waitFor("Enter works the focused button", `document.getElementById('panel-lvl-all').textContent.includes('All')`)
 	if open := b.eval(`!document.getElementById('confirm').hidden`); open != false {
-		t.Errorf("Enter on a header button opened the take confirm")
+		t.Errorf("Enter on a button outside the grid opened the take confirm")
 	}
 	b.waitFor("the staged routes stay", staged(1, 0)+` && `+staged(3, 2))
 	b.eval(`document.activeElement.blur(); true`)

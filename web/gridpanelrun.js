@@ -1,5 +1,5 @@
 // The Grid panel body of a panel run (panelrun.js). It reads and sends only through ctx, the run's /api/v1 adapter.
-// So another adapter can drive the same view. ctx is { ui, embedded, call, callJSON, post, poll, ready, instance, touched }.
+// So another adapter can drive the same view. ctx is { ui, embedded, call, callJSON, post, poll, ready, instance, keyed, touched }.
 // The rules are pure modules (gridpanel*.js); this file joins them to the DOM.
 import { envFrom, namesFrom } from './panelrules.js';
 import { arrange } from './gridpanelarrange.js';
@@ -27,6 +27,7 @@ import { el } from './core.js';
 import { shortcutList } from './shortcuts.js';
 import { restPoint, takeButton, tapMods } from './gridpanelphone.js';
 import { onLayout } from './layout.js';
+import { gridHead } from './gridpanelheadview.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -75,7 +76,10 @@ export function gridBody(ctx, first) {
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
   count.hidden = true;
-  ui.head?.querySelector('.sode-panels__spacer')?.before(count);
+  // The panel page's header has the prototype's boxes (gridpanelheadview.js); the editor's live test keeps its own.
+  const head = ctx.embedded || !ui.name ? null : gridHead(ui, count);
+  if (!head) ui.head?.querySelector('.sode-panels__spacer')?.before(count);
+  let link = null; // GET /status's answer, null without the status scope
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
   const phone = () => document.documentElement.dataset.layout === 'phone';
   // The Take button (gridpanelphone.js) at the end of the Levels box, as in the prototype; Kiosk mode hides the
@@ -190,6 +194,15 @@ export function gridBody(ctx, first) {
       say(takeCount, t.count);
     }
     boxes?.paint(find, countsOf());
+    head?.paint({
+      link,
+      mode: st.mode,
+      keyed: ctx.keyed?.(),
+      panel,
+      srcs: full.srcs.length,
+      dsts: full.dsts.length,
+      canTake: !tally || offeredLevels(tally, panel.rights).length > 0,
+    });
     const text =
       stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
@@ -638,8 +651,9 @@ export function gridBody(ctx, first) {
 
   return {
     render,
-    data({ tally: t, prot, nm }) {
+    data({ tally: t, prot, nm, link: l }) {
       tally = t;
+      link = l ?? null;
       env = envFrom(t, prot, {}, panel.rights);
       if (nm) {
         namesReply = nm;
@@ -674,6 +688,7 @@ export function gridBody(ctx, first) {
       gest?.stop();
       g?.stop();
       count.remove();
+      head?.stop();
       take?.remove();
       offLayout();
       if (boxNode) boxNode.hidden = true;
