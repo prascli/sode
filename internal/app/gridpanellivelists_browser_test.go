@@ -56,6 +56,13 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	b.waitFor("keys in the drawer never move the grid's cursor", `cursorAt() === cursorWas`)
 	b.waitFor("Esc in a list drops its selection and keeps the drawer open", `document.getElementById('ed-sources-sel').textContent === '0 selected' && document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open')`)
 
+	// Add from the router: source 2 goes and comes back at the end.
+	b.eval(`row('sources', 2).querySelector('[data-act="delete"]').click(); true`)
+	b.waitFor("source 2 leaves the live grid and shows under Add from the router", `!document.querySelector('#ed-live-view .sode-gridpanel__src[data-src="2"]') && !!document.querySelector('#ed-sources-col .sode-rlist [data-n="2"]')?.offsetParent`)
+	b.eval(`document.querySelector('#ed-sources-col .sode-rlist [data-n="2"]').click(); document.getElementById('ed-sources-add-sel').click(); true`)
+	// It goes to the end, out of the grid's view, so the list's count and the save below show it.
+	b.waitFor("the + adds it back to the list", `!document.querySelector('#ed-sources-col .sode-rlist [data-n="2"]') && document.getElementById('ed-sources-state').textContent === '200'`)
+
 	b.eval(`document.getElementById('tab-ed-live-dsts').click(); true`)
 	b.waitFor("the Destinations tab shows that list", `!!document.getElementById('ed-destinations-list').offsetParent && document.getElementById('ed-destinations-list').clientHeight > 0`)
 	b.eval(`row('destinations', 4).querySelector('[data-act="pin"]').click(); row('sources', 1).querySelector('[data-act="delete"]').click(); true`)
@@ -73,6 +80,9 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 		if m == float64(1) {
 			t.Errorf("source 1 is still saved: %v", members)
 		}
+	}
+	if members[len(members)-1] != float64(2) {
+		t.Errorf("source 2 is not saved at the end: %v", members)
 	}
 	// One panel check every 5 s: past it, the saved copy must not show as a change from somewhere else.
 	time.Sleep(6 * time.Second)
