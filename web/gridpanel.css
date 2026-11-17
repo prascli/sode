@@ -757,10 +757,7 @@ html:has(.sode-gridpanel) {
   align-self: start;
   font-size: var(--pb-text-xs);
 }
-.sode-gridpanel__tip {
-  color: var(--pb-text-muted);
-}
-/* The note keeps its height as its words change, so the grid below does not move: one line each, and an empty chip
+/* The note keeps its height as its words change, so the grid below does not move: one line, and an empty chip
    keeps its room. */
 .sode-gridpanel__note > * {
   max-width: 100%;
@@ -775,9 +772,6 @@ html:has(.sode-gridpanel) {
 /* A zero-width space gives an empty chip its line height. */
 .sode-gridpanel__chip::before {
   content: "\200b";
-}
-:root[data-layout="phone"] .sode-gridpanel__tip {
-  display: none;
 }
 .sode-gridpanel__take-n {
   font-family: var(--pb-font-num);
@@ -946,10 +940,6 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__label--dst {
   background: var(--pb-dest);
 }
-.sode-gridpanel__hint {
-  color: var(--pb-text-muted);
-  font-size: var(--pb-text-xs);
-}
 
 /* Picked rows and columns (gridpanelview.js paintXp): a role colour wash, translucent so the crosshairs still show. */
 .sode-gridpanel__xp[data-row] {
@@ -1018,7 +1008,7 @@ html:has(.sode-gridpanel) {
   column-gap: var(--pb-space-2);
   display: grid;
   grid-template-areas:
-    "head r1 lab   chip  chip top  top  top top top   top"
+    "head r1 lab   lab   .    top  top  top top top   top"
     "head r1 picks input r2 fsrc mode r3  all clear take"
     "head r1 picks input r2 fdst mode r3  all clear take";
   grid-template-columns: minmax(0, 1fr) auto auto 6rem auto 11rem auto auto auto auto 6.4rem;
@@ -1091,7 +1081,8 @@ html:has(.sode-gridpanel) {
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__note {
   align-self: end;
-  grid-area: chip;
+  grid-area: lab;
+  justify-self: end;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__clear {
   align-self: stretch;
@@ -1115,12 +1106,16 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__find[data-kind="dsts"] {
   grid-area: fdst;
 }
+:root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__find {
+  align-items: stretch;
+}
 :root:not([data-layout="phone"]) .sode-gridpanel__deck :is(.sode-gridpanel__find-input, .sode-gridpanel__find-step) {
   height: 100%;
 }
 /* Find and Filter one over the other, each as tall as a search box, so the mode is plain to see and to hit. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__find-mode {
   display: grid;
+  padding: 0;
   gap: var(--pb-space-1);
   grid-area: mode;
   grid-template-rows: subgrid;
@@ -1142,13 +1137,22 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__stat-val {
   font-size: var(--pb-text-sm);
 }
+/* Kiosk mode hides the header, so on a wide window its column goes and the search boxes take the room. */
+@media not (max-width: 89.9rem) {
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-panels__head[hidden]) {
+    grid-template-columns: 0 0 auto 6rem auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
+  }
+  :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-panels__head[hidden]) > .sode-gridpanel__rule--1 {
+    display: none;
+  }
+}
 /* Below 1440 px the title and the tools are a row of their own over the controls, past the Lock chip. The tools
    span the search column, the one flexible column, so their width does not widen Select none, Clear and Take. */
 @media (max-width: 89.9rem) {
   :root:not([data-layout="phone"]) .sode-gridpanel__deck {
     grid-template-areas:
       "head  head  head top  top  top top top   top"
-      "lab   chip  chip .    .    .   .   .     ."
+      "lab   lab   lab  .    .    .   .   .     ."
       "picks input r2   fsrc mode r3  all clear take"
       "picks input r2   fdst mode r3  all clear take";
     grid-template-columns: auto 6rem auto minmax(6rem, 1fr) auto auto auto auto 6.4rem;

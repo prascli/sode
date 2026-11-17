@@ -9,7 +9,8 @@ import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreF
 
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
 const GLIDE_MAX_MS = 3000; // a glide across 2500 sources takes about 1.5 s
-// A node that starts the panel pulse (sode-panel-pulse) joins the others in phase: every pulse counts from the
+
+// A node that starts the panel pulse (sode-panel-pulse) joins the others in phase. Every pulse counts from the
 // timeline's time zero. One read per task, since getAnimations brings the style up to date.
 const joining = new Set();
 export function joinPulse(node) {

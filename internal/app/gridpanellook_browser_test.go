@@ -2,10 +2,13 @@ package app
 
 import "testing"
 
-// The Grid panel page looks as in the prototype at 1440 by 900. It checks the header boxes and line, the Sources row
-// and the Destinations word, and the picked row and column washes. It checks the staged ring's colours and the Take
-// button's size and place. The grid goes down to the window's bottom, the Panels link is in the header and Full width
-// is gone. Then it checks the panels list's picture and words for a Grid panel.
+// The Grid panel page at 1440 by 900. The header, the Levels box and the search boxes are one band, the deck. It
+// holds the title and its line, the status boxes and buttons, and the Levels box like the main page's. Then come the
+// search boxes with Find and Filter, Select none, Clear and the red Take. It checks the Sources row, the Destinations
+// word, the picked row and column washes and the staged ring. The cursor ring, the staged ring and Take pulse in one
+// phase.
+// The grid goes down to the window's bottom and Full width is gone. Then it checks the panels list's picture and
+// words for a Grid panel.
 func TestChromeGridPanelLook(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -26,30 +29,56 @@ func TestChromeGridPanelLook(t *testing.T) {
 			t('.sode-gridpanel__meta').includes('Your panel') && t('.sode-gridpanel__meta').includes('Grid panel, 200 sources by 120 destinations') &&
 			t('.sode-gridpanel__meta').includes('Can view and take') && !!document.querySelector('.sode-gridpanel__stat-val .pb-dot--ok');
 	})()`)
-	b.waitFor("the header is one row, about the prototype's 86.7 px", `(() => {
-		const h = document.querySelector('.sode-panels__head').getBoundingClientRect().height;
-		return h > 84 && h < 90;
+	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 150 px high", `(() => {
+		const deck = document.querySelector('.sode-gridpanel__deck');
+		const r = deck.getBoundingClientRect();
+		const inside = ['#panel-title', '.sode-gridpanel__tools', '#panel-lvl', '.sode-gridpanel__find[data-kind="srcs"] input', '#panel-take']
+			.every((s) => { const n = deck.querySelector(s); const b = n?.getBoundingClientRect(); return b && b.top >= r.top && b.bottom <= r.bottom; });
+		return r.top === 0 && r.height < 150 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
 	})()`)
-	b.waitFor("Full screen has its words, Full width is gone and the Panels link is in the header", `(() => {
+	b.waitFor("the Lock chip does not cover the title or the Levels box", `(() => {
+		const c = document.querySelector('.sode-lock__who').getBoundingClientRect();
+		const off = (s) => { const n = document.querySelector(s).getBoundingClientRect(); return n.top >= c.bottom || n.left >= c.right; };
+		return off('#panel-title') && off('#panel-lvl-pick') && off('#panel-levels .sode__box-head');
+	})()`)
+	b.waitFor("the Levels box is the main page's: half its old 240 px, large words, as tall as the picks", `(() => {
+		const i = document.getElementById('panel-lvl'), p = document.getElementById('panel-lvl-pick').getBoundingClientRect();
+		const r = i.getBoundingClientRect();
+		return i.classList.contains('sode__input') && Math.round(r.width) === 120 && getComputedStyle(i).fontSize === '27.5px' &&
+			Math.abs(r.top - p.top) < 1 && Math.abs(r.height - p.height) < 1;
+	})()`)
+	b.waitFor("Find and Filter are two buttons, each as tall as a search box", `(() => {
+		const [f, x] = document.querySelectorAll('.sode-gridpanel__find-mode > .pb-btn');
+		const box = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input').getBoundingClientRect();
+		return f.textContent === 'Find' && f.getAttribute('aria-pressed') === 'true' && x.textContent === 'Filter' &&
+			Math.abs(f.getBoundingClientRect().height - box.height) < 2 && Math.abs(x.getBoundingClientRect().height - box.height) < 2;
+	})()`)
+	b.waitFor("Full screen is an icon, Full width is gone and the Panels link is in the header", `(() => {
 		const s = document.getElementById('panel-screen');
-		return getComputedStyle(s, '::before').content === '"Full screen"' && s.getBoundingClientRect().width > 100 &&
+		return getComputedStyle(s, '::before').content === 'none' && s.getBoundingClientRect().width < 48 &&
 			document.getElementById('panel-full').getClientRects().length === 0 &&
-			document.getElementById('panel-home').parentNode === document.querySelector('.sode-panels__head') &&
+			document.querySelector('.sode-panels__head').contains(document.getElementById('panel-home')) &&
 			!!document.querySelector('#panel-home a[href="panels"]');
 	})()`)
+	b.waitFor("big scroll bars: 40 px across the bottom, 28 px down the side", `(() => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		return sc.offsetHeight - sc.clientHeight === 40 && sc.offsetWidth - sc.clientWidth === 28;
+	})()`)
 	b.waitFor("the grid reaches the window's bottom", `Math.abs(document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect().bottom - innerHeight) < 2 && document.documentElement.scrollHeight === innerHeight`)
-	b.waitFor("the Sources row starts at the Source bar and the corner names the Destinations", `(() => {
-		const src = document.querySelector('.sode-gridpanel__label--src').getBoundingClientRect();
+	b.waitFor("the Sources row starts at the Source bar with no words after it, and the corner names the Destinations", `(() => {
+		const label = document.querySelector('.sode-gridpanel__label--src');
+		const src = label.getBoundingClientRect();
 		const dst = document.querySelector('.sode-gridpanel__head > .sode-gridpanel__label--dst');
 		const scroll = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
-		return Math.abs(src.left - 224) < 1 && src.bottom <= scroll.top && dst?.textContent === 'Destinations' && document.querySelector('.sode-gridpanel__head').lastChild === dst;
+		return Math.abs(src.left - 224) < 1 && src.bottom <= scroll.top && dst?.textContent === 'Destinations' && document.querySelector('.sode-gridpanel__head').lastChild === dst &&
+			label.parentNode.textContent === 'Sources';
 	})()`)
 
 	b.waitFor("80 px crosspoints with 16 px names, under one raised deck", `(() => {
 		const bg = (s) => getComputedStyle(document.querySelector(s)).backgroundColor;
 		return Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 80 &&
 			getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '16.25px' &&
-			bg('#panel-levels') === bg('.sode-panels__head') && bg('.sode-gridpanel__bar') === bg('.sode-panels__head');
+			bg('.sode-gridpanel__bar') === bg('.sode-gridpanel__deck');
 	})()`)
 
 	b.eval(`document.querySelector('.sode-gridpanel__dst[data-dst="2"]').click(); document.querySelector('.sode-gridpanel__src[data-src="4"]').click(); true`)
@@ -65,42 +94,56 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const bg = r.style.background;
 		return `+gridXp(5, 3)+`.dataset.s === 'staged' && getComputedStyle(r).display === 'block' && bg.includes('conic-gradient') && (bg.match(/transparent/g) || []).length > 3;
 	})()`)
-	b.waitFor("Take is 192 px wide at the right of the Levels band, and Take and Clear are as tall as the picks", `(() => {
+	b.waitFor("Take is at the right of the deck; Select none, Clear and Take are as tall as the picks, past the search boxes", `(() => {
 		const t = document.getElementById('panel-take').getBoundingClientRect();
 		const c = document.getElementById('panel-clear').getBoundingClientRect();
+		const a = document.getElementById('panel-lvl-all').getBoundingClientRect();
+		const f = document.querySelector('.sode-gridpanel__find-mode').getBoundingClientRect();
 		const p = document.getElementById('panel-lvl-pick').getBoundingClientRect();
-		const band = document.getElementById('panel-levels').getBoundingClientRect();
 		const same = (r) => Math.abs(r.top - p.top) < 1 && Math.abs(r.height - p.height) < 1;
-		return Math.round(t.width) === 192 && same(t) && same(c) && innerWidth - t.right < 12 && t.bottom <= band.bottom && document.getElementById('panel-take').textContent === 'Take 1';
+		return same(t) && same(c) && same(a) && innerWidth - t.right < 12 && a.left >= f.right && a.right <= c.left && c.right <= t.left &&
+			document.getElementById('panel-take').textContent === 'Take 1';
 	})()`)
 	b.waitFor("the V pick is two by two picks, filled when on", `(() => {
 		const [v, two] = document.querySelectorAll('#panel-lvl-pick > .sode__pick');
 		const r = v.getBoundingClientRect(), p = two.getBoundingClientRect();
 		return Math.abs(r.width - r.height) < 2 && r.width > 2 * p.width && v.getAttribute('aria-pressed') === 'true' && getComputedStyle(v).backgroundColor !== 'rgba(0, 0, 0, 0)';
 	})()`)
-	b.waitFor("an armed Take is the commit colour, between --pb-commit and its hover, with the accent words", `(() => {
+	b.waitFor("an armed Take is the main page's red Take, between --pb-status-error and --pb-danger-hover, with its words", `(() => {
 		const t = document.getElementById('panel-take');
+		if (!t.classList.contains('pb-btn--danger')) return false;
 		// Canvas turns any colour form (oklab from color-mix) into RGB; a probe reads the tokens in this theme.
 		const rgb = (c) => { const x = document.createElement('canvas').getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data]; };
 		const token = (v) => { const p = document.createElement('i'); p.style.color = 'var(' + v + ')'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return rgb(c); };
-		const bg = rgb(getComputedStyle(t).backgroundColor), lo = token('--pb-commit'), hi = token('--pb-commit-hover');
+		const bg = rgb(getComputedStyle(t).backgroundColor), lo = token('--pb-status-error'), hi = token('--pb-danger-hover');
 		const ink = rgb(getComputedStyle(t).color), want = token('--pb-text-on-accent');
 		const near = (a, b) => a.slice(0, 3).every((v, k) => Math.abs(v - b[k]) <= 3);
 		return t.classList.contains('sode-panel__take--armed') && bg.slice(0, 3).every((v, k) => v >= Math.min(lo[k], hi[k]) - 3 && v <= Math.max(lo[k], hi[k]) + 3) && near(ink, want);
 	})()`)
 	held := `[...document.querySelectorAll('.sode-gridpanel__held:not([hidden])')].map((n) => n.parentNode.dataset.dst + ':' + n.textContent).join(',')`
 	note := `[...document.querySelectorAll('.sode-gridpanel__note > :not([hidden])')].map((n) => n.textContent).join('|')`
-	b.waitFor("the staged destination says so, and the note counts it", held+` === '3:staged' && `+note+` === '1 staged|Press Take or Enter to send the staged routes. Esc drops them.'`)
+	b.waitFor("the staged destination says so, and the note counts it with no help words", held+` === '3:staged' && `+note+` === '1 staged'`)
+	// Over a crosspoint the cursor is a ring. All three count from time zero (gridpanelview.js joinPulse).
+	b.eval(`(() => {
+		const r = ` + gridXp(6, 5) + `.getBoundingClientRect();
+		document.querySelector('.sode-gridpanel__scroll').dispatchEvent(new PointerEvent('pointermove', { clientX: r.x + 20, clientY: r.y + 20, bubbles: true, pointerType: 'mouse' }));
+		return true;
+	})()`)
+	b.waitFor("the cursor ring, the staged ring and the armed Take pulse in one phase", `(() => {
+		const phase = (n) => n.getAnimations().filter((a) => a.animationName === 'sode-panel-pulse').map((a) => a.currentTime % 2000);
+		const t = [...phase(document.querySelector('.sode-gridpanel__ring')), ...phase(`+gridXp(5, 3)+`), ...phase(document.getElementById('panel-take'))];
+		return t.length === 3 && Math.max(...t) - Math.min(...t) < 20;
+	})()`)
 	b.waitFor("the search boxes name the mode and show their keys", `[...document.querySelectorAll('.sode-gridpanel__find-input')].map((n) => n.placeholder).join('|') === 'Find sources|Find destinations' && `+
 		`[...document.querySelectorAll('.sode-gridpanel__find-key')].map((n) => n.textContent).join('') === 'sd'`)
 	b.shot("look")
 	b.eval(`document.querySelector('.sode-gridpanel__dst[data-dst="2"]').click(); true`)
-	b.waitFor("a pick shows first in the note", note+` === '1 destination picked|Click a crosspoint in a picked row or column for a Diagonal. Esc drops the picks.'`)
+	b.waitFor("a pick shows first in the note", note+` === '1 destination picked'`)
 	b.eval(`document.getElementById('panel-clear').click(); true`)
-	b.waitFor("Clear drops the picks first", note+` === '1 staged|Press Take or Enter to send the staged routes. Esc drops them.' && !document.querySelector('.sode-gridpanel__dst[data-picked]')`)
+	b.waitFor("Clear drops the picks first", note+` === '1 staged' && !document.querySelector('.sode-gridpanel__dst[data-picked]')`)
 	b.eval(`document.getElementById('panel-clear').click(); true`)
 	b.waitFor("then the staged routes, and has nothing left to drop", held+` === '' && document.getElementById('panel-take').disabled && document.getElementById('panel-clear').disabled && `+
-		note+` === 'Click names to pick rows and columns. Shift-click picks a range.'`)
+		note+` === ''`)
 
 	b.open(srv.URL + "/panels")
 	b.waitFor("the Grid panel in the list", `!!document.querySelector('.sode-ov__item[data-id="`+id+`"]')`)

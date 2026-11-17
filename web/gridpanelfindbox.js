@@ -19,8 +19,8 @@ const STEPS = {
 };
 
 // host is the deck's search slot (gridpanelheadview.js), or the view's corner (g.head) in the editor's live test.
-// onText(kind, text) on each edit; onMode() on a press of the other mode; onStep(kind, dir) on a step button press,
-// dir 1 for the next match. One mode serves both boxes. The step buttons show only while the box has text, which is
+// onText(kind, text) runs on each edit and onMode() on a press of the other mode. onStep(kind, dir) runs on a step
+// button press, dir 1 for the next match. One mode serves both boxes. The step buttons show only while the box has text, which is
 // when they do something and the placeholder is gone.
 export function findBoxes(host, { onText, onMode, onStep }) {
   const make = (kind) => {
