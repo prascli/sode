@@ -16,7 +16,7 @@ import { createFind, typed, currentMatch, stepMatch, switchMode, clearFind } fro
 import { findBoxes } from './gridpanelfindbox.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
-import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
+import { buildGridPanel, paintGridPanel, previewGridPanel, pulseDelay } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
 import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
@@ -185,6 +185,7 @@ export function gridBody(ctx, first) {
       const t = takeButton({ mode: st.mode, staged: n, busy: st.busy });
       if (take.hidden === t.shown) take.hidden = !t.shown;
       if (take.disabled !== t.disabled) take.disabled = t.disabled;
+      if (t.armed && !take.classList.contains('sode-panel__take--armed')) take.style.animationDelay = pulseDelay();
       take.classList.toggle('sode-panel__take--armed', t.armed);
       say(takeCount, t.count);
     }

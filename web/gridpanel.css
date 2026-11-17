@@ -468,6 +468,16 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__take-n[hidden] {
   display: none;
 }
+/* Outside the grid, so it runs the pulse itself, kept in step with the staged crosspoints (gridpanelrun.js). */
+.sode-gridpanel__take.sode-panel__take--armed {
+  animation: sode-panel-pulse var(--panel-pulse-s) ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sode-gridpanel__take.sode-panel__take--armed {
+    animation: none;
+    --pulse: 0.6;
+  }
+}
 :root[data-layout="phone"] .sode-gridpanel__take {
   min-width: 0;
 }
