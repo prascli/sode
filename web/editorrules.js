@@ -44,7 +44,8 @@ export function groupPanels(list) {
   return { mine: all.filter((p) => p.canEdit), shared: all.filter((p) => !p.canEdit) };
 }
 
-// The server gives the Page its id on the first save. A Grid panel has no size and no Pages, and starts following the router.
+// The server gives the Page its id on the first save. A Grid panel has no size and no Pages, and starts with no
+// sources and no destinations, as a Buttons panel starts with no buttons.
 export const newPanel = (type) =>
   isGridPanel({ type })
     ? {
@@ -54,8 +55,8 @@ export const newPanel = (type) =>
         share: { mode: 'me' },
         pages: [],
         settings: {},
-        sources: { members: 'all' },
-        destinations: { members: 'all' },
+        sources: { members: [] },
+        destinations: { members: [] },
       }
     : {
         name: 'New panel',

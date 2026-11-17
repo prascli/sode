@@ -4,6 +4,7 @@
 import { allowed } from './rightsrules.js';
 import { filterFn } from './filter.js';
 import { chord } from './keys.js';
+import { artRun } from './arttoolrules.js';
 
 export const PINS_MAX = 8; // per edge; keep in step with gridPinsMax in internal/app/panelgrid.go
 
@@ -39,17 +40,6 @@ function withItem(edge, n, patch) {
   if (Object.keys(it).length) items[n] = it;
   else delete items[n];
   return { ...edge, items };
-}
-
-// Sets or clears an item's Icon A (art) and Icon B (artB). undefined or '' clears one. The same edge comes back
-// when nothing changes.
-export function setItemArt(edge, n, patch) {
-  const e = edge || { members: 'all' };
-  const was = e.items?.[n] || {};
-  const next = {};
-  for (const k of ['art', 'artB']) next[k] = k in patch ? patch[k] || undefined : was[k];
-  if (next.art === was.art && next.artB === was.artB) return edge;
-  return withItem(e, n, next);
 }
 
 export function pinItem(edge, n, on) {
@@ -94,13 +84,13 @@ export function clearEdge(edge, rights, kind) {
 
 export const followRouter = (edge) => ({ ...withoutHide(edge), members: 'all' });
 
-// The router list beside the panel's list: router order, within the Rights, each marked when the panel has it.
+// Add from the router: the router's items the panel does not have, in router order, within the Rights.
 export function routerRows(router, edge, rights, kind) {
   const has = new Set(membersOf(edge, router));
   return (router || [])
-    .filter((x) => allowed(rights, kind, x.n))
+    .filter((x) => !has.has(x.n) && allowed(rights, kind, x.n))
     .sort((a, b) => a.n - b.n)
-    .map((x) => ({ n: x.n, name: x.name ?? '', in: has.has(x.n) }));
+    .map((x) => ({ n: x.n, name: x.name ?? '' }));
 }
 
 // Find uses the main page's filter language on the numbers as shown (off is numberOffset). Text it cannot read
@@ -150,6 +140,11 @@ const EDGE_KEYS = {
   'alt+down': { move: 'down' },
   'alt+home': { move: 'top' },
   'alt+end': { move: 'end' },
+  // Ctrl+Up and Ctrl+Down never reach a page on macOS (Mission Control), so the group moves have Shift too.
+  'ctrl+shift+up': { move: 'up' },
+  'ctrl+shift+down': { move: 'down' },
+  'shift+meta+up': { move: 'up' },
+  'shift+meta+down': { move: 'down' },
   'ctrl+a': { all: true },
   'meta+a': { all: true },
   ' ': { toggle: true },
@@ -239,17 +234,26 @@ export function removeItems(edge, ns) {
   return { ...e, hide: [...hide, ...[...ns].filter((n) => !had.has(n))], items };
 }
 
-// setItemArt for each selected entry. The same edge comes back when nothing changes.
-export function setItemsArt(edge, ns, patch) {
+// One artwork choice (arttoolrules.js artRun) on the rows ns, a list of router numbers in list order: Icon A on each,
+// or an Icon B run from the first. left counts the rows past the end of the run. The edge is the same when nothing changes.
+export function itemsArt(edge, ns, choice) {
+  const run = artRun(choice);
+  if (!run) return { edge, left: 0 };
   const e = edge || { members: 'all' };
   const items = { ...(e.items || {}) };
-  const keys = ['art', 'artB'].filter((k) => k in patch);
   let changed = false;
+  let left = 0;
   for (const n of ns) {
+    const patch = run();
+    if (!patch) {
+      left++;
+      continue;
+    }
+    delete patch.hideText; // a Grid item has no Hide text
     const was = items[n] || {};
-    if (keys.every((k) => (was[k] || '') === (patch[k] || ''))) continue;
-    patchItem(items, n, Object.fromEntries(keys.map((k) => [k, patch[k]])));
+    if (Object.keys(patch).every((k) => (was[k] || '') === (patch[k] || ''))) continue;
+    patchItem(items, n, patch);
     changed = true;
   }
-  return changed ? { ...e, items } : edge;
+  return { edge: changed ? { ...e, items } : edge, left };
 }

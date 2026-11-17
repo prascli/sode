@@ -15,19 +15,13 @@ const router = namesReply({
 
 const ns = (rows) => rows.map((r) => r.n);
 
-test('the router list is in router order, limited by Rights, and marks what the panel has', () => {
-  const rows = routerRows(router, { members: [2, 9] }, { sources: [0, 2, 3] }, 'sources');
-  assert.deepEqual(ns(rows), [0, 2, 3]);
-  assert.deepEqual(rows[1], { n: 2, name: 'VT 1', in: true });
-  assert.equal(rows[0].in, false);
+test('Add from the router lists what the panel does not have, in router order, limited by Rights', () => {
+  assert.deepEqual(ns(routerRows(router, { members: [2, 9] }, { sources: [0, 2, 3] }, 'sources')), [0, 3]);
+  assert.deepEqual(routerRows(router, { members: [] }, null, 'sources')[2], { n: 2, name: 'VT 1' });
 });
 
-test('on an "all" edge every router item is in the panel except hidden ones', () => {
-  const rows = routerRows(router, { members: 'all', hide: [1] }, null, 'sources');
-  assert.deepEqual(
-    rows.map((r) => r.in),
-    [true, false, true, true],
-  );
+test('on an "all" edge only the hidden items are left to add', () => {
+  assert.deepEqual(ns(routerRows(router, { members: 'all', hide: [1] }, null, 'sources')), [1]);
 });
 
 test('Find matches names, and numbers as shown', () => {

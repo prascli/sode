@@ -155,16 +155,22 @@ export function setKind(g, kind) {
 export const clearSelection = (g) => setKind(g, '');
 
 // Change one cell, found by its top left square. A field set to undefined is removed.
-export function setCell(g, at, patch) {
-  return withCells(
-    g,
-    g.cells.map((x) => {
-      if (x.r !== at.r || x.c !== at.c) return x;
-      const out = { ...x, ...patch };
-      for (const k of Object.keys(patch)) if (out[k] === undefined) delete out[k];
-      return out;
-    }),
-  );
+export const setCell = (g, at, patch) => setCells(g, [at], () => patch);
+
+// setCell for many cells in one copy. ats are top left squares; patchOf(cell) gives each one's patch, or null to keep it.
+export function setCells(g, ats, patchOf) {
+  const at = new Set(ats.map((x) => `${x.r},${x.c}`));
+  let changed = false;
+  const cells = g.cells.map((x) => {
+    if (!at.has(`${x.r},${x.c}`)) return x;
+    const patch = patchOf(x);
+    if (!patch) return x;
+    const out = { ...x, ...patch };
+    for (const k of Object.keys(patch)) if (out[k] === undefined) delete out[k];
+    changed = true;
+    return out;
+  });
+  return changed ? withCells(g, cells) : g;
 }
 
 export const canMerge = (g) => selSquares(g) >= 2;

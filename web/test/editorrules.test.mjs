@@ -85,9 +85,9 @@ test('dirty means the name or the grid differs from what was loaded', () => {
   assert.equal(isDirty(null, 'New panel', createGrid()), false);
 });
 
-test('a new Grid panel follows the router on both edges and has no Pages', () => {
+test('a new Grid panel has no sources, no destinations and no Pages', () => {
   const p = newPanel('grid');
-  assert.deepEqual([p.type, p.sources, p.destinations, p.pages, p.acts], ['grid', { members: 'all' }, { members: 'all' }, [], 'session']);
+  assert.deepEqual([p.type, p.sources, p.destinations, p.pages, p.acts], ['grid', { members: [] }, { members: [] }, [], 'session']);
   assert.equal(newPanel().type, undefined);
 });
 
@@ -95,15 +95,15 @@ test('a Grid panel saves its type and edges with no size and no Pages, whatever 
   const g = merge(select(select(createGrid({ rows: 2, cols: 2 }), 1, 1), 2, 2, true));
   const sources = { members: [3, 1], items: { 1: { pinned: true } } };
   const fresh = saveBody(newPanel(), 'Wall', g, { type: 'grid', sources });
-  assert.deepEqual([fresh.type, fresh.sources, fresh.destinations, fresh.pages], ['grid', sources, { members: 'all' }, []]);
+  assert.deepEqual([fresh.type, fresh.sources, fresh.destinations, fresh.pages], ['grid', sources, { members: [] }, []]);
   assert.ok(!('rows' in fresh) && !('cols' in fresh));
   const loaded = { ...newPanel('grid'), id: 'p-1', name: 'Wall', canEdit: true, rows: 0, cols: 0, future: 1 };
   const b = saveBody(loaded, 'Wall', g, { destinations: { members: [2] } });
-  assert.deepEqual([b.type, b.sources, b.destinations, b.pages, b.future], ['grid', { members: 'all' }, { members: [2] }, [], 1]);
+  assert.deepEqual([b.type, b.sources, b.destinations, b.pages, b.future], ['grid', { members: [] }, { members: [2] }, [], 1]);
 });
 
 test('a Grid panel is dirty on a type or edge change, and not on an empty items or hide left by an undone edit', () => {
-  const loaded = { ...newPanel('grid'), id: 'p-1', name: 'Wall', rows: 0, cols: 0 };
+  const loaded = { ...newPanel('grid'), id: 'p-1', name: 'Wall', rows: 0, cols: 0, sources: { members: 'all' }, destinations: { members: 'all' } };
   const g = createGrid(pageView(loaded));
   assert.equal(isDirty(loaded, 'Wall', g, {}), false);
   assert.equal(isDirty(loaded, 'Wall', g, { sources: { members: 'all', items: {}, hide: [] } }), false);

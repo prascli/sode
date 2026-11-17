@@ -1,6 +1,7 @@
-// The router list on a Grid panel's Sources or Destinations tab: Find, click, Shift-click, Cmd-click and Add. Only
-// the rows in view have nodes, since a router can have thousands. Rules are editorgridrules.js.
-import { el } from './core.js';
+// Add from the router, under a Grid panel's Sources or Destinations list: the router's items the panel does not have,
+// narrowed by Find. A click adds one item; Shift-click and Cmd-click select several for Add. Only the rows in view
+// have nodes, since a router can have thousands. Rules are editorgridrules.js.
+import { el, icon } from './core.js';
 import { btn } from './formbits.js';
 import { axisSpan, spanMax, OVER } from './gridpanelwindow.js';
 import { routerRows, findRows, selectRows, addItems } from './editorgridrules.js';
@@ -38,8 +39,9 @@ export function createRouterList(o) {
     setSel({ selected: new Set(), anchor: null });
   });
   add.id = `ed-${key}-add`;
-  add.dataset.pbTip = `Adds the selected ${what}s at the end of the panel's list, in router order. ${what[0].toUpperCase()}${what.slice(1)}s it has are skipped.`;
-  const node = el('div', 'sode-rlist__wrap', find, shownNote, box, el('div', 'sode-edge__acts', add, all, none), selNote);
+  add.dataset.pbTip = `Adds the selected ${what}s at the end of the panel's list, in router order.`;
+  const tip = el('p', 'sode__hint', `Click a ${what} to add it. Shift-click and Cmd-click select several.`);
+  const node = el('div', 'sode-rlist__wrap', find, shownNote, box, tip, el('div', 'sode-edge__acts', add, all, none), selNote);
 
   let sel = { selected: new Set(), anchor: null };
   let text = '';
@@ -67,11 +69,10 @@ export function createRouterList(o) {
   function makeRow() {
     const num = document.createTextNode('');
     const name = document.createTextNode('');
-    const mark = document.createTextNode('');
-    const r = el('div', 'sode-rlist__row', el('span', 'sode-pages__num', num), el('span', 'sode-pages__name', name), el('span', 'sode__hint', mark));
+    const r = el('div', 'sode-rlist__row', icon('plus'), el('span', 'sode-pages__num', num), el('span', 'sode-pages__name', name));
     r.setAttribute('role', 'option');
     r.hidden = true;
-    texts.set(r, { num, name, mark });
+    texts.set(r, { num, name });
     field.append(r);
     return r;
   }
@@ -95,25 +96,21 @@ export function createRouterList(o) {
       r.dataset.n = String(row.n);
       r.style.setProperty('--sode-i', String(i));
       r.setAttribute('aria-selected', String(sel.selected.has(row.n)));
-      r.classList.toggle('is-in', row.in);
       const t = texts.get(r);
       setText(t.num, String(row.n + off));
       setText(t.name, row.name || `${what} ${row.n + off}`);
-      setText(t.mark, row.in ? 'in panel' : '');
     });
   }
   const setText = (t, s) => t.data !== s && (t.data = s);
 
   function drawState() {
     const ro = o.readOnly();
-    shownNote.textContent = text ? `${shown.length} of ${rows.length} shown.` : `${rows.length} on the router.`;
+    shownNote.textContent = text ? `${shown.length} of ${rows.length} shown.` : `${rows.length} not on the panel.`;
     const has = new Set(shown.map((r) => r.n));
-    const inPanel = new Set(rows.filter((r) => r.in).map((r) => r.n));
+    const out = new Set(rows.map((r) => r.n));
     const hidden = [...sel.selected].filter((n) => !has.has(n)).length;
-    const fresh = [...sel.selected].filter((n) => !inPanel.has(n)).length;
-    selNote.textContent = sel.selected.size
-      ? `${sel.selected.size} selected${hidden ? `, ${hidden} not shown` : ''}${fresh < sel.selected.size ? `, ${sel.selected.size - fresh} in panel` : ''}.`
-      : '';
+    const fresh = [...sel.selected].filter((n) => out.has(n)).length;
+    selNote.textContent = sel.selected.size ? `${sel.selected.size} selected${hidden ? `, ${hidden} not shown` : ''}.` : '';
     add.textContent = fresh ? `Add ${fresh}` : 'Add';
     add.disabled = ro || !fresh;
     all.disabled = !shown.length;
@@ -151,7 +148,11 @@ export function createRouterList(o) {
   box.addEventListener('click', (e) => {
     const r = e.target.closest('[data-n]');
     if (!r) return;
-    setSel(selectRows(sel, shown, Number(r.dataset.n), { shift: e.shiftKey, toggle: e.metaKey || e.ctrlKey }));
+    const n = Number(r.dataset.n);
+    if (e.shiftKey || e.metaKey || e.ctrlKey) return setSel(selectRows(sel, shown, n, { shift: e.shiftKey, toggle: e.metaKey || e.ctrlKey }));
+    if (o.readOnly()) return;
+    o.set(addItems(o.edge(), o.router(), new Set([n])));
+    sel.selected.delete(n);
   });
   box.addEventListener('scroll', drawRows, { passive: true });
   // The tab is hidden until opened, and a hidden list has no height to fill.

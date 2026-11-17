@@ -1,7 +1,7 @@
 // The Grid panel editor's edits of several selected entries at once (editorgridrules.js). Pure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moveRows, stepRows, pinItems, removeItems, setItemsArt, edgeRows, edgeListKey, PINS_MAX } from '../editorgridrules.js';
+import { moveRows, stepRows, pinItems, removeItems, itemsArt, edgeRows, edgeListKey, PINS_MAX } from '../editorgridrules.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const router = namesReply({
@@ -81,12 +81,22 @@ test('removeItems drops entries from a list, hides them on "all", and unpins the
   assert.equal(removeItems(e, sel()), e);
 });
 
-test('setItemsArt sets one artwork key on every entry and keeps the other key and pins', () => {
+test('itemsArt sets Icon A on every row and keeps Icon B and pins', () => {
   const e = { members: 'all', items: { 1: { pinned: true, artB: '2' } } };
-  const a = setItemsArt(e, sel(1, 2), { art: 'icon:mic' });
+  const a = itemsArt(e, [1, 2], { a: 'icon:mic' }).edge;
   assert.deepEqual(a.items, { 1: { pinned: true, artB: '2', art: 'icon:mic' }, 2: { art: 'icon:mic' } });
-  assert.deepEqual(setItemsArt(a, sel(1, 2), { art: undefined }).items, { 1: { pinned: true, artB: '2' } });
-  assert.equal(setItemsArt(a, sel(1, 2), { art: 'icon:mic' }), a);
+  assert.deepEqual(itemsArt(a, [1, 2], { a: undefined }).edge.items, { 1: { pinned: true, artB: '2' } });
+  assert.equal(itemsArt(a, [1, 2], { a: 'icon:mic' }).edge, a);
+});
+
+test('itemsArt runs Icon B down the rows in list order, as the Cell tab does on cells, and counts the rows past the run', () => {
+  const e = { members: [5, 3, 4] };
+  const out = itemsArt(e, [5, 3, 4], { b: '1' }).edge;
+  assert.deepEqual(out.items, { 5: { artB: '1' }, 3: { artB: '2' }, 4: { artB: '3' } });
+  const end = itemsArt(e, [5, 3, 4], { b: '15' });
+  assert.deepEqual([end.edge.items, end.left], [{ 5: { artB: '15' }, 3: { artB: '16' } }, 1]);
+  assert.deepEqual(itemsArt(out, [5, 3, 4], { b: undefined }).edge.items, {});
+  assert.deepEqual(itemsArt({ members: [1], items: { 1: { art: 'icon:mic', artB: '2', pinned: true } } }, [1], { clear: true }).edge.items, { 1: { pinned: true } });
 });
 
 test('edgeListKey names the list keys by chord; other keys are null', () => {
@@ -98,6 +108,8 @@ test('edgeListKey names the list keys by chord; other keys are null', () => {
   assert.deepEqual(k('ArrowUp', { altKey: true }), { move: 'up' });
   assert.deepEqual(k('Home', { altKey: true }), { move: 'top' });
   assert.deepEqual(k('End', { altKey: true }), { move: 'end' });
+  assert.deepEqual(k('ArrowUp', { metaKey: true, shiftKey: true }), { move: 'up' });
+  assert.deepEqual(k('ArrowDown', { ctrlKey: true, shiftKey: true }), { move: 'down' });
   assert.deepEqual(edgeListKey({ key: 'a', code: 'KeyA', ctrlKey: true }), { all: true });
   assert.deepEqual(edgeListKey({ key: 'a', code: 'KeyA', metaKey: true }), { all: true });
   assert.deepEqual(k(' '), { toggle: true });

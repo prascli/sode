@@ -965,52 +965,73 @@ body {
     grid-template-columns: 1fr;
   }
 }
-/* A Grid panel has no cells, size or Pages (paneleditor.js sets data-type); its lists fill the sidebar. */
+/* A Grid panel has no cells, size or Pages (paneleditor.js sets data-type). Its Sources and Destinations lists take
+   the place of the Pages, side by side, and the sidebar keeps the right third (editorside.js). */
+.sode-ed__lists {
+  display: none;
+}
 .sode-ed[data-type="grid"] .sode-ed__body {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(22rem, 1fr);
 }
-/* The Grid tabs show two columns side by side where the sidebar is wide enough (editorside.js). */
-.sode-ed__side {
-  container: side / inline-size;
-}
-/* Each is a tab panel, and pb-tabpanel.active is display: block. */
-.sode-pair.pb-tabpanel.active {
+.sode-ed[data-type="grid"] .sode-ed__lists {
   align-items: start;
   display: grid;
   gap: var(--pb-space-7);
-  grid-template-columns: minmax(0, 1fr);
-}
-@container side (min-width: 52rem) {
-  .sode-pair.pb-tabpanel.active {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.sode-pair__col {
-  container: col / inline-size;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pb-space-5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
 }
-.sode-pair__h {
-  font-size: var(--pb-text-lg);
-  font-weight: var(--pb-weight-bold);
-  margin: 0;
-}
-/* A list column: the router list (editorrouterlist.js) beside the panel's list, or above it in a narrow column. */
-.sode-edge {
-  align-items: start;
-  display: grid;
-  gap: var(--pb-space-5);
-  grid-template-columns: minmax(0, 1fr);
-}
-@container col (min-width: 36rem) {
-  .sode-edge {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 64rem) {
+  .sode-ed[data-type="grid"] .sode-ed__body,
+  .sode-ed[data-type="grid"] .sode-ed__lists {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
-.sode-rlist__wrap,
-.sode-edge__panel {
+/* One list (editorgridlist.js): its head, the selection bar, the panel's items and Add from the router. */
+.sode-edge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-3);
+  min-width: 0;
+}
+.sode-edge__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pb-space-3);
+}
+.sode-edge__h {
+  align-items: center;
+  display: flex;
+  font-size: var(--pb-text-lg);
+  font-weight: var(--pb-weight-bold);
+  gap: var(--pb-space-2);
+  margin: 0;
+}
+.sode-edge__count {
+  color: var(--pb-text-muted);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-md);
+  font-weight: normal;
+}
+.sode-edge__moves {
+  display: inline-flex;
+  gap: var(--pb-space-1);
+}
+.sode-edge__sep {
+  border-left: var(--pb-border-w) solid var(--pb-edge-soft);
+  margin-inline: var(--pb-space-1);
+}
+.sode-edge__add {
+  border-top: var(--pb-border-w) solid var(--pb-edge-soft);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-2);
+  padding-top: var(--pb-space-4);
+}
+.sode-edge__add .sode-side__h {
+  margin: 0;
+}
+.sode-rlist__wrap {
   display: flex;
   flex-direction: column;
   gap: var(--pb-space-2);
@@ -1018,13 +1039,17 @@ body {
 }
 .sode-rlist,
 .sode-edge__list {
-  max-height: 28rem;
   overflow-y: auto;
+}
+.sode-edge__list {
+  gap: 1px;
+  max-height: 50vh;
+  min-height: 6rem;
 }
 .sode-rlist {
   background: var(--pb-surface-raised);
   border: var(--pb-border-w) solid var(--pb-edge-soft);
-  height: 28rem;
+  height: 16rem;
 }
 .sode-rlist__field {
   height: calc(var(--sode-rows, 0) * 2rem);
@@ -1045,6 +1070,12 @@ body {
   top: calc(var(--sode-i, 0) * 2rem);
   user-select: none;
 }
+.sode-rlist__row:hover {
+  background: var(--pb-surface-hover);
+}
+.sode-rlist__row .pb-icon {
+  color: var(--pb-text-muted);
+}
 .sode-rlist__row[aria-selected="true"] {
   background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
   box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-accent);
@@ -1056,10 +1087,58 @@ body {
 .sode-ed[data-type="grid"] #ed-templates {
   display: none;
 }
+/* A row is one line, as in the prototype: grip, number, artwork, name, then Pin, Move and Remove. */
 .sode-pages__row.sode-edge__row {
   align-items: center;
+  border: 0;
   flex-direction: row;
-  justify-content: space-between;
+  gap: var(--pb-space-2);
+  padding: 0 var(--pb-space-1) 0 var(--pb-space-2);
+}
+.sode-edge__row .sode-pages__head {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sode-edge__row .sode-pages__name {
+  flex: 1 1 auto;
+}
+.sode-edge__row .pb-btn--icon.is-on {
+  color: var(--pb-accent);
+}
+/* A row's artwork is the cell's artwork row (panelview.js artNode) in a small box, at full strength. */
+.sode-edge__art {
+  flex: 0 0 auto;
+  height: 1.25rem;
+  isolation: isolate;
+  position: relative;
+  width: 2.5rem;
+}
+.sode-edge__art > .sode-panel__art {
+  opacity: 1;
+  padding: 0;
+  z-index: 0;
+}
+.sode-edge__row[data-dragged] {
+  opacity: 0.4;
+}
+.sode-grip {
+  color: var(--pb-text-muted);
+  cursor: grab;
+  display: inline-flex;
+}
+.sode-grip:hover {
+  color: var(--pb-text-strong);
+}
+.sode-grip.is-off {
+  cursor: default;
+  opacity: 0.4;
+}
+/* The drag image (orderedlist.js): drawn off screen, since the browser copies it at dragstart. */
+.sode-drag-chip {
+  gap: var(--pb-space-2);
+  left: -100rem;
+  position: fixed;
+  top: 0;
 }
 /* Selected rows of a panel's list (editorgridlist.js), marked as in the router list. */
 .sode-edge__row {
@@ -1078,15 +1157,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--pb-space-2);
-}
-/* The one artwork control of an edge list, open on one row (editorgridlist.js). */
-.sode-edge__art {
-  align-items: start;
-  display: grid;
-  gap: var(--pb-space-2);
-}
-.sode-edge__art[hidden] {
-  display: none;
 }
 .sode-ed__main {
   align-items: start;
@@ -1218,8 +1288,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--pb-space-7);
-  /* The toolbar above wraps to any height, so the sidebar pins near the top of the window as the page scrolls. */
-  max-height: calc(100dvh - 2 * var(--pb-space-5));
+  /* The toolbar above wraps to any height, so the sidebar pins near the top of the window as the page scrolls. It
+     scrolls inside itself, not the page. */
+  max-height: 85dvh;
+  overscroll-behavior: contain;
   min-width: 0;
   overflow: hidden auto;
   padding: var(--pb-space-9) var(--pb-space-5);

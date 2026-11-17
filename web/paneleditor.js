@@ -698,6 +698,22 @@ export async function runEditor() {
   $('panels-signin').addEventListener('click', () => signInFix());
   onSessionKey((k, step, err) => note(k ? 'ready' : step, err));
   on('wsclose', () => note('offline'));
+  // Names come from the REST read, which applies the user's Rights. The socket says when the router's names change,
+  // so the cells and the Grid lists show a rename at once, as an open panel does.
+  async function readNames() {
+    const next = await sessionFetch('api/v1/names').then((r) => (r.ok ? r.json() : null));
+    if (!next) return;
+    routerNames = next;
+    names = namesFrom(routerNames);
+  }
+  on('names', () =>
+    readNames()
+      .then(() => {
+        refresh();
+        fieldsChanged();
+      })
+      .catch(() => {}),
+  );
   startSession();
   show(null);
   // Not awaited: the seams below must exist while the page still waits for a sign-in. Then the sidebar and Find
@@ -705,8 +721,7 @@ export async function runEditor() {
   (async () => {
     try {
       await loadList();
-      routerNames = await sessionFetch('api/v1/names').then((r) => (r.ok ? r.json() : {}));
-      names = namesFrom(routerNames);
+      await readNames();
       await loadDefaults();
       await openPanel(editorTarget(location.search).id, false);
     } catch (err) {
@@ -753,6 +768,7 @@ export async function runEditor() {
     addKeyHook: (fn) => keyHooks.push(fn),
     // Find's fill order, which Wrap follows.
     useFillOrder: (fn) => (fillOrder = fn),
+    fillOrder: () => fillOrder(),
     onChange: (fn) => changeWatchers.push(fn),
     // The sidebar's panel fields. onFields runs when the panel loads, saves or a field changes.
     fields,
