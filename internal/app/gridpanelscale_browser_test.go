@@ -204,8 +204,8 @@ func TestChromeGridPanelScale(t *testing.T) {
 		t.Errorf("3 s with three staged spent %.0f ms on style recalc, want under 600", style)
 	}
 
-	// 50 pins on each edge, with no limit since 2026-11-17. The pinned bands draw only what half the room holds. The
-	// rest scroll first, and the grid keeps its bounds.
+	// 50 pins on each edge, with no limit since 2026-11-17. The pinned bands draw only what half the room holds, and
+	// each band scrolls on its own (owner, 2026-11-17). The grid keeps its bounds.
 	pins := func(from int) string {
 		p := make([]string, 50)
 		for i := range p {
@@ -222,7 +222,8 @@ func TestChromeGridPanelScale(t *testing.T) {
 		const v = (k) => Number(getComputedStyle(f).getPropertyValue(k).trim());
 		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
 		const rows = v('--sode-row-pins'), cols = v('--sode-col-pins');
-		return rows >= 1 && rows < 50 && cols >= 1 && cols < 50 && rows * xp <= sc.clientHeight / 2 && cols * xp <= sc.clientWidth / 2;
+		return rows >= 1 && rows < 50 && cols >= 1 && cols < 50 && rows * xp <= sc.clientHeight / 2 && cols * xp <= sc.clientWidth / 2 &&
+			v('--sode-cols') === 2500 - 50 + cols && v('--sode-rows') === 750 - 50 + rows;
 	})()`)
 	pinSweep, ok := b.eval(gridSweep).(map[string]any)
 	if !ok {
@@ -232,12 +233,31 @@ func TestChromeGridPanelScale(t *testing.T) {
 	if pinSweep["added"].(float64) != 0 || pinSweep["removed"].(float64) != 0 || pinSweep["most"].(float64) > gridNodesMax || pinSweep["missing"].(float64) != 0 {
 		t.Errorf("50 pins, sweep: %v", pinSweep)
 	}
-	// The 40th pin scrolls with the rest, so Find brings it into view.
-	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; return true; })()`)
+	// A wheel over the Destination band scrolls the band alone: the grid does not move, and no node is made.
+	band, ok := b.eval(`(async () => {
+		const sc = document.querySelector('.sode-gridpanel__scroll'), grid = document.querySelector('.sode-gridpanel__field');
+		const first = () => [...document.querySelectorAll('.sode-gridpanel__corner > .sode-gridpanel__dst:not([hidden])')].map((n) => Number(n.dataset.dst)).sort((x, y) => x - y)[0];
+		const was = first(), top = sc.scrollTop, left = sc.scrollLeft;
+		let made = 0;
+		const mo = new MutationObserver((recs) => recs.forEach((r) => { made += r.addedNodes.length + r.removedNodes.length; }));
+		mo.observe(grid, { childList: true, subtree: true });
+		const r = document.querySelector('.sode-gridpanel__corner > .sode-gridpanel__dst:not([hidden])').getBoundingClientRect();
+		sc.dispatchEvent(new WheelEvent('wheel', { deltaY: 600, clientX: r.right + 200, clientY: r.top + 10, bubbles: true, cancelable: true }));
+		for (let k = 0; k < 20 && first() === was; k++) await new Promise((res) => requestAnimationFrame(res));
+		mo.disconnect();
+		const bar = document.querySelector('.sode-gridpanel__pins--y + .sode-bigscroll--little');
+		return { was, now: first(), still: sc.scrollTop === top && sc.scrollLeft === left, made, bar: !!bar && !bar.hidden };
+	})()`).(map[string]any)
+	if !ok || band["now"] == band["was"] || band["still"] != true || band["made"].(float64) != 0 || band["bar"] != true {
+		t.Errorf("a wheel over the Destination band: %v, want the band moved, the grid still, no node made and the band's bar shown", band)
+	}
+	// The 40th pin is past the Source band's slots, so Find moves the band to it and the grid stays where it is.
+	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; window.__left = sc.scrollLeft; return true; })()`)
 	b.eval(`(() => { const i = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input'); i.focus(); document.execCommand('insertText', false, 'src 140'); return true; })()`)
 	b.waitFor("Find brings the 40th pinned source into view", `(() => {
 		const n = document.querySelector('.sode-gridpanel__src[data-src="139"]:not([hidden])'), r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
-		return !!n && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right;
+		return !!n && n.parentNode.classList.contains('sode-gridpanel__corner') && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right &&
+			document.querySelector('.sode-gridpanel__scroll').scrollLeft === window.__left;
 	})()`)
 	b.shot("scale-pins")
 	b.check()

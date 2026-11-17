@@ -66,8 +66,8 @@ func TestChromeGridPanelArt(t *testing.T) {
 		return !!r && r.lastChild.textContent === 'A' && getComputedStyle(r.firstChild).display === 'none';
 	})()`)
 	// A default's Hide text hides the name's text and keeps it for screen readers; the item's own false shows it.
-	b.waitFor("source 2's name is hidden under its default, its words kept", `(() => { const n = `+name("src", 2)+`; return n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize === '0px' && n.firstChild.data.length > 0 && getComputedStyle(`+art("src", 2)+`.lastChild).fontSize !== '0px'; })()`)
-	b.waitFor("destination 2 sets false, so its name shows", `(() => { const n = `+name("dst", 2)+`; return !n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize !== '0px' && n.firstChild.data.length > 0; })()`)
+	b.waitFor("source 2's name and number are hidden under its default, its words kept", `(() => { const n = `+name("src", 2)+`; return n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize === '0px' && getComputedStyle(n, '::before').content === 'none' && n.firstChild.data.length > 0 && getComputedStyle(`+art("src", 2)+`.lastChild).fontSize !== '0px'; })()`)
+	b.waitFor("destination 2 sets false, so its name and number show", `(() => { const n = `+name("dst", 2)+`; return !n.hasAttribute('data-hide-text') && getComputedStyle(n).fontSize !== '0px' && getComputedStyle(n, '::before').content === '"' + n.dataset.num + '"' && n.firstChild.data.length > 0; })()`)
 	b.waitFor("source 1 has no Hide text", `!`+name("src", 1)+`.hasAttribute('data-hide-text')`)
 	// The editor's Cell tab sets a selected row's artwork: Icon A and Icon B on source 3, saved on the item.
 	b.open(srv.URL + "/panels/editor?panel=" + id)

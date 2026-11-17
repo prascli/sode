@@ -7,7 +7,8 @@ import (
 
 // A saved change and a Default artwork change reach an open Grid panel by the usual live update. With nothing staged
 // it applies after the countdown and keeps the search, the picks and the cursor on the same items. With a route
-// staged it waits until Apply now, which drops the staged route and keeps the search.
+// staged it waits until Apply now, which drops the staged route and keeps the search. The banner shows in the header
+// row's status slot, with the main page's countdown bar, and the grid never moves.
 func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -30,6 +31,11 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(3, 2)+` !== null`)
 	b.waitFor("the lock screen goes", `document.querySelector('.sode-lock').hidden`)
+	b.eval(`window.__top = () => [document.querySelector('.sode-gridpanel__scroll'), document.querySelector('.sode-gridpanel__deck')].map((n) => Math.round(n.getBoundingClientRect().top) + ':' + Math.round(n.getBoundingClientRect().height)).join('|'); window.__was = window.__top(); true`)
+	still := `window.__top() === window.__was`
+	// The banner's words and buttons show whole at 1280 by 800, the browser's size here.
+	whole := `(() => { const u = document.getElementById('panel-update'); const cut = (n) => n.scrollWidth > n.clientWidth + 1; ` +
+		`return innerWidth === 1280 && !cut(u.querySelector('.pb-alert')) && !cut(u.querySelector('.sode__banner-body')) && u.getBoundingClientRect().right <= innerWidth; })()`
 
 	// CAM 1 is source 12, the first match. Two rows down is destination 1.
 	realKey(b, "s", "KeyS", 83)
@@ -56,8 +62,15 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	save("After", `[1,2,3,4,5,6]`)
 	text := `document.getElementById('panel-update-text').textContent`
 	b.waitFor("the countdown banner", `/Refreshing in \d+ s\./.test(`+text+`)`)
+	b.waitFor("the banner is in the status slot, whole, with its countdown bar, and the grid did not move", `(() => {
+		const u = document.getElementById('panel-update'), slot = u.parentNode, r = u.getBoundingClientRect(), s = slot.getBoundingClientRect();
+		const alert = u.querySelector('.pb-alert'), bar = u.querySelector('#panel-update-bar .sode__banner-bar');
+		return slot.classList.contains('sode-gridpanel__slot') && r.top >= s.top - 0.5 && r.bottom <= s.bottom + 0.5 &&
+			!!bar && getComputedStyle(bar).animationName === 'sode-countdown' && bar.getClientRects().length > 0;
+	})() && `+whole+` && `+still)
+	b.shot("banner")
 	b.waitFor("the old copy shows until the countdown ends", `document.getElementById('panel-title').textContent === 'Before'`)
-	b.waitFor("the new copy applies", `document.getElementById('panel-title').textContent === 'After'`)
+	b.waitFor("the new copy applies, and the grid did not move", `document.getElementById('panel-title').textContent === 'After' && document.getElementById('panel-update').hidden && `+still)
 	b.waitFor("the new members show", `getComputedStyle(document.querySelector('.sode-gridpanel__field')).getPropertyValue('--sode-rows').trim() === '6'`)
 	kept("a saved change", 0)
 	b.waitFor("the pick stays", dst(3)+`.dataset.picked === ''`)
@@ -83,11 +96,11 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	save("Third", `[1,2,3,4,5,6]`)
 	// The poll and the countdown together come near one wait's limit, so each gets its own.
 	b.waitFor("the countdown banner for the third copy", `/Refreshing in \d+ s\./.test(`+text+`)`)
-	b.waitFor("the banner waits for the staged route", `/take or clear/.test(`+text+`)`)
+	b.waitFor("the banner waits for the staged route, its longest line whole, and the grid did not move", `/take or clear/.test(`+text+`) && `+whole+` && `+still)
 	b.waitFor("the staged route and the old copy stay", `document.getElementById('panel-title').textContent === 'After' && `+gridXp(12, 2)+`.dataset.s === 'staged'`)
 	b.eval(`document.getElementById('panel-apply').click(); true`)
 	b.waitFor("Apply now applies and drops the staged route", `document.getElementById('panel-title').textContent === 'Third' && !document.querySelector('.sode-gridpanel__xp[data-s="staged"]:not([hidden])') && document.getElementById('panel-staged').hidden`)
-	b.waitFor("the banner goes", `document.getElementById('panel-update').hidden`)
+	b.waitFor("the banner goes, and the grid did not move", `document.getElementById('panel-update').hidden && `+still)
 	b.waitFor("the Take button is off", `document.getElementById('panel-take').textContent === 'Take' && document.getElementById('panel-take').disabled`)
 	kept("Apply now", 0)
 	b.check()

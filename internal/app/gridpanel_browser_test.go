@@ -379,9 +379,10 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.eval(`window.__top = () => [document.querySelector('.sode-gridpanel__scroll'), document.querySelector('.sode-gridpanel__deck')].map((n) => Math.round(n.getBoundingClientRect().top) + ':' + Math.round(n.getBoundingClientRect().height)).join('|'); window.__was = window.__top(); true`)
 	b.eval(gridXp(1, 12) + `.click()`)
 	b.waitFor("a press on a protected destination says why", `document.getElementById('panel-status').textContent === 'Rec B is protected'`)
-	b.waitFor("the status shows in the band, over the search boxes, and the grid did not move", `(() => {
-		const s = document.getElementById('panel-status'), r = s.getBoundingClientRect(), f = document.querySelector('.sode-gridpanel__find[data-kind="srcs"]').getBoundingClientRect();
-		return s.parentNode.classList.contains('sode-gridpanel__deck') && r.height > 0 && r.bottom <= f.top + 1 && Math.abs(r.left - f.left) < 1 && window.__top() === window.__was;
+	b.waitFor("the status shows in the header row's slot, next to the Server and Router status at the top right, and the grid did not move", `(() => {
+		const s = document.getElementById('panel-status'), r = s.getBoundingClientRect(), c = document.querySelector('.sode-gridpanel__headrow > .sode__conn').getBoundingClientRect();
+		return s.parentNode.classList.contains('sode-gridpanel__slot') && r.height > 0 && r.right <= c.left && c.left - r.right < 40 && Math.abs((r.top + r.bottom) / 2 - (c.top + c.bottom) / 2) < 4 &&
+			window.__top() === window.__was;
 	})()`)
 	b.shot("rights")
 	if s := b.eval(gridXp(1, 12) + `.dataset.s || ''`); s != "" {
