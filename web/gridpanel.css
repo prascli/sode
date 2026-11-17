@@ -279,6 +279,42 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__field[data-over] .sode-gridpanel__xp[data-n]::after {
   color: var(--pb-status-error);
 }
+/* A Drawn line (gridpanelline.js), in content px over the crosspoints and under the sticky bands. */
+.sode-gridpanel__lines {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  width: 100%;
+}
+.sode-gridpanel__lines[hidden] {
+  display: none;
+}
+.sode-gridpanel__line {
+  stroke: var(--pb-accent);
+  stroke-linecap: round;
+  stroke-width: 0.25rem;
+}
+.sode-gridpanel__field[data-over] .sode-gridpanel__line {
+  stroke: var(--pb-status-error);
+}
+/* A protected row that a line passes over: skipped, with the word, as a mark alone could read as a target. */
+.sode-gridpanel__xp[data-skip] {
+  outline: calc(var(--pb-border-w) * 2) dashed var(--pb-status-warn);
+  outline-offset: calc(var(--pb-border-w) * -3);
+}
+.sode-gridpanel__xp[data-skip]::after {
+  color: var(--pb-status-warn);
+  content: "Skip";
+  font-size: var(--pb-text-xs);
+  inset: auto auto var(--pb-space-1) var(--pb-space-1);
+  line-height: 1;
+  position: absolute;
+}
+/* A long-press on touch starts a line, so no callout or magnifier. */
+.sode-gridpanel__scroll {
+  -webkit-touch-callout: none;
+}
 
 /* The Levels box (levelbox.js): input above, chips in two rows with V double size (base.css), All beside them. */
 .sode-gridpanel__levels {

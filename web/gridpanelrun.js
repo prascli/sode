@@ -13,6 +13,8 @@ import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, followCursor } from './gridpanelcursor.js';
+import { isLine, linePairs, lineStage } from './gridpanelline.js';
+import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
@@ -54,6 +56,8 @@ export function gridBody(ctx, first) {
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
   let ptr = null; // { x, y } in client px while the pointer leads, else null
+  let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
+  let gest = null;
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -86,8 +90,21 @@ export function gridBody(ctx, first) {
   // A Diagonal skips protected rows.
   const pairsAt = (xp) => stageable(diagonal(picks, xp, axes), env).pairs;
 
+  // What release would do: the routes numbered, protected rows skipped, red past the cap.
+  const lineDry = () => {
+    const pairs = isLine(line.a, line.b) ? linePairs(picks, line.a, line.b, axes) : [];
+    const r = lineStage(st, pairs, env, pressLevels());
+    return { pairs, kept: pairs.filter((x) => !r.skipped.includes(x)), r };
+  };
+
   // Numbered targets only while names are picked; a press with none is the crosspoint itself.
   const preview = () => {
+    if (line) {
+      const { kept, r } = lineDry();
+      g.line(line);
+      return previewGridPanel(g, kept, r.over, r.skipped);
+    }
+    g.line(null);
     const pairs = at && pickCount(picks) ? pairsAt(at) : [];
     previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
   };
@@ -113,6 +130,11 @@ export function gridBody(ctx, first) {
     axesKey = key;
     cur = followCursor(cur, axes, next);
     axes = next;
+    // A line is in display order, so new axes end it.
+    if (line) {
+      gest?.cancel();
+      line = null;
+    }
     shownSrcs = new Set(next.srcs);
     // Picks on names that left the panel go.
     picks = { ...picks, srcs: picks.srcs.filter((n) => next.srcs.includes(n)), dsts: picks.dsts.filter((n) => next.dsts.includes(n)) };
@@ -122,6 +144,7 @@ export function gridBody(ctx, first) {
     else {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
+      gest = lineGestures(g, { start: lineStart, move: lineMove, end: lineEnd, cancel: dropLine });
     }
     setCursor(cur);
   };
@@ -217,6 +240,52 @@ export function gridBody(ctx, first) {
     if (r.confirm) openConfirm();
   }
 
+  const canStage = () => ctx.ready() && !st.busy && !confirm?.isOpen();
+
+  function lineStart(a) {
+    if (!canStage()) return gest.cancel();
+    ctx.touched();
+    line = { a, b: a, keys: false };
+    preview();
+  }
+
+  function lineMove(b) {
+    if (!line) return;
+    line = { ...line, b };
+    preview();
+  }
+
+  function lineEnd(b) {
+    if (!line) return;
+    line = { ...line, b };
+    stageLine();
+  }
+
+  function dropLine() {
+    if (!line) return;
+    line = null;
+    preview();
+  }
+
+  // Release, or Space in v mode. A line that ends on its start row stages nothing.
+  function stageLine() {
+    if (!canStage()) return dropLine();
+    st = keepLive(st, world());
+    const { pairs, r } = lineDry();
+    line = null;
+    if (!pairs.length) return render();
+    st = r.st;
+    if (r.skipped.length && !st.error) {
+      const n = r.skipped.length;
+      note = { text: `Skipped ${n === 1 ? '1 protected destination' : `${n} protected destinations`}`, at: Date.now(), ok: false };
+    }
+    if (r.send) send(r.send);
+    else render();
+    if (r.confirm) openConfirm();
+  }
+
+  const centre = (c) => ({ x: c.j + 0.5, y: c.i + 0.5 });
+
   function onName(kind, n, e) {
     if (!ctx.ready()) return;
     picks = pickName(picks, kind, n, { range: e.shiftKey, toggle: e.metaKey || e.ctrlKey }, axes[kind]);
@@ -242,9 +311,13 @@ export function gridBody(ctx, first) {
 
   function moveTo(move) {
     ptr = null;
-    setCursor(moveCursor(cur, move, { rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() }));
+    let next = moveCursor(cur, move, { rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() });
+    // A v line stays on the crosspoints.
+    if (line?.keys) next = { i: Math.max(0, next.i), j: Math.max(0, next.j) };
+    setCursor(next);
     if (move === 'corner') g.scroll.scrollTo(0, 0);
     else g.revealCell(cur);
+    if (line?.keys) lineMove(centre(cur));
   }
 
   function onAt(xp) {
@@ -258,9 +331,9 @@ export function gridBody(ctx, first) {
     if (confirm?.isOpen()) return confirm.key(e);
     // The page lock's sign-in and dialogs take their keys first.
     if (e.defaultPrevented) return;
-    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
+    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), line: !!line });
     if (!act) return;
-    const moves = MOVES.has(act) || act === 'press';
+    const moves = MOVES.has(act) || act === 'press' || act === 'line';
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
@@ -269,8 +342,18 @@ export function gridBody(ctx, first) {
     if (MOVES.has(act)) {
       if (g) moveTo(act);
     } else if (act === 'press') {
+      if (line) return stageLine();
       const xp = pointOf(cur, axes);
       if (xp && g) onPress(xp);
+    } else if (act === 'line') {
+      if (pointOf(cur, axes) && canStage()) {
+        ctx.touched();
+        line = { a: centre(cur), b: centre(cur), keys: true };
+        preview();
+      }
+    } else if (act === 'unline') {
+      gest?.cancel();
+      dropLine();
     } else if (act === 'confirm') openConfirm();
     else if (act === 'unpick') {
       picks = dropPicks(picks);
@@ -319,6 +402,7 @@ export function gridBody(ctx, first) {
     },
     stop() {
       document.removeEventListener('keydown', onKey, true);
+      gest?.stop();
       g?.stop();
       count.remove();
       if (boxNode) boxNode.hidden = true;

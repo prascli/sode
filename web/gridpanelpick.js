@@ -26,7 +26,7 @@ export function pickName(p, kind, n, { range = false, toggle = false } = {}, sho
 }
 
 // list in display order, starting at the first item at or after at's place in order, wrapping.
-function fromHere(list, order, at) {
+export function fromHere(list, order, at) {
   const pos = new Map(order.map((x, i) => [x, i]));
   const sorted = list.filter((x) => pos.has(x)).sort((a, b) => pos.get(a) - pos.get(b));
   const here = pos.get(at) ?? 0;
