@@ -107,7 +107,7 @@ func TestChromeGridPanelTake(t *testing.T) {
 	b.waitFor("another source in the row replaces the route", staged(simSrc, 2)+` && !(`+staged(11, 2)+`)`)
 	b.eval(gridXp(11, 3) + `.click()`)
 	b.waitFor("two routes staged", staged(11, 3))
-	b.waitFor("the desktop layout's Take button counts them", `(() => { const t = document.getElementById('panel-take'); return !!t.offsetParent && !t.disabled && t.textContent === 'Take 2'; })()`)
+	b.waitFor("the desktop layout's Take button is on and says only Take", `(() => { const t = document.getElementById('panel-take'); return !!t.offsetParent && !t.disabled && t.textContent === 'Take'; })()`)
 
 	// A real Enter with focus on the last crosspoint pressed, as a mouse leaves it.
 	b.eval(gridXp(11, 3) + `.focus(); true`)

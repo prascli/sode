@@ -1,7 +1,7 @@
 // Which part of a Grid panel is drawn (gridpanelwindow.js): one axis at a time, in px, pinned items at the edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf, wheelAcross } from '../gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, pinsOf, pinsShown, wheelAcross } from '../gridpanelwindow.js';
 
 // 2500 sources of 70 px after a 220 px name column, in a 1060 px wide view: 12 to 13 columns show.
 const ax = (over = {}) => ({ n: 2500, pins: 0, size: 70, head: 220, offset: 0, view: 1280, over: 0, ...over });
@@ -129,4 +129,15 @@ test('a wheel past the bar, a mostly sideways wheel or a pinch zoom is left to t
   assert.equal(wheelAcross(wheel({ deltaX: 120 }), bar), 0);
   assert.equal(wheelAcross(wheel({ ctrlKey: true }), bar), 0);
   assert.equal(wheelAcross(wheel({ deltaY: 0 }), bar), 0);
+});
+
+test('pins draw as pinned only while they fill at most half the room past the name bar', () => {
+  // 8 pins of 80 px under a 112 px name bar.
+  const at = (view) => pinsShown({ pins: 8, size: 80, head: 112, view });
+  assert.equal(at(2000), 8);
+  assert.equal(at(540), 2);
+  assert.equal(at(300), 1);
+  assert.equal(at(150), 0);
+  assert.equal(at(100), 0);
+  assert.equal(pinsShown({ pins: 2, size: 80, head: 112, view: 2000 }), 2);
 });

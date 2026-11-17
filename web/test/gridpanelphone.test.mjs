@@ -31,12 +31,12 @@ test('picks hidden by a Filter are not a rest point', () => {
   assert.equal(restPoint(picked([99], []), axes, { i: -1, j: -1 }), null);
 });
 
-test('the Take button shows in Take mode on every layout, counts the staged routes and works only with some', () => {
+test('the Take button shows in Take mode on every layout and works only with staged routes', () => {
   const at = (o) => takeButton({ mode: 'take', staged: 2, busy: false, ...o });
-  assert.deepEqual(at({}), { shown: true, disabled: false, armed: true, count: '2' });
-  assert.deepEqual(at({ staged: 0 }), { shown: true, disabled: true, armed: false, count: '' });
-  assert.deepEqual(at({ busy: true }), { shown: true, disabled: true, armed: false, count: '2' });
-  assert.deepEqual(at({ mode: 'instant' }), { shown: false, disabled: true, armed: false, count: '' });
+  assert.deepEqual(at({}), { shown: true, disabled: false, armed: true });
+  assert.deepEqual(at({ staged: 0 }), { shown: true, disabled: true, armed: false });
+  assert.deepEqual(at({ busy: true }), { shown: true, disabled: true, armed: false });
+  assert.deepEqual(at({ mode: 'instant' }), { shown: false, disabled: true, armed: false });
 });
 
 test('a tap on the phone layout adds or removes one name, so a finger can pick a set', () => {

@@ -24,7 +24,6 @@ func TestChromeGridPanelEmpty(t *testing.T) {
 		return !!e && !e.hidden && e.querySelector('.pb-empty__title').textContent === 'This panel shows no sources or destinations' &&
 			!!edit && !edit.hidden && e.getBoundingClientRect().height > 0 && !document.querySelector('.sode-gridpanel__xp:not([hidden])');
 	})()`)
-	b.waitFor("the line under the title counts nothing", `document.querySelector('.sode-gridpanel__meta').textContent.includes('0 sources by 0 destinations')`)
 
 	for _, k := range []struct {
 		key, code string

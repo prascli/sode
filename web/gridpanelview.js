@@ -5,7 +5,7 @@
 import { el, icon } from './core.js';
 import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
-import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, OVER } from './gridpanelwindow.js';
+import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, wheelAcross, pinsShown, OVER } from './gridpanelwindow.js';
 
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
 const GLIDE_MAX_MS = 3000; // a glide across 2500 sources takes about 1.5 s
@@ -70,7 +70,7 @@ function paintXp(xp, s, d, view) {
   if (starts) joinPulse(xp);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
   if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
-  const state = out ? ', staged, left out of the take' : staged.length ? ', staged. Alt-click to unstage' : '';
+  const state = out ? ', staged, left out of the take' : staged.length ? ', staged. Right-click or Alt-click to unstage' : '';
   const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${prot ? ', protected' : ''}${state}`;
   if (xp.getAttribute('aria-label') !== label) xp.setAttribute('aria-label', label);
 }
@@ -375,9 +375,15 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     };
   };
   const metricsNow = () => frame || read();
+  // The pins drawn as pinned on each edge (pinsShown), set by setAxes and a resize.
+  let pinned = { srcs: 0, dsts: 0 };
+  const pinsNow = (m = metricsNow()) => ({
+    srcs: pinsShown({ pins: ax.srcPins || 0, size: px.xp, head: px.w, view: m.cw }),
+    dsts: pinsShown({ pins: ax.dstPins || 0, size: px.xp, head: px.h, view: m.ch }),
+  });
   const axis = (cols, m = metricsNow()) => ({
     n: cols ? ax.srcs.length : ax.dsts.length,
-    pins: (cols ? ax.srcPins : ax.dstPins) || 0,
+    pins: cols ? pinned.srcs : pinned.dsts,
     size: px.xp,
     head: cols ? px.w : px.h,
     offset: cols ? m.left : m.top,
@@ -423,8 +429,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const m = metricsNow();
     const r = spanMax(axis(false, m));
     const c = spanMax(axis(true, m));
-    const rp = ax.dstPins || 0;
-    const cp = ax.srcPins || 0;
+    const rp = pinned.dsts;
+    const cp = pinned.srcs;
     pools.body.reserve(r * c);
     pools.top.reserve(rp * c);
     pools.side.reserve(r * cp);
@@ -444,8 +450,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const { rows, cols } = spans();
     const rs = range(rows.lo, rows.hi);
     const cs = range(cols.lo, cols.hi);
-    const rp = range(0, ax.dstPins || 0);
-    const cp = range(0, ax.srcPins || 0);
+    const rp = range(0, pinned.dsts);
+    const cp = range(0, pinned.srcs);
     pools.body.sync(cross(rs, cs));
     pools.top.sync(cross(rp, cs));
     pools.side.sync(cross(rs, cp));
@@ -460,12 +466,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
 
   const setAxes = (next) => {
     ax = next;
+    pinned = pinsNow();
     srcAt = new Map(ax.srcs.map((n, j) => [n, j]));
     dstAt = new Map(ax.dsts.map((n, i) => [n, i]));
     setVar(field, '--sode-cols', ax.srcs.length);
     setVar(field, '--sode-rows', ax.dsts.length);
-    setVar(field, '--sode-col-pins', ax.srcPins || 0);
-    setVar(field, '--sode-row-pins', ax.dstPins || 0);
+    setVar(field, '--sode-col-pins', pinned.srcs);
+    setVar(field, '--sode-row-pins', pinned.dsts);
     for (const p of Object.values(pools)) p.clear();
     reserve();
     draw();
@@ -477,6 +484,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const ro = new ResizeObserver(() => {
     measure();
     curKey = '';
+    // A size that changes how many pins fit redraws as new axes would; a scroll never gets here.
+    const p = pinsNow();
+    if (p.srcs !== pinned.srcs || p.dsts !== pinned.dsts) return setAxes(ax);
     reserve();
     draw();
   });
@@ -556,7 +566,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // The scroller's body in client px: past the name bars and the pinned bands, inside the scrollbars.
     bodyBox() {
       const m = metricsNow();
-      return { left: m.x + px.w + (ax.srcPins || 0) * px.xp, top: m.y + px.h + (ax.dstPins || 0) * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
+      return { left: m.x + px.w + pinned.srcs * px.xp, top: m.y + px.h + pinned.dsts * px.xp, right: m.x + m.cw, bottom: m.y + m.ch };
     },
     // Draws the Drawn line from a to b, in crosspoint units, or hides it for null.
     line(seg) {

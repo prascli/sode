@@ -103,14 +103,12 @@ export function gridBody(ctx, first) {
   // The panel page's header has its own boxes (gridpanelheadview.js); the editor's live test keeps its own.
   const head = ctx.embedded || !ui.name ? null : gridHead(ui, count);
   if (!head) ui.head?.querySelector('.sode-panels__spacer')?.before(count);
-  let link = null; // GET /status's answer, null without the status scope
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
   const noteOf = (text, ok = false) => ({ text, at: Date.now(), ok });
   const phone = () => document.documentElement.dataset.layout === 'phone';
   // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box.
   // It is the main page's red Take. An embedded run has neither.
-  const takeCount = el('span', 'sode-gridpanel__take-n');
-  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
+  const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-panel__take sode-gridpanel__take', 'Take');
   if (take) {
     take.type = 'button';
     take.id = 'panel-take';
@@ -220,7 +218,6 @@ export function gridBody(ctx, first) {
       const starts = t.armed && !take.classList.contains('sode-panel__take--armed');
       take.classList.toggle('sode-panel__take--armed', t.armed);
       if (starts) joinPulse(take);
-      say(takeCount, t.count);
     }
     paintEmpty();
     clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
@@ -251,17 +248,8 @@ export function gridBody(ctx, first) {
     empty.edit.hidden = !t.edit || !!ui.back;
     empty.node.hidden = false;
   }
-  // Results and errors fade on the clock, so the status line and the header boxes are what the tick paints each time.
+  // Results and errors fade on the clock, so the status line is what the tick paints each time.
   const status = () => {
-    head?.paint({
-      link,
-      mode: st.mode,
-      keyed: ctx.keyed?.(),
-      panel,
-      srcs: full.srcs.length,
-      dsts: full.dsts.length,
-      canTake: !tally || offeredLevels(tally, panel.rights).length > 0,
-    });
     const text =
       stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
@@ -628,6 +616,8 @@ export function gridBody(ctx, first) {
   // Right-clicks on one source step on from the last one. The pointer on the name moves the cursor off that row.
   let lastStep = null; // { src, dst } of the last right-click step
   function onJump(kind, n) {
+    // A right-click on a staged crosspoint unstages it, as Alt-click does; anywhere else it jumps.
+    if (kind === 'xp' && view.staged(n.src, n.dst).length) return canStage() && unstageAt(n);
     if (kind === 'xp') return jumped(jumpFrom({ i: axes.dsts.indexOf(n.dst), j: axes.srcs.indexOf(n.src) }));
     if (kind === 'dsts') return jumped(jumpFrom({ i: axes.dsts.indexOf(n), j: -1 }));
     const j = axes.srcs.indexOf(n);
@@ -757,14 +747,13 @@ export function gridBody(ctx, first) {
 
   return {
     render: tick,
-    data({ tally: t, prot, nm, link: l }) {
-      const sig = JSON.stringify([t, prot, l ?? null]);
+    data({ tally: t, prot, nm }) {
+      const sig = JSON.stringify([t, prot]);
       const nmSig = nm ? JSON.stringify(nm) : namesSig;
       if (sig === dataSig && nmSig === namesSig) return;
       dirty = true;
       dataSig = sig;
       tally = t;
-      link = l ?? null;
       env = envFrom(t, prot, {}, panel.rights);
       const renamed = nmSig !== namesSig;
       if (renamed) {

@@ -79,7 +79,7 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b.waitFor("crosspoint CAM 1, destination 2", gridXp(12, 2)+` !== null && !`+gridXp(12, 2)+`.hidden`)
 	b.eval(gridXp(12, 2) + `.click(); true`)
 	b.waitFor("a route staged", gridXp(12, 2)+`.dataset.s === 'staged'`)
-	b.waitFor("the Take button counts it", `document.getElementById('panel-take').textContent === 'Take 1' && !document.getElementById('panel-take').disabled`)
+	b.waitFor("the Take button is on", `document.getElementById('panel-take').textContent === 'Take' && !document.getElementById('panel-take').disabled`)
 	save("Third", `[1,2,3,4,5,6]`)
 	// The poll and the countdown together come near one wait's limit, so each gets its own.
 	b.waitFor("the countdown banner for the third copy", `/Refreshing in \d+ s\./.test(`+text+`)`)
@@ -88,7 +88,7 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b.eval(`document.getElementById('panel-apply').click(); true`)
 	b.waitFor("Apply now applies and drops the staged route", `document.getElementById('panel-title').textContent === 'Third' && !document.querySelector('.sode-gridpanel__xp[data-s="staged"]:not([hidden])') && document.getElementById('panel-staged').hidden`)
 	b.waitFor("the banner goes", `document.getElementById('panel-update').hidden`)
-	b.waitFor("the Take button counts 0 and is off", `document.getElementById('panel-take').textContent === 'Take ' && document.getElementById('panel-take').disabled`)
+	b.waitFor("the Take button is off", `document.getElementById('panel-take').textContent === 'Take' && document.getElementById('panel-take').disabled`)
 	kept("Apply now", 0)
 	b.check()
 }

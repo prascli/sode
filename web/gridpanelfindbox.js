@@ -1,7 +1,6 @@
 // The Source bar and Destination bar search boxes of a Grid panel. The rules are in gridpanelfind.js and
 // the keys in gridpanelkeys.js (findBoxAction); the run (gridpanelrun.js) joins them.
 import { el, icon } from './core.js';
-import { segmented } from './formbits.js';
 
 const NOUN = { srcs: 'sources', dsts: 'destinations' };
 const KEY = { srcs: 's', dsts: 'd' };
@@ -58,21 +57,16 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   const boxes = { srcs: make('srcs'), dsts: make('dsts') };
   let last = 'srcs';
   let now = 'find';
-  // The checked one is the mode of both boxes. A click goes back to the box, so Tab still goes between the boxes.
-  const modes = segmented(
-    'sode-gridpanel-mode',
-    'Search mode',
-    [
-      ['find', MODE.find],
-      ['filter', MODE.filter],
-    ],
-    (m) => m !== now && onMode(),
-  );
-  modes.set(now);
-  const mode = modes.node;
-  mode.classList.add('sode-gridpanel__find-mode');
-  mode.dataset.pbTip = 'Find marks matches. Filter shows only matches. Ctrl+/';
-  for (const r of mode.querySelectorAll('input')) r.tabIndex = -1;
+  // One switch is the mode of both boxes: on is Filter, off is Find. A switch, not a button, so it reads as a mode
+  // and not as an action. A click goes back to the box, so Tab still goes between the boxes.
+  const sw = el('input', 'pb-switch__input');
+  sw.type = 'checkbox';
+  sw.setAttribute('role', 'switch');
+  sw.tabIndex = -1;
+  sw.addEventListener('change', () => (sw.checked ? 'filter' : 'find') !== now && onMode());
+  const words = el('span', 'pb-check__label', el('span', 'sode-gridpanel__find-word', MODE.filter), el('span', 'sode-gridpanel__find-hint', 'Show only matches'));
+  const mode = el('label', 'pb-check sode-gridpanel__find-mode', sw, words);
+  mode.dataset.pbTip = 'On: the bars show only the matches. Off: Find marks the matches. Ctrl+/';
   mode.addEventListener('click', () => boxes[last].input.focus());
   host.prepend(boxes.srcs.wrap, boxes.dsts.wrap, mode);
   return {
@@ -86,7 +80,7 @@ export function findBoxes(host, { onText, onMode, onStep }) {
     paint(find, counts) {
       last = find.last;
       now = find.mode;
-      modes.set(now);
+      if (sw.checked !== (now === 'filter')) sw.checked = now === 'filter';
       for (const k of ['srcs', 'dsts']) {
         const b = boxes[k];
         const box = find[k];

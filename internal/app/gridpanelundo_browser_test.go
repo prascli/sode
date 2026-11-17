@@ -14,7 +14,7 @@ func gridMenu(b *tab, node string) {
 
 // Jumps and Undo on a Grid panel in Take mode. Each destination starts on the source of its own number.
 // g and a right-click on a destination go to its current source. G and a right-click on a source step through
-// the destinations that have it. With a route staged, u asks first. Then it stages this instance's Undo in place
+// the destinations that have it. A right-click on a staged crosspoint unstages it. With a route staged, u asks first. Then it stages this instance's Undo in place
 // of the route. Enter and the confirm send the Undo, and the old source comes back.
 func TestChromeGridPanelUndo(t *testing.T) {
 	b := startBrowser(t)
@@ -62,6 +62,11 @@ func TestChromeGridPanelUndo(t *testing.T) {
 	staged := func(src, dst int) string { return gridXp(src, dst) + `.dataset.s === 'staged'` }
 	b.eval(gridXp(9, 4) + `.click()`)
 	b.waitFor("a route staged", staged(9, 4))
+	gridMenu(b, gridXp(9, 4))
+	b.waitFor("a right-click on a staged crosspoint unstages it", `!(`+staged(9, 4)+`)`)
+	gridCursorOn(b, "and does not jump", 5, 5)
+	b.eval(gridXp(9, 4) + `.click()`)
+	b.waitFor("the route staged again", staged(9, 4))
 	realKey(b, "u", "KeyU", 85)
 	b.waitFor("u asks before it drops the staged route", `!document.getElementById('confirm').hidden && document.getElementById('confirm-body').textContent.includes('1 staged route')`)
 	b.shot("replace")
