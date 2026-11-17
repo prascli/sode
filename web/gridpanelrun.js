@@ -501,7 +501,7 @@ export function gridBody(ctx, first) {
       render();
     }
   }
-  const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels());
+  const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels(), full.srcs);
 
   // Right-clicks on one source step on from the last one. The pointer on the name moves the cursor off that row.
   let lastStep = null; // { src, dst } of the last right-click step
