@@ -7,7 +7,8 @@ import { createOrderedList } from './orderedlist.js';
 import { createRouterList } from './editorrouterlist.js';
 import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
-import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, PINS_MAX } from './editorgridrules.js';
+import { edgeRows, pinItem, removeItemFrom, moveRow, clearEdge, followRouter, setItemArt, PINS_MAX } from './editorgridrules.js';
+import { createArtControl } from './editorart.js';
 
 // key is the panel field and the /names list ('sources' or 'destinations'), rights the Rights key, what the item word.
 export function createEdgeTab(ed, { key, rights, what }) {
@@ -38,7 +39,25 @@ export function createEdgeTab(ed, { key, rights, what }) {
     readOnly: () => ed.readOnly(),
     set,
   });
-  node.append(el('div', 'sode-edge', routerList.node, el('div', 'sode-edge__panel', state, el('div', 'sode-edge__acts', clear, all), outside, list)));
+  // One artwork control for the whole list, opened on one row at a time: a row with its own control would be thousands.
+  let artN = null; // the router number the control is open on
+  const artFor = (n, patch) => set(setItemArt(edge(), n, patch));
+  const art = createArtControl({
+    ed,
+    icons: true,
+    set: (v) => artFor(artN, { art: v }),
+    setB: (v) => artFor(artN, { artB: v }),
+  });
+  const artHead = el('p', 'sode__hint');
+  artHead.id = `ed-${key}-art-head`;
+  const artDone = btn('pb-btn--outline pb-btn--sm', 'Done', () => {
+    artN = null;
+    paint(true);
+  });
+  const artBox = el('div', 'sode-edge__art', artHead, art.node, artDone);
+  artBox.id = `ed-${key}-art`;
+  artBox.hidden = true;
+  node.append(el('div', 'sode-edge', routerList.node, el('div', 'sode-edge__panel', state, el('div', 'sode-edge__acts', clear, all), outside, artBox, list)));
 
   let shown = [];
   const rows = createOrderedList({
@@ -52,7 +71,7 @@ export function createEdgeTab(ed, { key, rights, what }) {
   // Every Panel tab keystroke repaints the sidebar, and an edge can hold thousands of rows, so a repaint with the
   // same inputs draws nothing.
   let drawn = [];
-  function paint() {
+  function paint(force) {
     const ro = ed.readOnly();
     // A Buttons panel never shows the tab, so it holds no rows.
     if (!isGridPanel(ed.fields())) {
@@ -60,13 +79,21 @@ export function createEdgeTab(ed, { key, rights, what }) {
       return list.replaceChildren();
     }
     routerList.paint();
-    const now = [edge(), router(), myRights(), ro, ed.routerNames()];
-    if (now.every((x, i) => x === drawn[i])) return;
+    const now = [edge(), router(), myRights(), ro, ed.routerNames(), artN, ed.panel()?.id];
+    if (!force && now.every((x, i) => x === drawn[i])) return;
     drawn = now;
     const off = ed.routerNames()?.numberOffset || 0;
     const v = edgeRows(edge(), router(), myRights(), rights);
     shown = v.rows;
     const full = v.pins >= PINS_MAX;
+    const row = v.rows.find((r) => r.n === artN);
+    if (artN !== null && !row) artN = null;
+    artBox.hidden = artN === null;
+    if (row) {
+      const it = edge()?.items?.[row.n] || {};
+      artHead.textContent = `Artwork for ${row.name || `${what} ${row.n + off}`}. It shows beside the name. With none set, the item's Default artwork shows.`;
+      art.update(it.art || '', '', false, it.artB || '', false);
+    }
     state.textContent = `${v.rows.length} ${what}${v.rows.length === 1 ? '' : 's'}${v.all ? ', all from the router' : ''}. ${v.pins} of ${PINS_MAX} pinned.`;
     outside.textContent = v.outside ? `${v.outside} item${v.outside === 1 ? '' : 's'} outside your Rights, kept.` : '';
     outside.hidden = !v.outside;
@@ -79,6 +106,8 @@ export function createEdgeTab(ed, { key, rights, what }) {
       ...v.rows.map((r, i) => {
         const body = [el('span', 'sode-pages__num', String(r.n + off)), el('span', 'sode-pages__name', r.name || `${what} ${r.n + off}`)];
         if (r.pinned) body.push(el('span', 'sode__hint', 'pinned'));
+        const own = edge()?.items?.[r.n];
+        if (own?.art || own?.artB) body.push(el('span', 'sode__hint', 'artwork'));
         if (r.gone) body.push(el('span', 'sode__hint', 'not on router'));
         const li = rows.row({
           i,
@@ -87,6 +116,15 @@ export function createEdgeTab(ed, { key, rights, what }) {
           readOnly: ro,
           body: [el('div', 'sode-pages__head', ...body)],
           actions: [
+            {
+              icon: 'image',
+              tip: 'Artwork',
+              act: 'art',
+              run: () => {
+                artN = artN === r.n ? null : r.n;
+                paint(true);
+              },
+            },
             {
               icon: r.pinned ? 'pin-off' : 'pin',
               tip: r.pinned ? 'Unpin' : full ? `At most ${PINS_MAX} pinned` : 'Pin',
@@ -102,7 +140,7 @@ export function createEdgeTab(ed, { key, rights, what }) {
     );
     if (back) list.querySelector(`[data-act="${back.act}"][data-i="${back.i}"]`)?.focus();
   }
-  onMyRights(paint);
+  onMyRights(() => paint());
 
-  return { node, update: paint };
+  return { node, update: () => paint() };
 }

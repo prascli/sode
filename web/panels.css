@@ -1038,6 +1038,15 @@ body {
   flex-wrap: wrap;
   gap: var(--pb-space-2);
 }
+/* The one artwork control of an edge list, open on one row (editorgridlist.js). */
+.sode-edge__art {
+  align-items: start;
+  display: grid;
+  gap: var(--pb-space-2);
+}
+.sode-edge__art[hidden] {
+  display: none;
+}
 .sode-ed__main {
   align-items: start;
   display: grid;

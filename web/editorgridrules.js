@@ -40,6 +40,17 @@ function withItem(edge, n, patch) {
   return { ...edge, items };
 }
 
+// Sets or clears an item's Icon A (art) and Icon B (artB). undefined or '' clears one. The same edge comes back
+// when nothing changes.
+export function setItemArt(edge, n, patch) {
+  const e = edge || { members: 'all' };
+  const was = e.items?.[n] || {};
+  const next = {};
+  for (const k of ['art', 'artB']) next[k] = k in patch ? patch[k] || undefined : was[k];
+  if (next.art === was.art && next.artB === was.artB) return edge;
+  return withItem(e, n, next);
+}
+
 export function pinItem(edge, n, on) {
   const e = edge || { members: 'all' };
   if (pinnedIn(e, n) === on) return edge;
