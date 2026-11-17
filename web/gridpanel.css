@@ -988,11 +988,21 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__rule {
   display: none;
 }
+/* The phone: the two boxes one over the other, with Find and Filter one over the other beside them. */
 .sode-gridpanel__finds {
+  display: grid;
+  gap: var(--pb-space-1);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: var(--pb-space-3);
+}
+.sode-gridpanel__finds > .sode-gridpanel__find-mode {
   display: flex;
   flex-direction: column;
-  gap: var(--pb-space-1);
-  margin-bottom: var(--pb-space-3);
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+.sode-gridpanel__finds > .sode-gridpanel__find-mode > .pb-btn {
+  flex: 1;
 }
 .sode-gridpanel__tools {
   align-items: center;
@@ -1155,7 +1165,7 @@ html:has(.sode-gridpanel) {
       "lab   lab   lab  .    .    .   .   .     ."
       "picks input r2   fsrc mode r3  all clear take"
       "picks input r2   fdst mode r3  all clear take";
-    grid-template-columns: auto 6rem auto minmax(6rem, 1fr) auto auto auto auto 6.4rem;
+    grid-template-columns: auto 6rem auto minmax(11rem, 1fr) auto auto auto auto 6.4rem;
     grid-template-rows: auto auto var(--sode-pick) var(--sode-pick);
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__rule--1 {

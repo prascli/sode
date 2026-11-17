@@ -107,6 +107,9 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	// Destination 5 has source 5: a double-tap on its name goes along the row to it.
 	b.eval(`document.querySelector('.sode-gridpanel__scroll').scrollTo(0, 0), true`)
 	b.waitFor("destination 5 drawn", dst(5)+` !== null && !`+dst(5)+`.hidden`)
+	// The phone page scrolls; bring the name to the middle of the window so the taps land on it.
+	b.eval(`(() => { const r = ` + dst(5) + `.getBoundingClientRect(); scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); return true; })()`)
+	b.eval(`new Promise((r) => setTimeout(() => requestAnimationFrame(() => r(true)), 300))`)
 	tap(b, dst(5))
 	time.Sleep(80 * time.Millisecond)
 	tap(b, dst(5))
