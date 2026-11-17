@@ -578,7 +578,7 @@ func (m *panelMon) offlineKeys(user string) []offlineRow {
 		}
 		id, inst := splitWatchKey(k)
 		if inst != "" {
-			if in := m.inst[id][inst]; in != nil && in.lost && !in.live(now) {
+			if in := m.inst[id][inst]; in != nil && in.lost && !in.restored && !in.live(now) {
 				rows = append(rows, offlineRow{Panel: id, Device: in.device, Instance: inst, Since: in.seen.UTC()})
 			}
 			continue
@@ -588,7 +588,7 @@ func (m *panelMon) offlineKeys(user string) []offlineRow {
 		}
 		var last *monInst
 		for _, in := range m.inst[id] {
-			if in.lost && (last == nil || in.seen.After(last.seen)) {
+			if in.lost && !in.restored && (last == nil || in.seen.After(last.seen)) {
 				last = in
 			}
 		}

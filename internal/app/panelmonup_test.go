@@ -217,6 +217,14 @@ func TestInstanceHistoryAndHidesOutliveARestart(t *testing.T) {
 	if ev := m2.sweep(clk.t); len(ev) != 0 {
 		t.Fatalf("a restored instance raised %v", ev)
 	}
+	for _, inst := range []string{"", "Lobby"} {
+		if err := m2.setWatchInst("ana", id, inst, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if rows := m2.offlineKeys("ana"); len(rows) != 0 {
+		t.Fatalf("a restart raised alarms %v", rows)
+	}
 	// Still unheard monMiss after the start: down from then, with no notice.
 	start := clk.t
 	clk.advance(monMiss + time.Second)
