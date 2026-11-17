@@ -8,7 +8,7 @@ import { pieFill } from './gridpanellevels.js';
 import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreFor, OVER } from './gridpanelwindow.js';
 
 const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
-const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s)
+const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
 // A newly pulsing node starts in step with the others. All count from time zero.
 export const pulseDelay = () => `${-(document.timeline.currentTime % PULSE_MS)}ms`;
 
@@ -254,7 +254,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   let mark = { xps: new Map(), skip: new Set(), srcs: new Set(), dsts: new Set() };
   const marked = new Set(); // crosspoint nodes that carry a number
   // The name g.glide went to, { kind, n, seq }, until its pulse ends. seq is 0 or 1 and picks one of two equal
-  // animations, so a new glide restarts the pulse on a node that still has the last one.
+  // animations. Thus a new glide restarts the pulse on a node that still has the last one.
   let hit = null;
   let hitEnd = null; // { timer, done } of the pulse in progress
   const hitOf = (kind, n) => (hit?.kind === kind && hit.n === n ? String(hit.seq) : undefined);

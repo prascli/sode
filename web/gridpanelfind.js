@@ -1,7 +1,7 @@
 // Find and Filter on a Grid panel's Source bar and Destination bar. Pure.
 // Find marks matches in place and steps through them; Filter shows only matches. Each bar has its own box; one mode
 // serves both for the visit, so a change of box keeps it.
-// Matching and ranking are the main page's fuzzy scoring, with no cut-off: Find goes to the best match first, and a
+// Matching and ranking are the main page's fuzzy scoring, with no cut-off. Find goes to the best match first. A
 // Filter shows its matches in panel order.
 import { fuzzyScore } from './fuzzy.js';
 

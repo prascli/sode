@@ -36,8 +36,8 @@ export function scrollFor(i, { pins, size, head, offset, view }) {
   return offset;
 }
 
-// The offset that puts item i in the middle of what shows past the name bar and pinned band, as near as the scroll
-// range allows. A pinned item always shows, so its offset stays.
+// The offset that puts item i in the middle of the part past the name bar and pinned band. The scroll range limits
+// it. A pinned item always shows, so its offset stays.
 export function centreFor(i, { n, pins, size, head, offset, view }) {
   if (i < pins) return offset;
   const mid = head + i * size + size / 2 - (head + pins * size + view) / 2;
