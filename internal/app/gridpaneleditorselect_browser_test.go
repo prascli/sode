@@ -12,7 +12,7 @@ import (
 func asGrid(b *tab, all bool) {
 	b.waitFor("the type switch is built", `!!document.getElementById('ed-set-type-grid')`)
 	b.eval(`document.getElementById('ed-set-type-grid').click(); true`)
-	b.waitFor("the lists show", `!!document.getElementById('ed-sources-list')?.offsetParent`)
+	b.waitFor("the lists show", `!!document.getElementById('ed-sources-col')?.offsetParent`)
 	if all {
 		b.eval(`document.getElementById('ed-sources-all').click(); document.getElementById('ed-destinations-all').click(); true`)
 	}

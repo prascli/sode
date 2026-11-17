@@ -88,7 +88,7 @@ export function findRows(rows, text, off) {
   return f ? rows.filter((r) => f(r.n + off, r.name)) : [];
 }
 
-// s is { selected: Set of router numbers, anchor }. They are router numbers, so they stay when Find changes. Shift adds
+// s is { selected: Set of router numbers, anchor }. They are router numbers, so they stay through moves and edits. Shift adds
 // the rows in shown from the anchor to n; with the anchor out of shown it adds n alone.
 export function selectRows(s, shown, n, { shift = false, toggle = false } = {}) {
   const at = shown.findIndex((r) => r.n === n);
