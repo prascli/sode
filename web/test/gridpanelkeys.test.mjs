@@ -121,6 +121,26 @@ test('other keys in a search box are typing', () => {
   assert.equal(findBoxAction(key('/', { code: 'Slash' })), null);
 });
 
+test('v starts a Drawn line at the cursor, unless a field has focus', () => {
+  assert.equal(gridKeyAction(code('KeyV'), ctx()), 'line');
+  assert.equal(gridKeyAction(code('KeyV'), ctx({ inControl: true })), null);
+});
+
+test('while a line is drawn only moves, Space and Esc work', () => {
+  const on = ctx({ line: true, picks: 2 });
+  assert.equal(gridKeyAction(code('ArrowDown'), on), 'down');
+  assert.equal(gridKeyAction(code('KeyJ'), on), 'down');
+  assert.equal(gridKeyAction(code('PageDown'), on), 'pageDown');
+  assert.equal(gridKeyAction(key(' ', { code: 'Space' }), on), 'press');
+  for (const c of ['Enter', 'KeyF', 'KeyV']) assert.equal(gridKeyAction(code(c), on), null, c);
+});
+
+test('Esc drops the line first, then picks, then staged routes', () => {
+  assert.equal(gridKeyAction(code('Escape'), ctx({ line: true, picks: 2 })), 'unline');
+  assert.equal(gridKeyAction(code('Escape'), ctx({ line: true, staged: 0 })), 'unline');
+  assert.equal(gridKeyAction(code('Escape'), ctx({ picks: 2 })), 'unpick');
+});
+
 const bar = (b, over = {}) => ctx({ staged: 0, bar: b, ...over });
 const shift = (c) => code(c, { shiftKey: true });
 
