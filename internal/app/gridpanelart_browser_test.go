@@ -50,7 +50,7 @@ func TestChromeGridPanelArt(t *testing.T) {
 
 	b.waitFor("source 1 shows its own icon and Icon B", `(() => {
 		const r = `+art("src", 1)+`;
-		return !!r && r.querySelector('use')?.getAttribute('href') === '#pb-i-camera' && !r.firstChild.hidden && r.lastChild.textContent === '2';
+		return !!r && r.querySelector('use')?.getAttribute('href') === '#pb-i-camera' && getComputedStyle(r.firstChild).display !== 'none' && r.lastChild.textContent === '2';
 	})()`)
 	b.waitFor("source 2 shows its Default artwork", `(() => {
 		const r = `+art("src", 2)+`;
@@ -58,11 +58,11 @@ func TestChromeGridPanelArt(t *testing.T) {
 	})()`)
 	b.waitFor("destination 1 shows its uploaded image", `(() => {
 		const i = `+art("dst", 1)+`?.querySelector('img:not([hidden])');
-		return !!i && i.src.startsWith('blob:');
+		return !!i && i.src.startsWith('blob:') && getComputedStyle(`+art("dst", 1)+`.firstChild).display === 'none';
 	})()`)
 	b.waitFor("destination 2 shows Icon B alone", `(() => {
 		const r = `+art("dst", 2)+`;
-		return !!r && r.lastChild.textContent === 'A' && r.firstChild.hidden;
+		return !!r && r.lastChild.textContent === 'A' && getComputedStyle(r.firstChild).display === 'none';
 	})()`)
 	// Hide text in a default never hides the name.
 	for _, q := range []string{name("src", 2), name("dst", 2)} {

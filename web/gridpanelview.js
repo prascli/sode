@@ -91,7 +91,8 @@ const makeArt = () => {
   row.hidden = true;
   const [svg, img, mask] = row.children;
   svg.setAttribute('class', 'pb-icon sode-gridpanel__art-a');
-  svg.hidden = img.hidden = mask.hidden = true;
+  img.hidden = mask.hidden = true;
+  svg.setAttribute('hidden', '');
   img.alt = '';
   return row;
 };
@@ -112,8 +113,9 @@ const makeDst = () => {
   return n;
 };
 
+// The attribute, not the property: the art row's svg has no hidden property.
 const show = (n, on) => {
-  if (n.hidden === on) n.hidden = !on;
+  if (n.hasAttribute('hidden') === on) n.toggleAttribute('hidden', !on);
 };
 // art is { icon, url, mask, b } from view.art (a part can be missing), or null.
 function paintArt(row, art) {
