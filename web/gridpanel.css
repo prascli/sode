@@ -679,6 +679,12 @@ html:has(.sode-gridpanel) {
   gap: 0.3rem 0.5rem;
   line-height: 1.2;
 }
+/* The header stays one row: past the room it has, the line is cut, not wrapped. */
+:root:not([data-layout="phone"]) .sode-gridpanel__meta {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
 /* The Take button counts the staged routes, so the line under the title leaves the count out while it shows. */
 .sode-panels:has(#panel-take:not([hidden])) .sode-gridpanel__meta > #panel-staged {
   display: none;
@@ -843,4 +849,18 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__meta .pb-icon {
   height: 0.8rem;
   width: 0.8rem;
+}
+/* Below the prototype's 1440 px the boxes are only as wide as their words and Full screen is an icon, so the line
+   under the title keeps its room. */
+@media (max-width: 89.9rem) {
+  .sode-gridpanel__stat {
+    min-width: 0;
+  }
+  :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) #panel-screen::before {
+    content: none;
+  }
+  :root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) #panel-screen {
+    padding: 0;
+    width: 2rem;
+  }
 }
