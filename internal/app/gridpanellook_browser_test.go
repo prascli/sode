@@ -68,12 +68,12 @@ func TestChromeGridPanelLook(t *testing.T) {
 		return !!s && new URL(s.href).hash === '#settings' && new URL(s.href).pathname === '/' && s.classList.contains('pb-btn--ghost') &&
 			ids.join() === 'Settings,panel-screen,Panels' && r.left > title.right && r.right < innerWidth / 2;
 	})()`)
-	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 172 px high", `(() => {
+	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 176 px high (the banner's two lines took 4.5 px)", `(() => {
 		const deck = document.querySelector('.sode-gridpanel__deck');
 		const r = deck.getBoundingClientRect();
 		const inside = ['#panel-title', '.sode-gridpanel__tools', '#panel-lvl', '#panel-lvl-all', '.sode-gridpanel__find[data-kind="srcs"] input', '.sode-gridpanel__find-mode', '#panel-take']
 			.every((s) => { const n = deck.querySelector(s); const b = n?.getBoundingClientRect(); return b && b.top >= r.top && b.bottom <= r.bottom; });
-		return r.top === 0 && r.height < 172 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
+		return r.top === 0 && r.height < 176 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
 	})()`)
 	b.waitFor("the Lock chip does not cover the title or the Levels box", `(() => {
 		const c = document.querySelector('.sode-lock__who').getBoundingClientRect();

@@ -295,22 +295,27 @@ html:has(.sode-gridpanel) {
   transform: translateX(calc(var(--sode-name-w) + var(--sode-j) * var(--sode-xp)));
   width: var(--sode-xp);
 }
-/* Rows that wrap, not a column, so the number and the name share a line. The artwork and each mark take a line. */
 .sode-gridpanel__dst {
-  align-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   height: var(--sode-xp);
   justify-content: center;
   transform: translateY(calc(var(--sode-name-h) + var(--sode-i) * var(--sode-xp)));
   width: var(--sode-name-w);
 }
-.sode-gridpanel__dst > :is(.sode-gridpanel__art, .sode-gridpanel__prot, .sode-gridpanel__held, .sode-gridpanel__other) {
+/* The router number before the name (gridpanelview.js paintSrc, paintDst), as numbers show in the main page's lists
+   (.sode__num). A pseudo-element, so the name's text is the name alone. The phone layout is the phone session's, so
+   it shows no number yet. On a destination the name is in rows that wrap, so the number shares its line; the artwork
+   and each mark take a line. A source name is one crosspoint wide, so its number takes a line over the name. */
+:root:not([data-layout="phone"]) .sode-gridpanel__dst {
+  align-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+:root:not([data-layout="phone"]) .sode-gridpanel__dst > :is(.sode-gridpanel__art, .sode-gridpanel__prot, .sode-gridpanel__held, .sode-gridpanel__other) {
   flex-basis: 100%;
   justify-content: center;
 }
-/* The router number before the name (gridpanelview.js paintSrc, paintDst), as numbers show in the main page's lists
-   (.sode__num). A pseudo-element, so the name's text is the name alone. */
-:is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-num]::before {
+:root:not([data-layout="phone"]) :is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-num]::before {
   color: var(--pb-text-muted);
   content: attr(data-num);
   flex: none;
@@ -319,12 +324,11 @@ html:has(.sode-gridpanel) {
   letter-spacing: normal;
   margin-inline-end: var(--pb-space-1);
 }
-/* A source name is one crosspoint wide, so its number takes a line over the name. */
-.sode-gridpanel__src {
+:root:not([data-layout="phone"]) .sode-gridpanel__src {
   align-content: center;
   flex-wrap: wrap;
 }
-.sode-gridpanel__src[data-num]::before {
+:root:not([data-layout="phone"]) .sode-gridpanel__src[data-num]::before {
   flex-basis: 100%;
   margin: 0;
 }
@@ -1000,6 +1004,10 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__label--dst {
   background: var(--pb-dest);
 }
+/* The phone layout is the phone session's: its Sources word keeps no arrow. */
+:root[data-layout="phone"] .sode-gridpanel__label--src > svg {
+  display: none;
+}
 
 /* Picked rows and columns (gridpanelview.js paintXp): a role colour wash, translucent so the crosshairs still show. */
 .sode-gridpanel__xp[data-row] {
@@ -1110,12 +1118,13 @@ html:has(.sode-gridpanel) {
   flex: 0 1 auto;
 }
 /* The status slot (gridpanelheadview.js): the result line or the "This panel was changed" banner, at the right, next
-   to the status block. One fixed height, so nothing it shows moves the grid. A long line is cut with an ellipsis. */
+   to the status block. One fixed height, a little more than the header's, so the banner's two lines fit and nothing it
+   shows moves the grid. A long result line is cut with an ellipsis. */
 :root:not([data-layout="phone"]) .sode-gridpanel__slot {
   align-items: center;
   display: flex;
   flex: 1 1 0;
-  height: calc(var(--pb-control-h-sm) + var(--pb-space-2) * 2);
+  height: calc(var(--pb-control-h-sm) + var(--pb-space-3) * 2);
   justify-content: end;
   min-width: 0;
 }
@@ -1126,21 +1135,21 @@ html:has(.sode-gridpanel) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The banner in the slot: the main page's banner (base.css .sode__banner) on one line, with the countdown under it. */
+/* The banner in the slot: the main page's banner (base.css .sode__banner), the title over the line, with the buttons
+   beside them and the countdown under it. */
 :root:not([data-layout="phone"]) .sode-gridpanel__slot > .sode-panel__update {
   max-width: 48rem;
   min-width: 0;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__slot > .sode-panel__update > .pb-alert {
+  align-items: center;
   flex-wrap: nowrap;
   gap: var(--pb-space-3);
   padding: var(--pb-space-1) var(--pb-space-3);
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__slot .sode__banner-body {
-  align-items: baseline;
-  display: flex;
-  gap: var(--pb-space-3);
-  overflow: hidden;
+  font-size: var(--pb-text-xs);
+  line-height: var(--pb-leading-tight);
   white-space: nowrap;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__slot .sode__banner-body > .pb-alert__title {
