@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -35,7 +36,7 @@ const bandFits = `(() => {
 // Filter switch. Then come Clear and the red Take with the note over them. Nothing in the band moves as words
 // change. It checks the Sources and Destinations words in the corner, the picked row and column washes and the staged ring. The
 // cursor ring, the staged ring and Take pulse in one phase. The grid goes down to the window's bottom and Full width
-// and Kiosk mode are gone. The band fits at 1280 by 800 and 1920 by 1080, and 8 pins on each edge leave a short
+// and Kiosk mode are gone. The band fits at 1280 by 800 and 1920 by 1080, and 50 pins on each edge leave a short
 // window room to scroll. Then it checks the panels list's picture and words for a Grid panel.
 func TestChromeGridPanelLook(t *testing.T) {
 	b := startBrowser(t)
@@ -58,12 +59,12 @@ func TestChromeGridPanelLook(t *testing.T) {
 			!document.querySelector('.sode-gridpanel__meta, .sode-gridpanel__stat') && t('#panel-instance') === 'Desk' &&
 			getComputedStyle(document.querySelector('.sode-gridpanel__tools > .sode__conn')).position === 'static';
 	})()`)
-	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 190 px high", `(() => {
+	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 172 px high", `(() => {
 		const deck = document.querySelector('.sode-gridpanel__deck');
 		const r = deck.getBoundingClientRect();
 		const inside = ['#panel-title', '.sode-gridpanel__tools', '#panel-lvl', '#panel-lvl-all', '.sode-gridpanel__find[data-kind="srcs"] input', '.sode-gridpanel__find-mode', '#panel-take']
 			.every((s) => { const n = deck.querySelector(s); const b = n?.getBoundingClientRect(); return b && b.top >= r.top && b.bottom <= r.bottom; });
-		return r.top === 0 && r.height < 190 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
+		return r.top === 0 && r.height < 172 && inside && !document.querySelector('.sode-gridpanel__head .sode-gridpanel__find');
 	})()`)
 	b.waitFor("the Lock chip does not cover the title or the Levels box", `(() => {
 		const c = document.querySelector('.sode-lock__who').getBoundingClientRect();
@@ -76,7 +77,7 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const c = document.createElement('canvas').getContext('2d');
 		c.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
 		const fits = c.measureText(i.placeholder).width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) <= i.clientWidth;
-		return i.classList.contains('sode__input') && r.width >= 168 && cs.fontSize === '27.5px' && fits &&
+		return i.classList.contains('sode__input') && r.width >= 151 && cs.fontSize === '24.75px' && fits &&
 			Math.abs(r.top - p.top) < 1 && Math.abs(a.bottom - p.bottom) < 1 && a.top > r.bottom && a.height < r.height &&
 			Math.abs(a.left - r.left) < 1 && Math.abs(a.width - r.width) < 1;
 	})()`)
@@ -113,9 +114,9 @@ func TestChromeGridPanelLook(t *testing.T) {
 			document.querySelector('.sode-panels__head').contains(document.getElementById('panel-home')) &&
 			!!document.querySelector('#panel-home a[href="panels"]');
 	})()`)
-	b.waitFor("big scroll bars: 28 px on both axes", `(() => {
+	b.waitFor("big scroll bars: 25 px on both axes", `(() => {
 		const x = document.querySelector('.sode-gridpanel__frame > .sode-bigscroll--x'), y = document.querySelector('.sode-gridpanel__frame > .sode-bigscroll--y');
-		return !!x && !!y && !x.hidden && !y.hidden && x.offsetHeight === 28 && y.offsetWidth === 28;
+		return !!x && !!y && !x.hidden && !y.hidden && x.offsetHeight === 25 && y.offsetWidth === 25;
 	})()`)
 	b.waitFor("the grid reaches the window's bottom", `Math.abs(document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect().bottom - innerHeight) < 2 && document.documentElement.scrollHeight === innerHeight`)
 	b.waitFor("the corner names both bars: Destinations along its bottom, Sources on its side down its right edge, each word centred", `(() => {
@@ -129,8 +130,9 @@ func TestChromeGridPanelLook(t *testing.T) {
 			d.bottom <= h.bottom && d.bottom > h.bottom - 12 && d.right <= s.left && mid(s, sw, 'top') && getComputedStyle(dst).justifyContent === 'center';
 	})()`)
 
-	b.waitFor("80 px crosspoints with 16 px names", `Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 80 && `+
-		`getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '16.25px'`)
+	b.waitFor("the Grid page's root is 112.5%: 72 px crosspoints with 15 px names", `getComputedStyle(document.documentElement).fontSize === '18px' && `+
+		`Math.round(document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width) === 72 && `+
+		`getComputedStyle(document.querySelector('.sode-gridpanel__src')).fontSize === '14.625px'`)
 
 	// The band's controls, to check that nothing moves as their words change.
 	b.eval(bandRects)
@@ -193,7 +195,11 @@ func TestChromeGridPanelLook(t *testing.T) {
 	b.shot("look")
 	b.eval(`document.querySelector('.sode-gridpanel__dst[data-dst="2"]').click(); document.querySelector('.sode-gridpanel__dst[data-dst="3"]').dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true })); ` +
 		`document.querySelector('.sode-gridpanel__src[data-src="5"]').click(); true`)
-	b.waitFor("a pick shows first in the note", note+` === '2 destinations, 1 source picked'`)
+	b.waitFor("a pick shows first in the note, whole", note+` === '2 destinations, 1 source picked' && (() => { const c = document.querySelector('.sode-gridpanel__chip'); return c.scrollWidth <= c.clientWidth; })()`)
+	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false})
+	b.waitFor("at 1280 the note is whole too", `innerWidth === 1280 && (() => { const c = document.querySelector('.sode-gridpanel__chip'); return c.scrollWidth <= c.clientWidth; })()`)
+	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": false})
+	b.waitFor("back at 1440", `innerWidth === 1440`)
 	b.eval(`document.getElementById('panel-lvl-all').click(); document.querySelector('.sode-gridpanel__find-mode input').click(); true`)
 	b.waitFor("Select all changes its words and Filter is on", `document.getElementById('panel-lvl-all').textContent === 'SelectNone' && document.querySelector('.sode-gridpanel__find-mode input').checked`)
 	b.waitFor("nothing in the band moved", bandSame)
@@ -214,9 +220,13 @@ func TestChromeGridPanelLook(t *testing.T) {
 		b.shot(fmt.Sprintf("band-%d", size[0]))
 	}
 
-	// 8 pins on each edge, the most an edge holds, on a short window: the pinned bands leave room to scroll.
+	// 50 pins on each edge on a short window: the pinned bands leave room to scroll.
 	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false})
-	pins := `{"1":{"pinned":true},"2":{"pinned":true},"3":{"pinned":true},"4":{"pinned":true},"5":{"pinned":true},"6":{"pinned":true},"7":{"pinned":true},"8":{"pinned":true}}`
+	pinList := make([]string, 50)
+	for i := range pinList {
+		pinList[i] = fmt.Sprintf(`"%d":{"pinned":true}`, i+1)
+	}
+	pins := "{" + strings.Join(pinList, ",") + "}"
 	pinned := makePanel(t, a, ana, `{"name":"Pinned grid","type":"grid","settings":{"mode":"take","levels":[1]},`+
 		`"sources":{"members":"all","items":`+pins+`},"destinations":{"members":"all","items":`+pins+`}}`)
 	b.open(srv.URL + "/panels/" + pinned + "?instance=Desk")
@@ -227,12 +237,12 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
 		const name = document.querySelector('.sode-gridpanel__probe').getBoundingClientRect();
 		const rows = v('--sode-row-pins'), cols = v('--sode-col-pins');
-		return rows >= 1 && rows < 8 && cols >= 1 && rows * xp <= (sc.clientHeight - name.height) / 2 && cols * xp <= (sc.clientWidth - name.width) / 2;
+		return rows >= 1 && rows < 50 && cols >= 1 && rows * xp <= (sc.clientHeight - name.height) / 2 && cols * xp <= (sc.clientWidth - name.width) / 2;
 	})()`)
 	b.shot("pins-1280")
 
 	b.open(srv.URL + "/panels")
-	b.waitFor("the Grid panel in the list", `!!document.querySelector('.sode-ov__item[data-id="`+id+`"]')`)
+	b.waitFor("the Grid panel in the list, on a page that keeps the 125% root", `!!document.querySelector('.sode-ov__item[data-id="`+id+`"]') && getComputedStyle(document.documentElement).fontSize === '20px'`)
 	b.eval(`document.querySelector('.sode-ov__item[data-id="` + id + `"]').click(); true`)
 	b.waitFor("its picture and words", `(() => {
 		const big = document.querySelector('.sode-ov__big');

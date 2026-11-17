@@ -1014,9 +1014,25 @@ body {
   gap: 0;
   min-height: 0;
 }
-/* A Grid panel's Test it live (editorlive.js): a bar over the panel says it is a preview and holds the way back,
-   and the list drawer opens over the panel's right side. The drawer's body does not scroll, so each list scrolls
-   inside its own share of the height, as in the editor. */
+/* A Grid panel's Test it live (editorlive.js): a bar over the panel says it is a preview and holds the way back.
+   The list drawer opens beside the grid, under the band, and the grid narrows (panelmount.js liveUi). The drawer's
+   body does not scroll, so each list scrolls inside its own share of the height, as in the editor. */
+.sode-live__row {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* gridpanel.css gives the grid flex: 1 1 auto; it shrinks past its content to the room the drawer leaves. */
+.sode-live__row > .sode-panel__grid {
+  min-width: 0;
+}
+/* In the flow, not over the grid; patchbay's drawer is absolute. No width transition: each frame of it would lay the
+   grid out again. */
+.sode-live__row > .sode-live__drawer {
+  flex: none;
+  position: relative;
+  transition: none;
+}
 .sode-live__bar {
   flex-wrap: wrap;
   position: static;

@@ -12,6 +12,7 @@ export const PREFS = {
   scrollTop: { key: 'sode-scroll-top', def: 'on', bool: true, values: { on: 'Yes', off: 'No' } },
   setStack: { key: 'sode-set-stack', def: 'and', values: { and: 'All must match', or: 'At least one must match' } },
   nextMode: { key: 'sode-next-mode', def: 'number', values: { number: 'Next number', fuzzy: 'Next match of the name' } },
+  stackGap: { key: 'sode-stack-gap', def: '30', values: { 0: 'Off', 10: '10 seconds', 30: '30 seconds', 60: '1 minute', 120: '2 minutes', 300: '5 minutes' } },
   searchFilters: { key: 'sode-search-filters', def: 'off', bool: true, values: { on: 'Yes', off: 'No' } },
   compact: { key: 'sode-compact', def: 'off', bool: true, values: { on: 'Yes', off: 'No' } },
 };

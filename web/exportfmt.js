@@ -13,6 +13,7 @@ export const PREF_LABELS = {
   clock: 'Clock',
   flip: 'Destination before Source',
   scrollTop: 'Scroll to top on focus',
+  stackGap: 'Stacked rows gap',
   searchFilters: 'Search respects filters',
   setStack: 'Stacked filter sets',
   nextMode: 'Next means',

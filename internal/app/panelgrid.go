@@ -17,10 +17,7 @@ const (
 	panelTypeGrid    = "grid"
 )
 
-const (
-	gridMembersAll = "all"
-	gridPinsMax    = 8 // per edge
-)
+const gridMembersAll = "all"
 
 // GridEdge is a Grid panel's sources or destinations. Membership stays apart from per-item settings, so a
 // pin or artwork never stops an "all" edge from following the router.
@@ -164,18 +161,11 @@ func checkGridEdge(e *GridEdge) error {
 	if err := checkGridNumbers("hide", e.Hide); err != nil {
 		return err
 	}
-	pins := 0
-	for k, it := range e.Items {
+	for k := range e.Items {
 		// One form for each number, so "7" and "007" never name one item twice.
 		if n, err := strconv.Atoi(k); err != nil || n < 0 || n > dstNumberMax || strconv.Itoa(n) != k {
 			return fmt.Errorf("items key %q is not a router number", k)
 		}
-		if it.Pinned {
-			pins++
-		}
-	}
-	if pins > gridPinsMax {
-		return fmt.Errorf("at most %d pinned items", gridPinsMax)
 	}
 	return nil
 }

@@ -28,6 +28,8 @@ Levels accept `1`, `1-3`, `1,3,5-8` (or `+`), `!1` (all but 1), `1-8!3`, and wor
 
 Press `+` or Ctrl+Enter after each destination instead of Tab. The routes land in History as one Group with **Undo all**.
 
+Ctrl-click a destination in History, in a Followed by list or in the Destination match list to add it the same way. On a Mac, Cmd-click also adds it. A click without Ctrl fills the box as before.
+
 ### Presets
 
 A preset is a saved plan of sources to destinations, fired in one confirm. **Edit**, or **Presets…** when there are none, opens the editor. Each entry in a preset is a source, destinations and levels. Levels can be numbers or names, and blank levels mean the default levels. **Add from Patch Boxes…** and **Add from History…** add entries for you. Save for **This browser** or **Everyone**. Everyone needs the Advanced Settings PIN, as filter sets do.
@@ -47,6 +49,8 @@ The Next chip and keys also need a take from this browser. Ctrl+Shift+s and Ctrl
 ### History
 
 History lists every take, shared by all browsers and kept in a log. Undo restores what the router actually had before. In a row's Before panel, and in the steps of a stacked row, each source is a button. The button fills Source with that source and moves on to Destination. Externals, such as ones from router panels or Companion, appear too, and you can undo them the same way. Every row has **Redo**, or **Retry** if its take failed, and a Group has **Redo all**. Redo takes that line's route again, and the confirm says when the destination already has it. In keyboard mode the key is `r`. Sode marks changes that the router made without an announcement as **found**. Destinations that follow another, such as a multiviewer PiP following a DSM, show as an External follow of the take. Undo leaves them out unless you tick the box in the confirm. Sode does not log routes changed while it was disconnected.
+
+When one destination gets several changes on the same levels, each within 30 seconds of the one before, History shows them as one stacked row. Settings > This browser > **Stack quick changes to one destination** sets that time. It is 30 seconds by default, or 10 seconds, 1 minute, 2 minutes or 5 minutes. Off shows every change as its own row. The changes can come from any browser, panel, API client or router panel. The row shows the source the destination had before the first change, then "to" and the source after the last change. Open the row to see each change with its time and a **Restore** button. **Undo** on the row goes back to before the first change. A failed take, an undo, a Group and an External follow always get their own row.
 
 ### Compact view
 
@@ -105,7 +109,7 @@ Settings-only keys (no seed var):
 - `levelColors`
 - `filterSets`
 - `hiddenDsts`
-- `deviceDefaults`: what a browser uses until it chooses its own under Settings > This browser. It holds theme, layout, clock, flip, scrollTop, searchFilters, setStack (`and` or `or`), nextMode (`number` or `fuzzy`) and compact. The compact field is Compact view, off by default (see Compact view above).
+- `deviceDefaults`: what a browser uses until it chooses its own under Settings > This browser. It holds theme, layout, clock, flip, scrollTop, searchFilters, setStack (`and` or `or`), nextMode (`number` or `fuzzy`), stackGap and compact. The stackGap field is a number of seconds written as text: `0` (off), `10`, `30` (the default), `60`, `120` or `300`. The compact field is Compact view, off by default (see Compact view above).
 - `settingsPin`
 
 Process settings stay in env. They are `SODE_LISTEN` (`:8080`), `SODE_CONFIG` (`/data/config.yaml` in the image), `SODE_HISTORY` (`/data/history.jsonl`), `SODE_SENTLOG` (`/data/sent.jsonl`), `SODE_SENTLOG_MB` (`64`), `SODE_UPTIME` (`/data/uptime.jsonl`) and `SODE_DEBUG=true`, which hex-dumps all SW-P-08 traffic. Without `SODE_UPTIME`, the router uptime is kept in memory only.

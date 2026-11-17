@@ -4,6 +4,7 @@
 // (gridpanelrun.js) makes them on the panel page only, and its stop puts the page back.
 import { el, icon, on } from './core.js';
 import { connBox, paintConn } from './connview.js';
+import { layout, onLayout } from './layout.js';
 
 // core.js's on() has no unsubscribe, so one subscription at import paints every head a run has made.
 const conns = new Set();
@@ -63,6 +64,16 @@ export function gridHead(ui, count) {
     if (lvText.data !== t) lvText.data = t;
   };
   box?.prepend(more, lv);
+  // On the desktop layout the status line has its own room in the deck (gridpanel.css), so a result or refusal never
+  // moves the grid. The phone keeps it where the page has it.
+  const statusHome = ui.status ? [ui.status.parentNode, ui.status.nextSibling] : null;
+  const placeStatus = (l) => {
+    if (!statusHome) return;
+    if (l !== 'phone') deck.append(ui.status);
+    else if (ui.status.parentNode === deck) statusHome[0].insertBefore(ui.status, statusHome[1]);
+  };
+  placeStatus(layout());
+  const offLayout = onLayout(placeStatus);
   return {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
@@ -78,6 +89,8 @@ export function gridHead(ui, count) {
       ui.screen?.classList.add(...screenCls);
       tools.replaceWith(...btns);
       if (ui.home?.parentNode === tools) ui.head.append(ui.home);
+      offLayout();
+      placeStatus('phone');
       deck.replaceWith(ui.head);
       if (box) ui.grid.before(box);
     },

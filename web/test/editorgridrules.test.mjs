@@ -1,7 +1,7 @@
 // The Grid panel editor's list tabs (editorgridrules.js). Pure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { edgeRows, moveRows, stepRows, pinItems, clearEdge, followRouter, stopFollowing, drawnOrder, PINS_MAX } from '../editorgridrules.js';
+import { edgeRows, moveRows, stepRows, pinItems, clearEdge, followRouter, stopFollowing, drawnOrder } from '../editorgridrules.js';
 import { namesReply } from './gridpanelfixture.mjs';
 
 const router = namesReply({
@@ -91,7 +91,6 @@ test('Follow the router off keeps what the edge shows, in router order, as a lis
   assert.deepEqual(stopFollowing(e, router), { members: [0, 2, 3], items: { 3: { pinned: true } } });
   const list = { members: [3, 0] };
   assert.equal(stopFollowing(list, router), list);
-  assert.equal(PINS_MAX, 8);
 });
 
 test('drawnOrder puts the pinned rows first, as the panel page draws them, each part in list order', () => {

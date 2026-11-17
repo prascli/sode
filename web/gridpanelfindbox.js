@@ -65,12 +65,8 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   sw.setAttribute('role', 'switch');
   sw.tabIndex = -1;
   sw.addEventListener('change', () => (sw.checked ? 'filter' : 'find') !== now && onMode());
-  const words = el(
-    'span',
-    'pb-check__label',
-    el('span', 'sode-gridpanel__find-word', MODE.filter),
-    el('span', 'sode-gridpanel__find-hint', 'Show only matches'),
-  );
+  // The tip says what Filter does, so the switch keeps to one short word.
+  const words = el('span', 'pb-check__label', el('span', 'sode-gridpanel__find-word', MODE.filter));
   const mode = el('label', 'pb-check sode-gridpanel__find-mode', sw, words);
   mode.dataset.pbTip = 'On: the bars show only the matches. Off: Find marks the matches. Ctrl+/';
   // On a phone a focused box opens the keyboard, so a mode change leaves focus where it is.

@@ -4,9 +4,8 @@
    corner holds what is pinned on both axes. */
 .sode-panel__grid.sode-gridpanel {
   display: block;
-  /* At the 125% root: 80 px crosspoints, a 224 by 120 px corner. The prototype had 72 px; the owner asked for a grid
-     a little bigger and easier to read. The scroll bars are Sode's own big ones (bigscroll.js), the same on both
-     axes; the phone scrolls by touch and keeps thin native ones. */
+  /* At the Grid page's 112.5% root (base.css): 72 px crosspoints, a 202 by 108 px corner. The scroll bars are Sode's
+     own big ones (bigscroll.js), the same on both axes; the phone scrolls by touch and keeps thin native ones. */
   --sode-xp: 4rem;
   --sode-name-w: 11.2rem;
   --sode-name-h: 6rem;
@@ -627,21 +626,6 @@ html:has(.sode-gridpanel) {
   color: var(--pb-text-strong);
   font-weight: var(--pb-weight-bold);
 }
-.sode-gridpanel__find-hint {
-  color: var(--pb-text-muted);
-  font-size: var(--pb-text-xs);
-  white-space: nowrap;
-}
-/* Below 1440 px the switch shows its word only, so the search boxes keep their room. */
-@media (max-width: 89.9rem) {
-  .sode-gridpanel__find-hint {
-    display: none;
-  }
-}
-/* The hint is for the deck's room; the corner and the phone show the word only. */
-:is(.sode-gridpanel__head, :root[data-layout="phone"] .sode-gridpanel__finds) .sode-gridpanel__find-hint {
-  display: none;
-}
 /* A phone has no keys to show. */
 :root[data-layout="phone"] .sode-gridpanel__find-key {
   display: none;
@@ -1030,7 +1014,7 @@ html:has(.sode-gridpanel) {
   display: grid;
   grid-template-areas:
     "head  head  head head head head head  head"
-    "lab   lab   .    note note note note  note"
+    "lab   lab   .    stat stat note note  note"
     "picks input r1   fsrc mode r2   clear take"
     "picks input r1   fdst mode r2   clear take";
   grid-template-columns: auto var(--sode-lvl-w) auto minmax(11rem, 1fr) auto auto 5rem 7rem;
@@ -1108,6 +1092,19 @@ html:has(.sode-gridpanel) {
   min-width: 0;
   white-space: nowrap;
 }
+/* The status line (#panel-status) over the search boxes. The note fixes the row's height, so a result or refusal
+   that shows or clears never moves the grid. One line; width 0 and min-width 100%, so long words widen no column. */
+:root:not([data-layout="phone"]) .sode-gridpanel__deck > .sode-panel__status {
+  align-self: end;
+  font-size: var(--pb-text-sm);
+  grid-area: stat;
+  line-height: calc(var(--pb-text-xs) + 2 * var(--pb-space-2) + 2 * var(--pb-border-w));
+  min-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 0;
+}
 /* The note over Clear and Take, at Take's end. width 0 and min-width 100%, so long words are cut and widen no column. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__note > .sode-gridpanel__chip {
   align-self: end;
@@ -1150,13 +1147,17 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__deck :is(.sode-gridpanel__find-input, .sode-gridpanel__find-step) {
   height: 100%;
 }
+/* The word over the switch, so the box is no wider than the word. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__find-mode {
+  align-items: center;
   background: var(--pb-surface-control);
   border: var(--pb-border-w) solid var(--pb-edge);
+  flex-direction: column-reverse;
   font-size: var(--pb-text-sm);
-  gap: var(--pb-space-3);
+  gap: var(--pb-space-2);
   grid-area: mode;
-  padding: 0 var(--pb-space-4);
+  justify-content: center;
+  padding: 0 var(--pb-space-2);
 }
 /* On, the switch's box takes the accent edge, so the mode shows from across the room. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__find-mode:has(> :checked) {

@@ -67,8 +67,9 @@ export function liveUi(host, onBack, edit = null) {
   for (const n of [status, update, bar, offline]) n.hidden = true;
   note.hidden = true;
   const levels = levelsBox();
-  const main = el('div', 'sode-live', head, note, el('div', 'sode-panel__foot', status, update), levels, grid, offline, takeConfirm());
-  if (edit) main.append(edit.aside);
+  // A Grid panel's list drawer sits beside the grid, under the band, so the grid narrows and Take stays in reach.
+  const field = edit ? el('div', 'sode-live__row', grid, edit.aside) : grid;
+  const main = el('div', 'sode-live', head, note, el('div', 'sode-panel__foot', status, update), levels, field, offline, takeConfirm());
   host.replaceChildren(...(edit ? [edit.bar] : []), main);
   // home: the run puts it with the header buttons, where the panel page has its Panels link.
   return {

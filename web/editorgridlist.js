@@ -11,7 +11,7 @@ import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { artNode } from './panelview.js';
 import { plural } from './gridclip.js';
-import { edgeRows, clearEdge, selectRows, moveRows, stepRows, pinItems, removeItems, itemsArt, drawnOrder, edgeListKey, PINS_MAX } from './editorgridrules.js';
+import { edgeRows, clearEdge, selectRows, moveRows, stepRows, pinItems, removeItems, itemsArt, drawnOrder, edgeListKey } from './editorgridrules.js';
 
 const FIRST = 30; // rows drawn before the list has a height
 const NONE = () => ({ selected: new Set(), anchor: null });
@@ -92,7 +92,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     set(removeItems(edge(), many()));
     setSel(NONE());
   };
-  const selPin = barBtn('pin', 'pin', `Pin, in list order, to at most ${PINS_MAX}`, () => pinSel(true));
+  const selPin = barBtn('pin', 'pin', 'Pin, in list order', () => pinSel(true));
   const selUnpin = barBtn('unpin', 'pin-off', 'Unpin', () => pinSel(false));
   const moves = [
     barBtn('top', 'arrow-up-to-line', `Move to the top (${MOVE_KEYS.top})`, () => moveSel('top')),
@@ -227,7 +227,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     if (!at.has(cur)) cur = sel.anchor;
     const n = v.rows.length;
     count.textContent = String(n);
-    count.dataset.pbTip = `${plural(n, what)}, ${v.pins} of ${PINS_MAX} pinned`;
+    count.dataset.pbTip = `${plural(n, what)}, ${v.pins} pinned`;
     pinsBtn.hidden = !pinned;
     pinsBtn.textContent = `${pinned} pinned`;
     pinsBtn.setAttribute('aria-pressed', String(pinOnly));
@@ -242,7 +242,6 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     clear.dataset.pbTip = fixed ? FOLLOWING : `Takes every ${what} off the panel.`;
     shownOff = off;
     shownRo = ro;
-    shownFull = v.pins >= PINS_MAX;
     made = new Map();
     drawRows();
     drawSel();
@@ -252,8 +251,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   // elements and 10 listeners. Rows are one height, so margins stand in for the rows not drawn.
   let shownOff = 0;
   let shownRo = false;
-  let fixed = false; // Follow the router is on
-  let shownFull = false;
+  let fixed = false; // Follow the router is on.
   let made = new Map(); // row index -> its li, for the rows of the last paint
   let pitch = 0; // px from the top of one row to the next
   let span = { lo: 0, hi: 0 };
@@ -280,9 +278,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
       actions: [
         {
           icon: r.pinned ? 'pin-off' : 'pin',
-          tip: r.pinned ? 'Unpin' : shownFull ? `At most ${PINS_MAX} pinned` : 'Pin to the edge',
+          tip: r.pinned ? 'Unpin' : 'Pin to the edge',
           act: 'pin',
-          off: !r.pinned && shownFull,
           run: () => set(pinItems(edge(), router(), myRights(), rights, inMany(r.n) ? many() : new Set([r.n]), !r.pinned)),
         },
       ],

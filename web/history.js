@@ -56,12 +56,18 @@ function passes(e) {
   return filterAllows(e);
 }
 
-// Changes elsewhere to one destination on the same levels within this long of each other show
-// as one row (a monitor punched about).
-const MERGE_MS = 30000;
+// Changes to one destination on the same levels show as one stacked row when each comes at most
+// this long after the one before. Think of a shader's preview punched about. The gap between
+// neighbours, not the whole span. 0 is off. Keep in step with docs/agents/history.md.
+export const stackGapMs = () => Number(pref('stackGap')) * 1000;
+
+// A change that can join a stacked row: one route on its own, from any browser, panel or the
+// router itself. A failed take stays apart for its Retry; a follow belongs to its take. An undo
+// (also a Restore) stays apart, or it would join the row that it undid.
+const stacks = (e) => (!e.group || e.groupN < 2) && e.ok && e.follow == null && !e.followGroup && e.undo == null;
 
 // { e } for a take on its own, { f } for a folder (one multi-take confirm), placed where its
-// newest take is. Repeated changes made elsewhere merge into one { e }: the newest, with the
+// newest take is. Rapid changes to one destination merge into one { e }: the newest, with the
 // oldest's prev, and merged = count. A folder shows if any take passes the filters (f.shown;
 // f.entries keeps all, for Undo all). Several calls per redraw, so the answer is kept
 // (rowsCache).
@@ -83,6 +89,7 @@ function buildRows(list) {
   const rows = [];
   const byGroup = new Map();
   const chains = new Map();
+  const gap = stackGapMs();
   // Follows go with the take they followed (e.follows) when loaded and shown; one whose take is
   // hidden stands alone if it passes the filters itself.
   const byId = new Map(list.map((e) => [e.id, e]));
@@ -114,13 +121,13 @@ function buildRows(list) {
       continue;
     }
     const e = followsOf.has(orig.id) ? { ...orig, follows: followsOf.get(orig.id) } : orig;
-    // Merge into the row above if it is a change elsewhere to the same destination and levels
-    // with nothing else on it between.
+    // Merge into the row above if it is a change to the same destination and levels with
+    // nothing else on it between. One the filters hide ends the row instead.
     const solo = !e.group || e.groupN < 2;
     const k = `${e.levels.join(',')}${e.found ? ' found' : ''}`; // found and announced do not mix
     const t = Date.parse(e.time);
     const c = chains.get(e.dst);
-    if (solo && e.ext && e.follow == null && !e.followGroup && c && c.k === k && c.t - t <= MERGE_MS && !searchActive()) {
+    if (stacks(e) && c && c.k === k && gap > 0 && c.t - t <= gap && !searchActive() && passes(e)) {
       c.list.push(orig);
       const follows = [...(c.row.e.follows || []), ...(e.follows || [])];
       c.row.e = { ...c.row.e, prev: e.prev, merged: c.list.length, chain: c.list, ...(follows.length ? { follows } : {}) };
@@ -131,7 +138,7 @@ function buildRows(list) {
     if (solo) {
       if (!passes(e)) continue;
       const row = { e };
-      if (e.ext && e.follow == null && !e.followGroup) chains.set(e.dst, { k, row, t, list: [orig] });
+      if (stacks(e)) chains.set(e.dst, { k, row, t, list: [orig] });
       rows.push(row);
       continue;
     }
@@ -303,6 +310,13 @@ export function beforeGroups(e) {
     groups.get(s).push(u);
   }
   return [...groups].map(([src, levels]) => ({ src, levels }));
+}
+
+// A stacked row's source before its first change: {src, text}. src is null when the levels had
+// several sources, and text then counts them.
+export function stackBefore(e) {
+  const g = beforeGroups(e);
+  return g.length === 1 ? { src: g[0].src, text: tallyText(g[0].src) } : { src: null, text: `${g.length} sources` };
 }
 
 // [{levels, text}]: "still on X" (it ignored the take), "on X" (another route got there) or "no
