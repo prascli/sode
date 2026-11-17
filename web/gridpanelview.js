@@ -229,7 +229,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const lineNode = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   lineNode.classList.add('sode-gridpanel__line');
   svg.append(lineNode);
-  svg.hidden = true;
+  // An svg element has no hidden property: only the attribute hides it.
+  svg.setAttribute('hidden', '');
   overlay.append(svg);
   const field = el('div', 'sode-gridpanel__field', body, overlay, side, top, corner, cursor);
   field.setAttribute('role', 'group');
@@ -517,7 +518,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     },
     // Draws the Drawn line from a to b, in crosspoint units, or hides it for null.
     line(seg) {
-      svg.hidden = !seg;
+      svg.toggleAttribute('hidden', !seg);
       if (!seg) return;
       const set = (k, v) => lineNode.setAttribute(k, String(v));
       set('x1', px.w + seg.a.x * px.xp);

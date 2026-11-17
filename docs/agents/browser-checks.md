@@ -33,7 +33,6 @@ Files, all in `internal/app`:
   - Find opens on the selection's kind, with Search all instead.
   - An uploaded image fills a merged square with Icon B as a corner badge (`TestChromeEditorImageIconBBadge`).
   - `TestChromeEditorFailuresSaySomething`: each failure leaves a note, never a blank page. The failures are a wrong PIN and Cancel, another user's panel, a bad id, a refused session key and a blocked socket. `refuseSessionKey` fakes the refused session key over the socket.
-- `panelcellfit_browser_test.go`: `TestChromePanelLongNamesFitTheirSquares`, long captions on a 4 by 8 Buttons panel. It runs at 1280 and 390 px (touch on), then after a resize with no reload. No cell's words run past it, each cell stays square, and no text is below `--pb-text-2xs`. A cut cell shows whole lines. It also puts 16 W characters in a Grid panel's first source and destination names.
 - `panelfullscreen_browser_test.go`: `TestChromePanelFullscreenFollowsSettings`, presses sent with `userGesture`. With fullscreen off, a press does not enter fullscreen after a reload or after a live update. Landscape alone still enters it.
 - `paneleditorpages_browser_test.go`: `TestChromeEditorPages`, the Pages bar on a 3-Page panel. Add Page is pressed twice. Cmd-click and a Mac Ctrl-click (`contextmenu`) open three side by side. A copy on Page 1 pastes on Pages 2 and 3. Copy to over the used Page 3 asks Replace first. An undo pressed on Page 1 undoes that Copy to, and a redo brings it back. The save stores three Pages, read over REST, and the copied Go to Page cell keeps its target. It presses Escape before a square of another Page, since the smart menu can cover it.
 - `paneleditorrename_browser_test.go`: `TestChromeEditorRenameButton`, the toolbar shows the name once beside Rename, a real Tab (`Input.dispatchKeyEvent`) reaches it, Esc throws typed text away and Enter keeps it.
@@ -60,7 +59,7 @@ Files, all in `internal/app`:
   - `Cursor` and `Keys`: the one cursor, the moves, the bar picks and the key list. They send real key events (`realKey`, `realKeyMods`).
   - `Find`: the search boxes, Find and Filter, with text by CDP `Input.insertText`.
   - `Undo`: the `g` and `G` jumps, the right-click jumps and the staged Undo.
-  - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends.
+  - `Line`: Drawn lines with real mouse events, snapping, and a line that a live update ends. A release in Take mode stages, and no line is left after Clear or Esc. It reads the line layer's computed `display`, since an svg has no `hidden` property. A mouse drag along a bar picks names.
   - `Phone`: touch on the phone layout with CDP touch input. Emulate before `b.open`.
   - `LiveUpdate`: a saved change and a Default artwork change reach an open page, which keeps the search, picks and cursor.
   - `Art`: artwork on names, in the editor's row Artwork button, and no stale artwork after a scroll.
