@@ -2331,6 +2331,7 @@ components:
       properties:
         pinned: { type: boolean, description: "The item shows first, at the edge of the grid, before the items that are not pinned" }
         art: { type: string, description: "Artwork in the form of a cell's `art`" }
+        artB: { type: string, description: "Icon B in the form of a cell's `artB`: a number 0 to 16 or a letter A to Z" }
     PanelIn:
       type: object
       description: |

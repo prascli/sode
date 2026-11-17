@@ -3,6 +3,7 @@
 // A node is moved to another crosspoint or name as the grid scrolls, so nodes hold no state of their own.
 // Everything shown comes from the view that paint is given. docs/agents/panels.md has the layer plan.
 import { el, icon } from './core.js';
+import { iconHref } from './sprite.js';
 import { pieFill } from './gridpanellevels.js';
 import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor } from './gridpanelwindow.js';
 
@@ -60,17 +61,65 @@ const makeName = (cls, role) => () => {
   n.append(document.createTextNode(''));
   return n;
 };
-const makeSrc = makeName('pb-xpt--source sode-gridpanel__src', 'columnheader');
-// After the name's Text: the protected mark (the lock never stands alone) and the current sources the grid does not
-// show. Made once, so a paint changes only Text data and hidden.
+// The artwork beside a name: Icon A as a sprite icon, an image or a mask, then Icon B. A mask is a library SVG in
+// the text colour. All four exist from the start and a paint shows some, so a scroll changes attributes and never
+// childList. The last child of a name; it comes before the text in the layout (CSS order).
+const makeArt = () => {
+  const row = el(
+    'span',
+    'sode-gridpanel__art',
+    icon('circle', false),
+    el('img', 'sode-gridpanel__art-a'),
+    el('span', 'sode-gridpanel__art-a sode-gridpanel__art-mask'),
+    el('span', 'sode-gridpanel__art-b', document.createTextNode('')),
+  );
+  row.setAttribute('aria-hidden', 'true');
+  row.hidden = true;
+  const [svg, img, mask] = row.children;
+  svg.setAttribute('class', 'pb-icon sode-gridpanel__art-a');
+  svg.hidden = img.hidden = mask.hidden = true;
+  img.alt = '';
+  return row;
+};
+const makeSrc = () => {
+  const n = makeName('pb-xpt--source sode-gridpanel__src', 'columnheader')();
+  n.append(makeArt());
+  return n;
+};
+// After the name's Text: the protected mark (the lock never stands alone), the current sources the grid does not
+// show, then the artwork. Made once, so a paint changes only Text data and hidden.
 const makeDst = () => {
   const n = makeName('pb-xpt--dest sode-gridpanel__dst', 'rowheader')();
   const prot = el('small', 'sode-gridpanel__prot', icon('lock'), document.createTextNode(''));
   const other = el('small', 'sode-gridpanel__other', document.createTextNode(''));
   prot.hidden = other.hidden = true;
-  n.append(prot, other);
+  n.append(prot, other, makeArt());
   return n;
 };
+
+const show = (n, on) => {
+  if (n.hidden === on) n.hidden = !on;
+};
+// art is { icon, url, mask, b } from view.art (a part can be missing), or null.
+function paintArt(row, art) {
+  const [svg, img, mask, b] = row.children;
+  setText(b, art?.b || '');
+  show(b, !!art?.b);
+  show(svg, !!art?.icon);
+  if (art?.icon) {
+    const href = iconHref(art.icon);
+    const use = svg.firstChild;
+    if (use.getAttribute('href') !== href) use.setAttribute('href', href);
+  }
+  show(img, !!art?.url);
+  if (art?.url && img.getAttribute('src') !== art.url) img.setAttribute('src', art.url);
+  show(mask, !!art?.mask);
+  if (art?.mask && mask.dataset.u !== art.mask) {
+    mask.dataset.u = art.mask;
+    mask.style.maskImage = `url("${art.mask}")`;
+  }
+  show(row, !!(art && (art.icon || art.url || art.mask || art.b)));
+}
 
 // A mark not shown is hidden and has empty text, so the node's text is the name alone.
 function paintDstMarks(n, d, view) {
@@ -193,6 +242,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
       setText(n, view.names.source(s));
       pick(n, view.picked('srcs', s));
       setData(n, 'found', view.found('srcs', s) ? '' : undefined);
+      paintArt(n.lastChild, view.art('source', s));
     }
     markName(n, mark.srcs.has(s));
   };
@@ -202,6 +252,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
       pick(n, view.picked('dsts', d));
       setData(n, 'found', view.found('dsts', d) ? '' : undefined);
       paintDstMarks(n, d, view);
+      paintArt(n.lastChild, view.art('destination', d));
     }
     markName(n, mark.dsts.has(d));
   };
@@ -449,6 +500,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint }) {
 // view: { names (namesFrom), levels (GET /tally levels), levelText(list), pie(src, dst) -> levels on,
 // staged(src, dst) -> levels staged, picked(kind, n), found(kind, n), leftOut(src, dst), protected(dst) }. Only drawn nodes are painted.
 // view.other(dst) is { text, tip } for the current sources that the grid does not show.
+// view.art(kind, n), kind 'source' or 'destination', is { icon, url, mask, b } for the artwork beside a name, or null.
 export function paintGridPanel(g, view) {
   g.paint(view);
 }
