@@ -57,6 +57,10 @@ export const cancelConfirm = (st) => (st.mode === 'instant' ? dropStaged(st) : s
 
 export const dropStaged = (st) => ({ ...st, staged: [], error: null, undoId: null });
 
+// A newer saved copy of the panel: staged routes belong to the old one and go (panelupdate.js), as on a Buttons panel.
+// A take in flight holds the update back, but busy is carried so its answer still lands.
+export const restage = (st, panel) => ({ ...createStage({ mode: panel.settings?.mode }), busy: st.busy });
+
 export function stageText(err) {
   switch (err?.code) {
     case 'cap':
