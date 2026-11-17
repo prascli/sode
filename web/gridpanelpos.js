@@ -23,7 +23,8 @@ export function gridPosition(g, frame, kind, isPhone) {
     const text = document.createTextNode('');
     const n = el('span', `sode-gridpanel__range sode-gridpanel__range--${k}`, icon(name), text);
     n.setAttribute('aria-hidden', 'true');
-    head?.append(n);
+    // Before the words: the Destinations word stays the corner's last child.
+    head?.querySelector('.sode-gridpanel__label--src')?.before(n);
     return { n, text };
   };
   const ranges = { srcs: line('src', 'arrow-right'), dsts: line('dst', 'arrow-down') };
