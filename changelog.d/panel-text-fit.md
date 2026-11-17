@@ -1,0 +1,1 @@
+- On a Buttons panel page, long words stay inside their square. The text gets smaller to fit, down to a minimum size. Past that, an ellipsis cuts it. A long name no longer makes a row taller, so each cell stays square.
