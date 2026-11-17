@@ -22,6 +22,7 @@ import {
   panelStatus,
   shownInstances,
   hiddenShown,
+  instanceUptime,
   actsSwitch,
 } from '../panelsrules.js';
 
@@ -55,6 +56,32 @@ test('Open now lists known and watched instances, less the hidden ones', () => {
   // A use-only reader gets no instances at all.
   assert.deepEqual(shownInstances({}), []);
   assert.deepEqual(hiddenShown({}), []);
+});
+
+test('an instance strip has no record while Sode was stopped', () => {
+  const u = {
+    from: 0,
+    to: 4,
+    start: 'off',
+    trans: [
+      { t: 1, s: 'up' },
+      { t: 2, s: 'off' },
+      { t: 3, s: 'down' },
+    ],
+  };
+  assert.deepEqual(instanceUptime(u), {
+    start: '',
+    trans: [
+      { t: 1, s: 'up' },
+      { t: 2, s: '' },
+      { t: 3, s: 'down' },
+    ],
+    counts: [],
+    from: 0,
+    to: 4,
+    slot: 60_000,
+    now: 4,
+  });
 });
 
 // Both: a client for keyed links, Session mode without one. Keep in step with actsHasClient in internal/app/panelstore.go.
