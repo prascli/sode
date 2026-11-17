@@ -261,6 +261,27 @@ html {
   font-size: var(--pb-text-md);
   gap: var(--pb-space-4);
 }
+/* Every text box with a role colour edge: the main page's Source and Destination boxes, the phone's one box and a
+   Grid panel's search boxes. The edge is a background strip inside the border, so the border and the focus ring run
+   all the way round. Not patchbay's pb-rolebar, whose edge replaces the left border. */
+.sode__box--src .sode__input,
+.sode__box--dst .sode__input,
+.sode-m__bar:is([data-step="src"], [data-step="dst"]) .sode-m__input,
+.sode-gridpanel__find-input {
+  background-repeat: no-repeat;
+  background-size: var(--sode-side-w) 100%;
+  padding-left: calc(var(--pb-space-3) + var(--sode-side-w) - var(--pb-border-w));
+}
+.sode__box--src .sode__input,
+.sode-m__bar[data-step="src"] .sode-m__input,
+.sode-gridpanel__find[data-kind="srcs"] .sode-gridpanel__find-input {
+  background-image: linear-gradient(var(--pb-source), var(--pb-source));
+}
+.sode__box--dst .sode__input,
+.sode-m__bar[data-step="dst"] .sode-m__input,
+.sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-input {
+  background-image: linear-gradient(var(--pb-dest), var(--pb-dest));
+}
 .sode__end {
   border: var(--pb-border-w) solid var(--pb-edge);
   color: var(--pb-text-strong);

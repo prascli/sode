@@ -91,6 +91,10 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const name = document.querySelector('.sode-lock__who-name');
 		return !!document.querySelector('.sode-lock__who .pb-btn') && name.getClientRects().length > 0 && name.textContent === 'Signed in as Ana';
 	})()`)
+	b.waitFor("the search boxes have the border all the way round, with the role colour as a strip inside it, as on the main page", `[...document.querySelectorAll('.sode-gridpanel__find-input')].every((i) => {
+		const c = getComputedStyle(i);
+		return c.borderLeftWidth === c.borderRightWidth && c.borderLeftColor === c.borderRightColor && c.backgroundImage.startsWith('linear-gradient');
+	})`)
 	b.waitFor("Filter is one switch, off, as tall as both search boxes", `(() => {
 		const m = document.querySelector('.sode-gridpanel__find-mode');
 		const sw = m.querySelector('input[role="switch"]');

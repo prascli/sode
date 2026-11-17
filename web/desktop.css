@@ -73,19 +73,6 @@
 .sode__chips[hidden] {
   display: none;
 }
-/* The colour edge is a background strip, so the border and focus ring run unbroken. */
-.sode__box--src .sode__input,
-.sode__box--dst .sode__input {
-  background-repeat: no-repeat;
-  background-size: var(--sode-side-w) 100%;
-  padding-left: calc(var(--pb-space-3) + var(--sode-side-w) - var(--pb-border-w));
-}
-.sode__box--src .sode__input {
-  background-image: linear-gradient(var(--pb-source), var(--pb-source));
-}
-.sode__box--dst .sode__input {
-  background-image: linear-gradient(var(--pb-dest), var(--pb-dest));
-}
 /* The count sits under what scrolls, so a very long list still shows it. */
 .sode__menu-pop {
   left: 0;

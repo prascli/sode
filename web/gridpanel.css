@@ -552,12 +552,6 @@ html:has(.sode-gridpanel) {
   user-select: text;
   width: 100%;
 }
-.sode-gridpanel__find[data-kind="srcs"] .sode-gridpanel__find-input {
-  border-left: var(--pb-rolebar-w) solid var(--pb-source);
-}
-.sode-gridpanel__find[data-kind="dsts"] .sode-gridpanel__find-input {
-  border-left: var(--pb-rolebar-w) solid var(--pb-dest);
-}
 /* The key hint at the box's end, with the count before it. */
 .sode-gridpanel__find-count,
 .sode-gridpanel__find-key {
