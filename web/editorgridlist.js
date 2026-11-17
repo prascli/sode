@@ -204,6 +204,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
       sel = NONE();
       return list.replaceChildren();
     }
+    // Before the router list paints, since it reads fixed.
+    fixed = !Array.isArray(edge()?.members);
     routerList.paint();
     const now = [edge(), router(), myRights(), ro, ed.routerNames(), ed.panel()?.id, ed.art(), pinOnly];
     if (!force && now.every((x, i) => x === drawn[i])) return;
@@ -216,7 +218,6 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     const pinned = all.filter((r) => r.pinned).length;
     if (!pinned) pinOnly = false;
     shown = pinOnly ? all.slice(0, pinned) : all;
-    fixed = v.all;
     at = new Map(shown.map((r, i) => [r.n, i]));
     // Rows that left the list leave the selection.
     if ([...sel.selected].some((x) => !at.has(x))) {

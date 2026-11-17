@@ -61,7 +61,7 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 
 	b.waitFor("Clear is off while the list follows the router", `document.getElementById('ed-sources-clear').disabled`)
 	b.eval(`document.getElementById('ed-sources-all').click(); true`)
-	b.waitFor("Follow the router off keeps every source as the panel's own list", `!document.getElementById('ed-sources-all').checked && document.getElementById('ed-sources-state').textContent === '2500' && !document.getElementById('ed-sources-clear').disabled`)
+	b.waitFor("Follow the router off keeps every source as the panel's own list", `!document.getElementById('ed-sources-all').checked && document.getElementById('ed-sources-state').textContent === '2500' && !document.getElementById('ed-sources-clear').disabled && !document.getElementById('ed-sources-find').disabled`)
 	b.eval(`document.getElementById('ed-sources-clear').click(); true`)
 	b.waitFor("Clear empties the panel's list and shows the empty state", `document.querySelectorAll('#ed-sources-list li').length === 0 && !document.getElementById('ed-sources-empty').hidden && document.getElementById('ed-sources-acts').hidden && !document.getElementById('ed-sources-all').checked`)
 
