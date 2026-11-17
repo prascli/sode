@@ -680,6 +680,8 @@ export function gridBody(ctx, first) {
   }
 
   const onKey = (e) => {
+    // The editor's list drawer beside a live test (editorlive.js) keeps every key of its own.
+    if (ui.aside?.contains(e.target)) return;
     if (confirm?.isOpen()) return confirm.key(e);
     if (keyList?.shown()) return listKey(e);
     // The page lock's sign-in and dialogs take their keys first.

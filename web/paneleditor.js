@@ -283,7 +283,14 @@ export async function runEditor() {
     },
     key: onKey,
   });
-  const live = createLive($('ed-live-view'), document.querySelector('.sode-ed__body'), $('ed-live'));
+  const live = createLive($('ed-live-view'), document.querySelector('.sode-ed__body'), $('ed-live'), {
+    save: () => save(),
+    dirty: () => !readOnly() && dirty(),
+    readOnly,
+    edges: () => ({ sources: fields().sources, destinations: fields().destinations, rev: loaded?.rev }),
+    lists: () => [$('ed-sources-col'), $('ed-destinations-col')],
+  });
+  fieldWatchers.push(() => live.changed());
   // The menu and its flyouts keep off the sidebar when it sits beside the grid (menuArea).
   const menu = createSmartMenu($('ed-grid'), {
     onEscape: () => $('ed-grid').focus(),
@@ -656,7 +663,7 @@ export async function runEditor() {
   $('ed-live').addEventListener('click', async () => {
     if (live.on()) return live.stop();
     if (!readOnly() && dirty()) await save();
-    if (loaded && !dirty()) live.start(loaded.id, focus);
+    if (loaded && !dirty()) live.start(loaded.id, focus, isGridPanel(loaded));
   });
 
   $('ed-copylink').addEventListener('click', async () => {

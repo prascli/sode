@@ -968,6 +968,61 @@ body {
   gap: 0;
   min-height: 0;
 }
+/* A Grid panel's Test it live (editorlive.js): a bar over the panel says it is a preview and holds the way back,
+   and the list drawer opens over the panel's right side. The drawer's body does not scroll, so each list scrolls
+   inside its own share of the height, as in the editor. */
+.sode-live__bar {
+  flex-wrap: wrap;
+  position: static;
+}
+/* The Lock bar sits at the window's top left, so the bar clears its width as the header does above. */
+[data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-live__bar {
+  padding-inline-start: calc(var(--sode-who-w, 0px) + var(--pb-space-5));
+}
+.sode-live__what,
+.sode-live__state {
+  color: var(--pb-text-muted);
+  font-size: var(--pb-text-sm);
+  font-weight: var(--pb-weight-normal);
+}
+.sode-live__drawer .pb-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-space-4);
+  overflow: hidden;
+}
+.sode-live__drawer-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.sode-live__drawer-h {
+  font-size: var(--pb-text-lg);
+  font-weight: var(--pb-weight-bold);
+  margin: 0;
+}
+/* Over patchbay's .pb-tabpanel.active display: block. */
+.sode-live__drawer .sode-live__tab.active {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+.sode-live__tab > .sode-edge {
+  flex: 1 1 0;
+}
+.sode-live__tab .sode-edge__on {
+  flex: 3 1 0;
+}
+.sode-live__tab .sode-edge__add {
+  flex: 2 1 0;
+}
+.sode-live__tab :is(.sode-edge__list, .sode-rlist) {
+  flex: 1 1 0;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+}
 /* The editor's sidebar (editorside.js). Artwork in a square sits dimmed behind its caption, as on the panel page. */
 .sode-ed__body {
   align-items: start;

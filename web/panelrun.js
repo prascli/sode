@@ -40,9 +40,14 @@ function takeKey() {
   return `panel-${Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// Returns { stop } at once; stop ends every timer, for an embedded run that goes away.
+// Returns { stop, show } at once; stop ends every timer, for an embedded run that goes away. show(patch) draws the
+// panel with those fields changed (the editor's unsaved lists), and a patch with rev marks that saved copy as seen.
 export function runPanel(seg, opts = {}) {
-  const run = { stop: () => {} };
+  // Before the panel is read, a show waits in early.
+  const run = {
+    stop: () => {},
+    show: (patch) => (run.early = { ...run.early, ...patch }),
+  };
   start(seg, opts, run);
   return run;
 }
@@ -322,7 +327,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     );
   }
   // A newer saved copy. The watcher counts down and waits out staged routes first.
-  stopWatch = watchPanel({
+  const watch = watchPanel({
     ui,
     id,
     panel,
@@ -341,6 +346,14 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       body.apply(p);
     },
   });
+  stopWatch = watch;
+  run.show = (patch) => {
+    if (ended) return;
+    panel = { ...panel, ...patch };
+    body.apply(panel);
+    if (patch.rev !== undefined) watch.seen(panel);
+  };
+  if (run.early) run.show(run.early);
   // Results and errors fade on their own clocks, so the body is redrawn every second.
   timers.push(
     setInterval(poll, POLL_MS),
