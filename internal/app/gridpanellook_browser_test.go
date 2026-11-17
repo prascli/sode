@@ -297,6 +297,16 @@ func TestChromeGridPanelLook(t *testing.T) {
 			dst.length === 2 && dst.every((x) => getComputedStyle(x).rotate === '-90deg') && dst[0].textContent === '2' && dst[0].getBoundingClientRect().top > dst[1].getBoundingClientRect().top &&
 			src[0].getBoundingClientRect().left < src[1].getBoundingClientRect().left;
 	})()`)
+	b.waitFor("the large preview keeps each character in a square of its own in both bars, with a gap between neighbours and no shift", `(() => {
+		const t = (k) => [...document.querySelectorAll('.sode-ov__big .sode-ov__tile--' + k)].map((x) => x.getBoundingClientRect());
+		const src = t('source'), dst = t('destination');
+		const apart = (r, a, b) => r.slice(1).every((x, i) => x[a] - r[i][b] > 1);
+		const sq = (r) => r.every((x) => Math.abs(x.width - x.height) < 1.5);
+		const cell = document.querySelector('.sode-ov__big .sode-ov__thumb--grid .sode-ov__k-on').getBoundingClientRect();
+		const tiles = [...document.querySelectorAll('.sode-ov__big .sode-ov__tile')];
+		return src.length === 3 && dst.length === 3 && apart(src, 'left', 'right') && apart(dst.slice().reverse(), 'top', 'bottom') && sq(src) && sq(dst) &&
+			Math.abs(src[0].width - cell.width) < 1.5 && tiles.every((x) => getComputedStyle(x).translate === 'none');
+	})()`)
 	b.shot("panels-list")
 	b.check()
 }
