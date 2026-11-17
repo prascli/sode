@@ -52,14 +52,29 @@ func TestChromeMainStackedRow(t *testing.T) {
 	if got := b.eval(`(() => {
 		const st = (n) => { const c = getComputedStyle(n); return [c.fontSize, c.paddingTop, c.paddingLeft, c.borderTopWidth, n.getBoundingClientRect().height].join(' '); };
 		const r = ` + row + `;
+		// A destination chip under the Destination box, as + makes one.
+		const box = document.getElementById('dst-chips');
+		const added = document.createElement('span');
+		added.className = 'pb-chip pb-chip--static';
+		const x = document.createElement('button');
+		x.className = 'pb-chip__remove';
+		x.textContent = '×';
+		added.append('1 DSM1', x);
+		box.hidden = false;
+		box.append(added);
 		const chips = {
+			added,
 			row: r.querySelector('.sode__hist-route > .sode__end--dst'),
 			before: r.querySelector('.sode__hist-route > .sode__end--before'),
 			step: r.querySelector('.sode__hist-before .sode__step .sode__end'),
 			receiving: document.querySelector('#dst-under .sode__end--pick'),
 		};
+		// The added chip has patchbay's 2px edge, so it matches on text size and height only.
 		const want = st(chips.row);
-		const off = Object.entries(chips).filter(([, n]) => st(n) !== want).map(([k, n]) => k + ': ' + st(n));
+		const look = (k, n) => (k === 'added' ? [want.split(' ')[0], want.split(' ')[4]].join(' ') === [st(n).split(' ')[0], st(n).split(' ')[4]].join(' ') : st(n) === want);
+		const off = Object.entries(chips).filter(([k, n]) => !look(k, n)).map(([k, n]) => k + ': ' + st(n));
+		added.remove();
+		box.hidden = true;
 		return off.length === 0 || 'want ' + want + '; ' + off.join('; ');
 	})()`); got != true {
 		t.Fatalf("source and destination chips differ in size: %v", got)

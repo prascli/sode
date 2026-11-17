@@ -62,8 +62,9 @@ function passes(e) {
 export const STACK_GAP_MS = 30000;
 
 // A change that can join a stacked row: one route on its own, from any browser, panel or the
-// router itself. A failed take stays apart for its Retry; a follow belongs to its take.
-const stacks = (e) => (!e.group || e.groupN < 2) && e.ok && e.follow == null && !e.followGroup;
+// router itself. A failed take stays apart for its Retry; a follow belongs to its take. An undo
+// (also a Restore) stays apart, or it would join the row that it undid.
+const stacks = (e) => (!e.group || e.groupN < 2) && e.ok && e.follow == null && !e.followGroup && e.undo == null;
 
 // { e } for a take on its own, { f } for a folder (one multi-take confirm), placed where its
 // newest take is. Rapid changes to one destination merge into one { e }: the newest, with the

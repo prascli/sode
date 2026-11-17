@@ -153,7 +153,8 @@ test('rapid changes to one destination stack, from any instance', async () => {
     e({ id: 19, src: 1, time: T(160), prev: on(2), by: 'Panel A' }),
     e({ id: 18, src: 2, time: T(140), prev: on(1), ext: true }),
     e({ id: 17, src: 1, time: T(120), prev: on(2), by: 'Ana' }),
-    e({ id: 16, src: 2, time: T(100), prev: on(7), undo: 3 }),
+    e({ id: 16, src: 2, time: T(100), prev: on(7), retry: 3 }),
+    e({ id: 21, src: 7, time: T(95), prev: on(1), undo: 3 }), // an undo stays apart
     e({ id: 15, src: 7, time: T(90), prev: on(1), levels: [1] }), // other levels: a new row
     e({ id: 14, src: 1, time: T(80), prev: on(2), group: 'g', groupN: 2 }), // a Group never stacks
     e({ id: 13, src: 1, time: T(80), prev: on(2), dst: 4, group: 'g', groupN: 2 }),
@@ -173,19 +174,19 @@ test('rapid changes to one destination stack, from any instance', async () => {
     histRows(h)
       .map((r) => (r.f ? `f${r.f.entries.map((x) => x.id)}` : `${r.e.id}${r.e.chain ? '<' + r.e.chain.map((c) => c.id).join(',') : ''}`))
       .join(' ');
-  assert.equal(show(hist), '20 19<19,18,17,16 15 f14,13 12 11 10');
+  assert.equal(show(hist), '20 19<19,18,17,16 21 15 f14,13 12 11 10');
   const stack = histRows(hist)[1].e;
   assert.deepEqual([stack.merged, stack.prev], [4, on(7)]);
   assert.deepEqual(stackBefore(stack), { src: 7, text: tallyText(7) });
-  assert.deepEqual(stackBefore({ ...stack, prev: hist[10].prev }).src, null);
-  assert.equal(stackBefore({ ...stack, prev: hist[10].prev }).text, '2 sources');
+  assert.deepEqual(stackBefore({ ...stack, prev: hist[11].prev }).src, null);
+  assert.equal(stackBefore({ ...stack, prev: hist[11].prev }).text, '2 sources');
 
   // Hide Sode's takes: an External still stands, and the hidden takes around it break the row.
   setFilter({ ...FILTER_DEFAULT, sode: false });
   assert.equal(show([...hist]), '18');
   // Hide Externals: the takes on each side of one do not join over it.
   setFilter({ ...FILTER_DEFAULT, ext: false });
-  assert.equal(show([...hist]), '20 19 17<17,16 15 f14,13 12 11 10');
+  assert.equal(show([...hist]), '20 19 17<17,16 21 15 f14,13 12 11 10');
   setFilter(FILTER_DEFAULT);
 });
 
