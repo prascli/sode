@@ -424,6 +424,11 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__cursor[data-bar] .sode-gridpanel__ring {
   display: none;
 }
+/* No cursor on touch: a finger has no hover, and the sticky-placed node jumped under momentum scroll. */
+:root[data-layout="phone"] .sode-gridpanel__cursor,
+.sode-gridpanel__field[data-touch] .sode-gridpanel__cursor {
+  display: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .sode-gridpanel__ring,
   .sode-gridpanel__xp[data-s="staged"] {
@@ -656,7 +661,7 @@ html:has(.sode-gridpanel) {
   outline-offset: calc(var(--pb-border-w) * -3);
 }
 /* The names of the crosspoint under the cursor, while no press preview outlines targets (gridpanelview.js). */
-.sode-gridpanel__field:not([data-marked]) :is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-cue] {
+:root:not([data-layout="phone"]) .sode-gridpanel__field:not([data-marked], [data-touch]) :is(.sode-gridpanel__src, .sode-gridpanel__dst)[data-cue] {
   outline: calc(var(--pb-border-w) * 3) solid var(--pb-text-strong);
   outline-offset: calc(var(--pb-border-w) * -3);
 }

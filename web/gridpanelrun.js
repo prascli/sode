@@ -94,6 +94,7 @@ export function gridBody(ctx, first) {
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
   let ptr = null; // { x, y } in client px while the pointer leads, else null
+  let keyed = false; // a key moved the cursor last, so it may draw its box on a bar
   let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
   let gest = null;
   // "N staged" in the header: staged routes can be scrolled out of view.
@@ -584,7 +585,7 @@ export function gridBody(ctx, first) {
   function setCursor(c) {
     cur = c;
     // The box on a bar is for the keys only; while the pointer leads, the ring and the name outlines are enough.
-    g.cursor(c, !ptr);
+    g.cursor(c, keyed);
     onAt(pointOf(c, axes));
   }
 
@@ -596,6 +597,7 @@ export function gridBody(ctx, first) {
 
   function onPoint(x, y) {
     ptr = { x, y };
+    keyed = false;
     pointAt(x, y);
   }
 
@@ -709,6 +711,7 @@ export function gridBody(ctx, first) {
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
     e.preventDefault();
     e.stopPropagation();
+    keyed = true;
     if (MOVES.has(act)) {
       if (g) moveTo(act);
     } else if (act === 'pick' || act === 'add' || act.startsWith('range:')) pickAt(act);
