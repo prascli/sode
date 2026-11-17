@@ -9,9 +9,8 @@ import {
   actionsFor,
   deleteStep,
   thumbCells,
-  gridThumbCells,
+  gridThumb,
   gridSize,
-  GRID_THUMB,
   actsLabel,
   actsShort,
   launchNote,
@@ -46,10 +45,15 @@ function thumb(p, small) {
   const box = el('div', `sode-ov__thumb${small ? ' sode-ov__thumb--sm' : ''}`);
   box.setAttribute('aria-hidden', 'true');
   const grid = isGridPanel(p);
-  const { rows, cols } = grid ? GRID_THUMB : p;
+  const g = grid ? gridThumb(p) : null;
+  const { rows, cols } = g || p;
   box.style.gridTemplate = `repeat(${rows}, 1fr) / repeat(${cols}, 1fr)`;
   box.style.aspectRatio = `${cols} / ${rows}`;
-  if (grid) box.classList.add('sode-ov__thumb--grid');
+  if (grid) {
+    box.classList.add('sode-ov__thumb--grid');
+    box.dataset.rows = rows - 1;
+    box.dataset.cols = cols - 1;
+  }
   for (let r = 1; r <= rows; r++) {
     for (let c = 1; c <= cols; c++) {
       if (grid && r === 1 && c === 1) continue;
@@ -58,7 +62,7 @@ function thumb(p, small) {
       box.append(i);
     }
   }
-  for (const c of grid ? gridThumbCells() : thumbCells(p)) {
+  for (const c of g ? g.cells : thumbCells(p)) {
     const i = el('i', `sode-ov__k-${c.kind}`);
     i.style.gridArea = `${c.r} / ${c.c} / span ${c.rs} / span ${c.cs}`;
     box.append(i);

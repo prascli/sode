@@ -1,0 +1,1 @@
+- On the panels list, a Grid panel's picture now shows its size. The squares across and down grow with the number of sources and destinations, so a big Grid panel looks big. An "all" edge shows as full size.
