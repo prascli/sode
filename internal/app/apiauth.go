@@ -160,8 +160,13 @@ func (a *App) panelHeaders(r *http.Request, cl *apiCtx, k apiKey) {
 		return
 	}
 	id := strings.TrimSpace(r.Header.Get("X-Sode-Panel"))
-	if _, ok := a.panels.get(id); !ok || id == "" {
+	p, ok := a.panels.get(id)
+	if !ok || id == "" {
 		return
+	}
+	// Keep in step with deviceOf: a page that is never asked for a name goes by its address.
+	if instance == "" && !asksName(p) {
+		instance = cleanDevice(cl.IP)
 	}
 	cl.Actor.panel, cl.Actor.instance, cl.Actor.panelSaid = id, instance, true
 }
