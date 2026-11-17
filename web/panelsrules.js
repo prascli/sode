@@ -105,9 +105,9 @@ export const GRID_ALL_ITEMS = 256;
 export const GRID_MEDIUM_FROM = 13;
 export const GRID_LARGE_FROM = 65;
 // Squares per edge in each picture size.
-export const GRID_SQUARES = { small: 3, medium: 5, large: 8 };
+export const GRID_SQUARES = { small: 3, medium: 5, large: 8 }; // keep in step with --sode-ov-cols in panels.css (squares + 1)
 export const gridEdgeCount = (edge) => (Array.isArray(edge?.members) ? edge.members.length : GRID_ALL_ITEMS);
-export const gridEdgeLabel = (edge) => (Array.isArray(edge?.members) ? String(edge.members.length) : 'all');
+export const gridEdgeLabel = (edge) => (Array.isArray(edge?.members) ? String(edge.members.length) : 'ALL');
 export function pictureSize(n) {
   if (n >= GRID_LARGE_FROM) return 'large';
   return n >= GRID_MEDIUM_FROM ? 'medium' : 'small';

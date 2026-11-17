@@ -1801,13 +1801,24 @@ body {
 .sode-ed__pick {
   padding-inline-start: var(--pb-space-3);
 }
-/* A count has one tile per character. The Destination bar reads from the bottom up, as the Grid page's Sources label does. */
+/* A count has one tile per character. The Destination bar reads from the bottom up, as the Grid page's Sources label does.
+   The text scales with the square (cqi of the picture over its columns, GRID_SQUARES + 1), so every size looks alike. */
+.sode-ov__thumb--grid {
+  container-type: inline-size;
+  --sode-ov-cols: 9;
+}
+.sode-ov__thumb--grid[data-size="small"] {
+  --sode-ov-cols: 4;
+}
+.sode-ov__thumb--grid[data-size="medium"] {
+  --sode-ov-cols: 6;
+}
 .sode-ov__thumb--grid .sode-ov__tile {
   align-items: center;
   color: var(--pb-text-strong);
   display: flex;
   font-family: var(--pb-font-num);
-  font-size: var(--pb-text-sm);
+  font-size: calc(60cqi / var(--sode-ov-cols));
   font-style: normal;
   justify-content: center;
   line-height: 1;
@@ -1822,9 +1833,6 @@ body {
 }
 .sode-ov__thumb--grid .sode-ov__tile--destination.sode-ov__tile--half {
   translate: 0 50%;
-}
-.sode-ov__thumb--sm.sode-ov__thumb--grid .sode-ov__tile {
-  font-size: var(--pb-text-xs);
 }
 /* The large preview has wide gaps, so a half-square move would merge neighbouring tiles. Each character stays in its own square. */
 .sode-ov__thumb--grid:not(.sode-ov__thumb--sm) .sode-ov__tile--half {
