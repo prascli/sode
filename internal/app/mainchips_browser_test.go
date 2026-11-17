@@ -79,5 +79,16 @@ func TestChromeMainChips(t *testing.T) {
 	b.eval(`document.querySelector('#history .sode__end--dst.sode__end--pick').click(); true`)
 	b.waitFor("a plain click fills the box", `document.getElementById('dst').value.includes('DSM1')`)
 
+	// A folder's "N destinations" chip adds every destination, with a plain click.
+	pick("src", simSrcName)
+	b.eval(`(() => { const t = document.getElementById('lvl'); t.focus(); t.value = '1'; t.dispatchEvent(new Event('input', {bubbles: true})); t.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', bubbles: true, cancelable: true})); return true; })()`)
+	b.waitFor("confirm unlocks again", `!document.getElementById('confirm').hidden && !document.getElementById('confirm-ok').disabled`)
+	b.eval(`document.getElementById('confirm-ok').click(); true`)
+	b.waitFor("History has the folder", `!!document.querySelector('#history button.sode__end--dst.sode__end--pick strong, #history .sode__hist-route button.sode__end--dst')`)
+	b.eval(`document.querySelectorAll('#dst-chips .pb-chip__remove').forEach((x) => x.click()); true`)
+	b.waitFor("chips empty", chips+` === ''`)
+	b.eval(`[...document.querySelectorAll('#history .sode__hist-route button.sode__end--dst')].find((n) => /destinations/.test(n.textContent)).click(); true`)
+	b.waitFor("the folder chip adds all three", chips+`.includes('DSM1') && `+chips+`.includes('DSM2') && `+chips+`.includes('DSM3')`)
+
 	b.check()
 }

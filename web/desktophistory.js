@@ -78,9 +78,23 @@ export function desktopHistory({ select, addEnd, focusBox, openConfirm, focusSea
     return row;
   }
 
-  const routeBoxes = (src, dst) => [routeBox('src', src), el('span', 'sode__arrow', '→'), routeBox('dst', dst)];
-  function routeBox(k, it) {
+  const routeBoxes = (src, dst, all) => [routeBox('src', src), el('span', 'sode__arrow', '→'), routeBox('dst', dst, all)];
+  // all: the folder's destinations; a chip that names several adds them all, with any click.
+  function routeBox(k, it, all) {
     const cls = `sode__end sode__end--${k}`;
+    if (it instanceof Node && all?.length) {
+      const b = el('button', `${cls} sode__end--pick`, it);
+      b.type = 'button';
+      b.tabIndex = -1;
+      b.title = 'Add all as destinations';
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      pickOrAdd(
+        b,
+        () => all.forEach(addEnd),
+        () => all.forEach(addEnd),
+      );
+      return b;
+    }
     if (it instanceof Node) return el('span', cls, it);
     const b = el('button', `${cls} sode__end--pick`, labelNode(it));
     b.type = 'button';
@@ -99,6 +113,11 @@ export function desktopHistory({ select, addEnd, focusBox, openConfirm, focusSea
     useEnd('src', srcItem(n));
   }
   const useRowDst = (it) => useEnd('dst', it);
+
+  function manyDsts(f) {
+    const seen = new Map(f.entries.map((e) => [e.dst, e.dstName]));
+    return seen.size > 1 ? [...seen].map(([n, name]) => dstItem(n, name)) : null;
+  }
 
   function groupRow(f) {
     const open = openGroups.has(f.group);
@@ -126,7 +145,7 @@ export function desktopHistory({ select, addEnd, focusBox, openConfirm, focusSea
       el(
         'span',
         'sode__hist-route sode__hist-route--boxes',
-        ...routeBoxes(one('src', srcItem) || title[0].firstChild, one('dst', dstItem) || title[2].firstChild),
+        ...routeBoxes(one('src', srcItem) || title[0].firstChild, one('dst', dstItem) || title[2].firstChild, manyDsts(f)),
         ...title.slice(3),
         byLabel(f),
       ),
