@@ -304,9 +304,9 @@ export async function runEditor() {
   const leave = (e) => {
     if (!g.sel) return;
     const path = e.composedPath();
-    // The paste past the edge dialog answers for the selection, so focus in it does not leave the grid.
-    // A press on another open Page moves the selection there itself.
-    if ([$('ed-open-pages'), menu.root].some((n) => path.includes(n)) || path.some((n) => n.id === 'ed-edge')) return;
+    // The paste past the edge dialog and the Icon library dialog (an upload goes on the selection) answer for it, so
+    // focus in them does not leave the grid. A press on another open Page moves the selection there itself.
+    if ([$('ed-open-pages'), menu.root].some((n) => path.includes(n)) || path.some((n) => n.id === 'ed-edge' || n.id === 'ed-lib-dialog')) return;
     if (path.includes($('ed-side'))) {
       if (menuAway) return;
       menuAway = true;

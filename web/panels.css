@@ -1166,16 +1166,21 @@ body {
 .sode-rlist__row:hover {
   background: var(--pb-surface-hover);
 }
-.sode-rlist__row .pb-icon {
-  color: var(--pb-text-muted);
+/* Selected rows are what + adds, marked as in the panel's list. */
+.sode-rlist__row[aria-selected="true"] {
+  background: color-mix(in oklab, var(--pb-accent) 35%, var(--pb-surface-raised));
 }
 /* The highlight is what Enter adds, so it shows only while Find or the list has focus. */
-.sode-edge__add:focus-within .sode-rlist__row[aria-selected="true"] {
-  background: var(--pb-surface-hover);
+.sode-edge__add:focus-within .sode-rlist__row.is-cur {
   box-shadow: inset var(--pb-accent-bar-w) 0 0 var(--pb-accent);
 }
-.sode-edge__add:focus-within .sode-rlist__row[aria-selected="true"] .pb-icon {
-  color: var(--pb-accent);
+.sode-edge__add:focus-within .sode-rlist__row.is-cur:not([aria-selected="true"]) {
+  background: var(--pb-surface-hover);
+}
+/* Follow the router is on: nothing is added (editorgridlist.js FOLLOWING). */
+.sode-edge__add[data-off] .sode-rlist {
+  opacity: 0.4;
+  pointer-events: none;
 }
 .sode-rlist__row .sode-pages__name {
   flex: 1;
@@ -1227,12 +1232,12 @@ body {
   cursor: default;
   opacity: 0.4;
 }
-/* The drag image (orderedlist.js): drawn off screen, since the browser copies it at dragstart. */
+/* The drag image (orderedlist.js): under the pointer for one moment, since the browser copies it at dragstart. */
 .sode-drag-chip {
   gap: var(--pb-space-2);
-  left: -100rem;
+  pointer-events: none;
   position: fixed;
-  top: 0;
+  z-index: var(--pb-z-tooltip);
 }
 /* Selected rows of a panel's list (editorgridlist.js), marked as in the router list. */
 .sode-edge__row {
@@ -1668,32 +1673,9 @@ body {
 .sode-side__icons::-webkit-scrollbar-thumb {
   background: var(--pb-edge-hard);
 }
-/* Panel picker and Name in the toolbar: equal width, and a rule left of Name. */
+/* Panel picker in the toolbar, with the Rename pencil (editorname.js) beside it. The Name field stays hidden. */
 .sode-ed__pick {
   padding-inline-start: var(--pb-space-3);
-}
-#ed-name {
-  padding-inline-start: var(--pb-space-3);
-  width: 14rem;
-}
-.sode-ed__grp--pick > .sode-ed__field + .sode-ed__field,
-.sode-ed__grp--pick > .sode-ed__name {
-  border-inline-start: var(--pb-border-w) solid var(--pb-edge);
-  padding-inline-start: var(--pb-space-5);
-}
-
-.sode-ed__name {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pb-space-3);
-  min-width: 14rem;
-  justify-content: space-between;
-}
-.sode-ed__name[hidden] {
-  display: none;
-}
-.sode-ed__name-text {
-  font-size: var(--pb-text-md);
 }
 /* A Grid panel's picture (panelsrules.js gridThumbCells): the role colours of the grid's bars, a field and routes. */
 .sode-ov__thumb--grid .sode-ov__k-source {

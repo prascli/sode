@@ -1,6 +1,7 @@
-// A Grid panel's Sources or Destinations list in the editor: the panel's items in list order. Each row has a grip,
-// Pin, Move and Remove. Add from the router is under it (editorrouterlist.js). The bar's buttons act on every selected row; the
-// Cell tab sets their artwork through art(). Rules are editorgridrules.js; each edit is one ed.setFields of the edge.
+// A Grid panel's Sources or Destinations list in the editor: the panel's items in drawn order, pinned first. Each row
+// has a grip, Pin, Move and Remove. Add from the router is under it (editorrouterlist.js). The bar's buttons act on every
+// selected row; the Cell tab sets their artwork through art(). While Follow the router is on (the Panel tab's
+// switch), only Pin and artwork change it. Rules are editorgridrules.js; each edit is one ed.setFields of the edge.
 import { el, icon } from './core.js';
 import { axisSpan, OVER } from './gridpanelwindow.js';
 import { btn } from './formbits.js';
@@ -10,22 +11,7 @@ import { isGridPanel } from './gridpaneledges.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { artNode } from './panelview.js';
 import { plural } from './gridclip.js';
-import {
-  edgeRows,
-  moveRow,
-  clearEdge,
-  followRouter,
-  stopFollowing,
-  selectRows,
-  moveRows,
-  stepRows,
-  pinItems,
-  removeItems,
-  itemsArt,
-  drawnOrder,
-  edgeListKey,
-  PINS_MAX,
-} from './editorgridrules.js';
+import { edgeRows, clearEdge, selectRows, moveRows, stepRows, pinItems, removeItems, itemsArt, drawnOrder, edgeListKey, PINS_MAX } from './editorgridrules.js';
 
 const FIRST = 30; // rows drawn before the list has a height
 const NONE = () => ({ selected: new Set(), anchor: null });
@@ -41,13 +27,17 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
 
   const count = el('span', 'sode-edge__count');
   count.id = `ed-${key}-state`;
-  const follow = el('input', 'pb-switch__input');
-  follow.type = 'checkbox';
-  follow.id = `ed-${key}-all`;
-  follow.setAttribute('role', 'switch');
-  follow.addEventListener('change', () => set(follow.checked ? followRouter(edge()) : stopFollowing(edge(), router())));
-  const followBox = el('label', 'pb-check sode-edge__follow', follow, el('span', 'pb-check__label', 'Follow the router (all)'));
-  followBox.dataset.pbTip = `On: every ${what} the router has, in router order, and the ones it adds later. Off: the list keeps what it shows now.`;
+  // The pinned count is also the switch that shows only the pinned rows.
+  let pinOnly = false;
+  const pinsBtn = btn('pb-btn--ghost pb-btn--sm sode-edge__pins', '', () => {
+    pinOnly = !pinOnly;
+    list.scrollTop = 0;
+    paint(true);
+  });
+  pinsBtn.id = `ed-${key}-pins`;
+  const FOLLOWING = `Follow the router is on for ${what}s, so the router sets the order. Pin and artwork still apply. Switch it off in the Panel tab.`;
+  const following = el('p', 'sode__hint');
+  following.id = `ed-${key}-following`;
   const clear = btn('pb-btn--outline pb-btn--sm', 'Clear', () => set(clearEdge(edge(), myRights(), rights)));
   clear.id = `ed-${key}-clear`;
   clear.dataset.pbTip = `Takes every ${what} off the panel.`;
@@ -62,7 +52,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     'div',
     'pb-empty sode-edge__empty',
     el('p', 'pb-empty__title', `No ${what}s yet`),
-    el('p', 'pb-empty__msg', 'Add them from the router, or switch on Follow the router.'),
+    el('p', 'pb-empty__msg', 'Add them from the router, or switch on Follow the router in the Panel tab.'),
   );
   empty.id = `ed-${key}-empty`;
   const routerList = createRouterList({
@@ -74,6 +64,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     rights: myRights,
     off: () => ed.routerNames()?.numberOffset || 0,
     readOnly: () => ed.readOnly(),
+    fixed: () => fixed && FOLLOWING,
     set,
   });
 
@@ -92,8 +83,10 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     b.id = `ed-${key}-sel-${id}`;
     b.setAttribute('aria-label', tip.replace(/ \(.*\)$/, ''));
     b.dataset.pbTip = tip;
+    tipOf.set(b, tip);
     return b;
   };
+  const tipOf = new WeakMap();
   const pinSel = (on) => set(pinItems(edge(), router(), myRights(), rights, many(), on));
   const removeSel = () => {
     set(removeItems(edge(), many()));
@@ -123,8 +116,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   acts.id = `ed-${key}-acts`;
   acts.setAttribute('role', 'toolbar');
   acts.setAttribute('aria-label', `Selected ${what}s`);
-  const head = el('div', 'sode-edge__head', el('h2', 'sode-edge__h', Whats, count), el('span', 'sode-panels__spacer'), followBox, clear);
-  const on = el('section', 'sode-edge__part sode-edge__on', acts, outside, list, empty);
+  const head = el('div', 'sode-edge__head', el('h2', 'sode-edge__h', Whats, count), pinsBtn, el('span', 'sode-panels__spacer'), clear);
+  const on = el('section', 'sode-edge__part sode-edge__on', acts, following, outside, list, empty);
   on.setAttribute('aria-label', `${Whats} on the panel`);
   const node = el('section', 'sode-edge', head, on, routerList.node);
   node.id = `ed-${key}-col`;
@@ -139,7 +132,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     move: (from, to) => {
       const n = shown[from].n;
       if (inMany(n)) return moveSel(to < from ? 'up' : 'down');
-      set(moveRow(edge(), router(), myRights(), rights, from, to));
+      set(stepRows(edge(), router(), myRights(), rights, new Set([n]), to < from ? 'up' : 'down'));
     },
     // Dragging a selected row drags the selection; any other row goes alone.
     drop: (from, over, after) => {
@@ -172,7 +165,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     onPick?.(api);
   }
   function moveSel(dir) {
-    if (!many().size) return;
+    if (!many().size || fixed) return;
     set(stepRows(edge(), router(), myRights(), rights, many(), dir));
     reveal(cur ?? [...many()][0]);
   }
@@ -182,7 +175,12 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     const ro = ed.readOnly();
     const n = many().size;
     selNote.textContent = `${n} selected`;
-    for (const b of [selPin, selUnpin, selRemove, ...moves]) b.disabled = ro || !n;
+    for (const b of [selPin, selUnpin]) b.disabled = ro || !n;
+    // A disabled button can show no tip in some browsers, so the note above the list says it too.
+    for (const b of [selRemove, ...moves]) {
+      b.disabled = ro || !n || fixed;
+      b.dataset.pbTip = fixed ? FOLLOWING : tipOf.get(b);
+    }
     for (const li of made.values()) markRow(li);
   }
   function markRow(li) {
@@ -207,14 +205,18 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
       return list.replaceChildren();
     }
     routerList.paint();
-    const now = [edge(), router(), myRights(), ro, ed.routerNames(), ed.panel()?.id, ed.art()];
+    const now = [edge(), router(), myRights(), ro, ed.routerNames(), ed.panel()?.id, ed.art(), pinOnly];
     if (!force && now.every((x, i) => x === drawn[i])) return;
     // Another panel starts with nothing selected.
     if (now[5] !== drawn[5]) sel = NONE();
     drawn = now;
     const off = ed.routerNames()?.numberOffset || 0;
     const v = edgeRows(edge(), router(), myRights(), rights);
-    shown = v.rows;
+    const all = drawnOrder(v.rows);
+    const pinned = all.filter((r) => r.pinned).length;
+    if (!pinned) pinOnly = false;
+    shown = pinOnly ? all.slice(0, pinned) : all;
+    fixed = v.all;
     at = new Map(shown.map((r, i) => [r.n, i]));
     // Rows that left the list leave the selection.
     if ([...sel.selected].some((x) => !at.has(x))) {
@@ -223,15 +225,20 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     }
     if (!at.has(cur)) cur = sel.anchor;
     const n = v.rows.length;
-    count.textContent = v.pins ? `${n} · ${v.pins} pinned` : String(n);
+    count.textContent = String(n);
     count.dataset.pbTip = `${plural(n, what)}, ${v.pins} of ${PINS_MAX} pinned`;
+    pinsBtn.hidden = !pinned;
+    pinsBtn.textContent = `${pinned} pinned`;
+    pinsBtn.setAttribute('aria-pressed', String(pinOnly));
+    pinsBtn.dataset.pbTip = pinOnly ? `Shows every ${what} again` : `Shows only the pinned ${what}s`;
     outside.textContent = v.outside ? `${plural(v.outside, what)} outside your Rights, kept.` : '';
     outside.hidden = !v.outside;
+    following.textContent = FOLLOWING;
+    following.hidden = !fixed || !n;
     acts.hidden = list.hidden = !n;
     empty.hidden = !!n;
-    clear.disabled = ro || (!v.all && !n);
-    follow.checked = v.all;
-    follow.disabled = ro;
+    clear.disabled = ro || fixed || !n;
+    clear.dataset.pbTip = fixed ? FOLLOWING : `Takes every ${what} off the panel.`;
     shownOff = off;
     shownRo = ro;
     shownFull = v.pins >= PINS_MAX;
@@ -244,6 +251,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   // elements and 10 listeners. Rows are one height, so margins stand in for the rows not drawn.
   let shownOff = 0;
   let shownRo = false;
+  let fixed = false; // Follow the router is on
   let shownFull = false;
   let made = new Map(); // row index -> its li, for the rows of the last paint
   let pitch = 0; // px from the top of one row to the next
@@ -258,11 +266,15 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
       el('span', 'sode-pages__name', r.name || `${what} ${r.n + off}`),
     ];
     if (r.gone) body.push(el('span', 'sode__hint', 'not on router'));
+    // A Move across the line between pinned and unpinned rows does nothing (moveRows), so it is off.
     const li = rows.row({
       i,
       n: shown.length,
       id: String(r.n),
       readOnly: shownRo,
+      fixed: fixed && FOLLOWING,
+      upOff: !r.pinned && !!shown[i - 1]?.pinned,
+      downOff: r.pinned && shown[i + 1] && !shown[i + 1].pinned,
       body: [el('div', 'sode-pages__head', ...body)],
       actions: [
         {
@@ -333,7 +345,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     e.preventDefault();
     if (k.all) return setSel({ selected: new Set(shown.map((r) => r.n)), anchor: sel.anchor ?? shown[0].n }, true);
     if (k.none) return setSel(NONE(), true);
-    if (k.move) return ed.readOnly() || moveSel(k.move);
+    if (k.move) return ed.readOnly() || fixed || moveSel(k.move);
     const i = at.get(cur) ?? -1;
     if (k.toggle) {
       if (i < 0) return;

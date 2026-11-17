@@ -48,18 +48,6 @@ const withoutHide = (edge) => {
   return out;
 };
 
-// from and to are places in edgeRows' rows. The row takes the place of the row at to, among every member, so
-// entries outside the Rights stay where they are. A move is a reorder, so an "all" edge becomes a list.
-export function moveRow(edge, router, rights, kind, from, to) {
-  const shown = edgeRows(edge, router, rights, kind).rows;
-  if (from === to || !shown[from] || !shown[to]) return edge;
-  const list = [...membersOf(edge, router)];
-  const at = list.indexOf(shown[to].n);
-  list.splice(list.indexOf(shown[from].n), 1);
-  list.splice(at, 0, shown[from].n);
-  return { ...withoutHide(edge), members: list };
-}
-
 export function clearEdge(edge, rights, kind) {
   const keep = isAll(edge) ? [] : edge.members.filter((n) => !allowed(rights, kind, n));
   let e = { ...withoutHide(edge), members: keep, items: { ...(edge?.items || {}) } };
@@ -151,24 +139,35 @@ export function edgeListKey(e) {
 // Edits of several selected entries at once. ns is a Set of router numbers. Each edit copies the edge one time, since
 // a selection can hold thousands.
 
+// Rows in drawn order, since the list shows them so and a move or pin goes by what shows.
 const selectedShown = (edge, router, rights, kind, ns) => {
-  const shown = edgeRows(edge, router, rights, kind).rows.map((r) => r.n);
-  return { shown, block: shown.filter((n) => ns.has(n)) };
+  const rows = drawnOrder(edgeRows(edge, router, rights, kind).rows);
+  return { shown: rows.map((r) => r.n), block: rows.filter((r) => ns.has(r.n)).map((r) => r.n) };
 };
 
-// Moves the selected rows, in list order, to before the row before (a router number), or to the end when before is
-// null. A selected row is not a place, so the block lands before the next row that is not selected. Entries outside
-// the Rights stay in the list. A move is a reorder, so an "all" edge becomes a list.
+// A list edge's members with the pinned ones first, in the order the list and the panel draw them. An item pinned
+// moves up with them, and stays at the top of the rest when unpinned.
+const pinsFirst = (edge, list) => [...list.filter((n) => pinnedIn(edge, n)), ...list.filter((n) => !pinnedIn(edge, n))];
+
+// Moves the selected rows, in drawn order, to before the row before (a router number), or to the end when before is
+// null. A selected row is not a place, so the block lands before the next row that is not selected. Pinned rows stay
+// above the rest: a block of only pinned or only unpinned rows stops at that line. Entries outside the Rights stay in
+// the list. A move is a reorder, so an "all" edge becomes a list.
 export function moveRows(edge, router, rights, kind, ns, before) {
   const { shown, block } = selectedShown(edge, router, rights, kind, ns);
   if (!block.length) return edge;
   let at = before === null ? -1 : shown.indexOf(before);
   while (at >= 0 && ns.has(shown[at])) at = at + 1 < shown.length ? at + 1 : -1;
-  const was = membersOf(edge, router);
+  const firstFree = shown.findIndex((n) => !pinnedIn(edge, n) && !ns.has(n));
+  const pins = block.filter((n) => pinnedIn(edge, n)).length;
+  if (pins === 0 && at >= 0 && pinnedIn(edge, shown[at])) at = firstFree;
+  if (pins === block.length && (at < 0 || !pinnedIn(edge, shown[at]))) at = firstFree;
+  const was = pinsFirst(edge, membersOf(edge, router));
   const moved = new Set(block);
   const rest = was.filter((n) => !moved.has(n));
   const i = at < 0 ? rest.length : rest.indexOf(shown[at]);
   const next = [...rest.slice(0, i), ...block, ...rest.slice(i)];
+  // What shows is the drawn order, so a move that keeps it is no edit.
   if (next.every((n, k) => n === was[k])) return edge;
   return { ...withoutHide(edge), members: next };
 }
@@ -197,7 +196,8 @@ function patchItem(items, n, patch) {
   else delete items[n];
 }
 
-// Pins the selected rows in list order until PINS_MAX, or unpins them all.
+// Pins the selected rows in drawn order until PINS_MAX, or unpins them all. On a list edge the pinned members go
+// first; an "all" edge stays "all", since its order is the router's.
 export function pinItems(edge, router, rights, kind, ns, on) {
   const e = edge || { members: 'all' };
   let room = PINS_MAX - pinCount(e);
@@ -209,7 +209,9 @@ export function pinItems(edge, router, rights, kind, ns, on) {
     patchItem(items, n, { pinned: on });
     changed = true;
   }
-  return changed ? { ...e, items } : edge;
+  if (!changed) return edge;
+  const out = { ...e, items };
+  return isAll(out) ? out : { ...out, members: pinsFirst(out, out.members) };
 }
 
 // Each selected entry goes out of a list, or is hidden on "all". Its pin goes, since the server counts every pin toward
