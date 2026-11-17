@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/sethdotfm/sode/internal/config"
 )
@@ -213,7 +214,24 @@ func (a *App) apiPanelRead(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	// The page mirrors these before arming a take; the server still enforces them.
 	out["rights"] = cl.Rights.Clone()
 	out["artDefaults"] = a.panelArtDefaults(cl, p)
-	apiJSONTagged(w, r, out)
+	apiJSONTaggedBy(w, r, out, readTagOf(out))
+}
+
+// readTagOf is the panel read without the instance fields that move with the clock: seen moves on each
+// keepalive and the uptime window ends now. Online and the uptime changes still move the tag.
+func readTagOf(out map[string]any) map[string]any {
+	rows, ok := out["instances"].([]instOut)
+	if !ok {
+		return out
+	}
+	still := make([]instOut, len(rows))
+	for i, o := range rows {
+		o.Seen, o.Uptime.From, o.Uptime.To = time.Time{}, 0, 0
+		still[i] = o
+	}
+	tag := maps.Clone(out)
+	tag["instances"] = still
+	return tag
 }
 
 // panelIDOf turns a short name into its panel's id. Anything else comes back as given, so an unknown
