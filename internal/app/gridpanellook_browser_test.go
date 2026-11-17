@@ -166,7 +166,7 @@ func TestChromeGridPanelLook(t *testing.T) {
 	b.waitFor("its picture and words", `(() => {
 		const big = document.querySelector('.sode-ov__big');
 		return big?.querySelector('.pb-hint')?.textContent === 'Grid, all sources by all destinations' && !!big.querySelector('.sode-ov__thumb--grid .sode-ov__k-on') &&
-			big.querySelector('.sode-ov__thumb--grid').dataset.cols === '16' && big.querySelector('.sode-ov__thumb--grid').dataset.rows === '16' &&
+			big.querySelector('.sode-ov__thumb--grid').dataset.size === 'large' && big.querySelector('.sode-ov__thumb--grid .sode-ov__count')?.textContent === 'all \u00d7 all' &&
 			!!document.querySelector('.sode-ov__item[data-id="`+id+`"] .sode-ov__thumb--grid');
 	})()`)
 	b.check()

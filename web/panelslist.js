@@ -51,8 +51,7 @@ function thumb(p, small) {
   box.style.aspectRatio = `${cols} / ${rows}`;
   if (grid) {
     box.classList.add('sode-ov__thumb--grid');
-    box.dataset.rows = rows - 1;
-    box.dataset.cols = cols - 1;
+    box.dataset.size = g.size;
   }
   for (let r = 1; r <= rows; r++) {
     for (let c = 1; c <= cols; c++) {
@@ -67,6 +66,8 @@ function thumb(p, small) {
     i.style.gridArea = `${c.r} / ${c.c} / span ${c.rs} / span ${c.cs}`;
     box.append(i);
   }
+  // The count sits on the picture as text, columns by rows for a Buttons panel and sources by destinations for a Grid panel.
+  box.append(el('span', 'sode-ov__count', g ? g.label : `${p.cols} \u00d7 ${p.rows}`));
   return box;
 }
 

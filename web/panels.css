@@ -587,8 +587,54 @@ body {
   padding: var(--pb-space-1);
   width: 6rem;
 }
+.sode-ov__thumb {
+  position: relative;
+}
 .sode-ov__thumb i {
   background: var(--pb-surface-control);
+}
+/* The count sits over the picture on its own plate so it stays legible on any squares. */
+.sode-ov__count {
+  background: var(--pb-surface-base);
+  border: 1px solid var(--pb-border);
+  color: var(--pb-text-strong);
+  font-family: var(--pb-font-num);
+  font-size: var(--pb-text-sm);
+  left: 50%;
+  line-height: 1;
+  padding: var(--pb-space-1) var(--pb-space-2);
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+.sode-ov__thumb--sm .sode-ov__count {
+  font-size: var(--pb-text-xs);
+  padding: 0 var(--pb-space-1);
+}
+/* A Grid panel's picture has three fixed sizes. In the list a margin pads each picture to 6rem, so the names line up. */
+.sode-ov__thumb--grid {
+  max-width: 100%;
+}
+.sode-ov__thumb--grid[data-size="small"] {
+  width: 12rem;
+}
+.sode-ov__thumb--grid[data-size="medium"] {
+  width: 16rem;
+}
+.sode-ov__thumb--grid[data-size="large"] {
+  width: 20rem;
+}
+.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="small"] {
+  margin-inline-end: 2rem;
+  width: 4rem;
+}
+.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="medium"] {
+  margin-inline-end: 1rem;
+  width: 5rem;
+}
+.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="large"] {
+  width: 6rem;
 }
 .sode-ov__thumb .sode-ov__k-source {
   background: var(--pb-current-idle);
@@ -1593,6 +1639,13 @@ body {
 .sode-panels__logo {
   margin-right: var(--pb-space-4);
   vertical-align: middle;
+}
+.sode-panels__home {
+  margin-inline-end: var(--pb-space-3);
+  vertical-align: middle;
+}
+.sode-panels__home .sode-panels__logo {
+  margin: 0;
 }
 
 /* Sidebar additions */
