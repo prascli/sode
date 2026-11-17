@@ -1,5 +1,5 @@
-// A Grid panel's header parts, laid out as on the main page: the Lock chip, the title and the icon buttons (Settings,
-// Full screen, the Panels link) on the left, and the Server and Router status (connview.js) top right. Beside the
+// A Grid panel's header parts, laid out as on the main page. The Lock chip, the title and the icon buttons (Settings,
+// Full screen, the Panels link) are on the left. The Server and Router status (connview.js) is top right. Beside the
 // status is the status slot: the result line and the "This panel was changed" banner. On the panel page they share
 // one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run (gridpanelrun.js)
 // makes them on the panel page only, and its stop puts the page back.
