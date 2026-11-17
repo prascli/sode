@@ -289,7 +289,7 @@ export function gridBody(ctx, first) {
   function findBox(kind, act) {
     if (act === 'nextMatch') findStep(kind, 1);
     else if (act === 'prevMatch') findStep(kind, -1);
-    else if (act === 'mode') findMode(kind);
+    else if (act === 'mode') findMode();
     else if (act === 'swap') boxes.input(kind === 'srcs' ? 'dsts' : 'srcs').focus();
     else if (act === 'clear') {
       find = clearFind(find, kind);

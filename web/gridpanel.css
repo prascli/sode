@@ -460,12 +460,12 @@ html:has(.sode-gridpanel) {
 }
 /* The search boxes, in the corner where the bars meet (gridpanelfindbox.js). A role bar ties each to its bar. */
 .sode-gridpanel__head {
+  align-content: center;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--pb-space-1);
+  grid-template-columns: minmax(0, 1fr) auto;
   height: var(--sode-name-h);
-  justify-content: center;
   left: 0;
   padding: var(--pb-space-1);
   position: absolute;
@@ -476,6 +476,13 @@ html:has(.sode-gridpanel) {
   align-items: center;
   display: flex;
   gap: var(--pb-space-1);
+  grid-column: 1 / -1;
+}
+/* The Destinations word gives way to the mode button where the corner is narrow. */
+.sode-gridpanel__head > .sode-gridpanel__label--dst {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .sode-gridpanel__find-field {
   flex: 1;
@@ -518,13 +525,23 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__find[data-counted] .sode-gridpanel__find-input {
   padding-inline-end: calc(var(--pb-space-10) * 2 + var(--pb-space-5));
 }
-/* One width for Find and Filter, so the box does not move when the mode changes. */
+/* The one mode button, beside the Destinations word. One width for Find and Filter. */
 .sode-gridpanel__find-mode {
-  flex: none;
   font-size: var(--pb-text-xs);
+  grid-column: 2;
+  grid-row: 3;
+  height: auto;
   justify-content: center;
+  min-height: 0;
   min-width: calc(var(--pb-space-10) + var(--pb-space-4));
-  padding-inline: var(--pb-space-1);
+  padding: calc(var(--pb-space-1) / 2) var(--pb-space-1);
+}
+/* A phone has no keys to show. */
+:root[data-layout="phone"] .sode-gridpanel__find-key {
+  display: none;
+}
+:root[data-layout="phone"] .sode-gridpanel__find-input {
+  padding-inline-end: var(--pb-space-3);
 }
 /* The cursor shows where focus is; the scroller takes focus only so an embedded run gets its keys back. */
 .sode-gridpanel__scroll:focus {
@@ -625,11 +642,11 @@ html:has(.sode-gridpanel) {
   height: 2.08rem;
   min-width: 2.08rem;
 }
-/* With an odd count the first pick is two by two picks, so it gets one more column. */
-.sode-gridpanel__levels .sode__levels--odd {
+/* With an odd count the first pick is two by two picks, so it gets one more column. The phone has no room. */
+:root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels--odd {
   grid-template-columns: repeat(calc(var(--sode-bar-cols) + 1), auto);
 }
-.sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
+:root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
   grid-column: span 2;
   min-width: calc(2 * 2.08rem + var(--pb-space-1));
 }
@@ -661,7 +678,7 @@ html:has(.sode-gridpanel) {
   .sode-gridpanel__levels .pb-btn.sode__all {
     height: calc(2 * (var(--pb-space-8) + var(--pb-space-1)) + var(--pb-space-1));
   }
-  .sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
+  :root:not([data-layout="phone"]) .sode-gridpanel__levels .sode__levels--odd > .sode__pick:first-child {
     min-width: calc(2 * (var(--pb-space-8) + var(--pb-space-1)) + var(--pb-space-1));
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__levels {
@@ -811,8 +828,8 @@ html:has(.sode-gridpanel) {
   overflow: hidden;
   white-space: nowrap;
 }
-/* The Take button counts the staged routes, so the line under the title leaves the count out while it shows. */
-.sode-panels:has(#panel-take:not([hidden])) .sode-gridpanel__meta > #panel-staged {
+/* The note beside Take counts the staged routes, so the line under the title leaves the count out. */
+.sode-panels:has(#panel-clear) .sode-gridpanel__meta > #panel-staged {
   display: none;
 }
 .sode-gridpanel__meta > span {
