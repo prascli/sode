@@ -1,7 +1,7 @@
 // Picks and the Diagonal on a Grid panel (gridpanelpick.js). Axes are in display order, which is not router order.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPicks, pickName, dropPicks, pickCount, diagonal, extendPick } from '../gridpanelpick.js';
+import { createPicks, pickName, dropPicks, pickCount, diagonal, extendPick, enterGrid, dragPick } from '../gridpanelpick.js';
 
 const axes = { srcs: [30, 10, 20, 40, 50], dsts: [7, 3, 5, 9, 1, 2] };
 const click = (p, kind, n, mods = {}, shown = axes[kind]) => pickName(p, kind, n, mods, shown);
@@ -161,4 +161,43 @@ test('a Shift move after a pick runs the range from that pick', () => {
   p = extendPick(p, 'dsts', 9, 1, axes.dsts);
   assert.deepEqual(p.dsts, [3, 5, 9, 1]);
   assert.deepEqual(p.srcs, [], 'the other bar keeps its picks');
+});
+
+test('a move into the grid from a picked range on a bar goes to the first picked name', () => {
+  // Destination bar: rows 1..3 picked from the bottom up, cursor on row 1 (the range's end).
+  let p = extendPick(createPicks(), 'dsts', 9, 5, axes.dsts);
+  p = extendPick(p, 'dsts', 5, 3, axes.dsts);
+  assert.deepEqual(enterGrid({ i: 1, j: -1 }, { i: 1, j: 0 }, p, axes), { i: 1, j: 0 });
+  // Shift+j from row 1 to row 3: the cursor is on row 3 and goes back to row 1.
+  p = extendPick(createPicks(), 'dsts', 3, 9, axes.dsts);
+  assert.deepEqual(enterGrid({ i: 3, j: -1 }, { i: 3, j: 0 }, p, axes), { i: 1, j: 0 });
+  // Source bar: columns 2..4 picked, cursor on column 4.
+  p = extendPick(createPicks(), 'srcs', 20, 50, axes.srcs);
+  assert.deepEqual(enterGrid({ i: -1, j: 4 }, { i: 0, j: 4 }, p, axes), { i: 0, j: 2 });
+});
+
+test('other moves keep the cursor where the move put it', () => {
+  const p = extendPick(createPicks(), 'dsts', 3, 9, axes.dsts);
+  // Along the bar, not into the grid.
+  assert.deepEqual(enterGrid({ i: 3, j: -1 }, { i: 4, j: -1 }, p, axes), { i: 4, j: -1 });
+  // From a name that is not picked.
+  assert.deepEqual(enterGrid({ i: 5, j: -1 }, { i: 5, j: 0 }, p, axes), { i: 5, j: 0 });
+  // One name picked.
+  const one = click(createPicks(), 'dsts', 9);
+  assert.deepEqual(enterGrid({ i: 3, j: -1 }, { i: 3, j: 0 }, one, axes), { i: 3, j: 0 });
+  // Inside the grid.
+  assert.deepEqual(enterGrid({ i: 3, j: 0 }, { i: 3, j: 1 }, p, axes), { i: 3, j: 1 });
+});
+
+test('a drag along a bar picks the span from the press, and a drag back unpicks what it passed', () => {
+  const base = click(createPicks(), 'srcs', 40);
+  // srcs shown [30, 10, 20, 40, 50]: a drag from 10 to 40, then back to 20.
+  let p = dragPick(base, 'srcs', 10, 40, false, axes.srcs);
+  assert.deepEqual(p.srcs, [10, 20, 40]);
+  assert.equal(p.anchor.srcs, 10);
+  p = dragPick(base, 'srcs', 10, 20, false, axes.srcs);
+  assert.deepEqual(p.srcs, [10, 20]);
+  // Cmd or Ctrl keeps the picks from before the press.
+  p = dragPick(base, 'srcs', 30, 10, true, axes.srcs);
+  assert.deepEqual(p.srcs, [40, 30, 10]);
 });

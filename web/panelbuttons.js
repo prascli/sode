@@ -25,7 +25,6 @@ import {
   GUARD_HOLD_MS,
 } from './panelmodel.js';
 import { buildGrid, paintGrid } from './panelview.js';
-import { createFit } from './panelfit.js';
 import { withDefault, defaultsBy } from './panellook.js';
 import { pagesOf } from './panelpages.js';
 import { NAV_KINDS, landingPage, pageIndex, wrapOf } from './panelnav.js';
@@ -77,7 +76,6 @@ export function buttonsBody(ctx, first) {
   const render = () => {
     const now = Date.now();
     paintGrid(grid, { st, env, names, now, panelName: panel.name, instance: ctx.instance(), pages: pagesOf(panel), wrap: wrapOf(panel), undo: undoNext });
-    fit.update(grid.nodes);
     const err = errorOf(st, now);
     const undone = err ? null : undoneOf(st, now);
     say(ui.status, err ? errorText(err, names) : undoneText(undone, names));
@@ -85,7 +83,6 @@ export function buttonsBody(ctx, first) {
   };
   const build = () => buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
   let grid = build();
-  const fit = createFit(ui.grid);
 
   // A poll and a finished take can both ask; only the newest ask's answer counts, since an older one can come back last.
   let undoAsk = 0;
@@ -226,7 +223,6 @@ export function buttonsBody(ctx, first) {
     stop() {
       stopped = true;
       clearTimeout(holdTimer);
-      fit.stop();
     },
   };
 }

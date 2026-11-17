@@ -56,3 +56,20 @@ export function extendPick(p, kind, from, to, shown) {
   const q = shown.includes(p.anchor[kind]) ? p : { ...p, anchor: { ...p.anchor, [kind]: from } };
   return pickName(q, kind, to, { range: true }, shown);
 }
+
+// A mouse drag along a bar from name from to name to. base is the picks at the press, so a drag that comes back
+// unpicks what it passed. add (Cmd or Ctrl) keeps base's picks on that bar; else the span replaces them.
+export function dragPick(base, kind, from, to, add, shown) {
+  return pickName({ ...base, anchor: { ...base.anchor, [kind]: from } }, kind, to, { range: true, toggle: add }, shown);
+}
+
+// A move from a bar (was) into the grid (next). With two or more names picked on that bar and the cursor on one of
+// them, it goes to the first shown pick. Then a press numbers the range from its start, not its end.
+export function enterGrid(was, next, p, axes) {
+  const kind = was.j < 0 && was.i >= 0 && next.j >= 0 ? 'dsts' : was.i < 0 && was.j >= 0 && next.i >= 0 ? 'srcs' : null;
+  if (!kind || p[kind].length < 2) return next;
+  const k = kind === 'dsts' ? 'i' : 'j';
+  if (!p[kind].includes(axes[kind][was[k]])) return next;
+  const first = axes[kind].findIndex((n) => p[kind].includes(n));
+  return { ...next, [k]: first };
+}

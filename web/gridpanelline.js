@@ -99,8 +99,8 @@ export function lineShown(p, a, b, axes) {
 }
 
 // A release: pairs through stageable (protected rows skipped), then stageRoutes. Returns stageRoutes' { st, send,
-// confirm } plus skipped (the protected pairs) and over (past the cap, so nothing is staged). A line of more than one
-// route always confirms. A line left with one route stages it, and never unstages it as a press would.
+// confirm } plus skipped (the protected pairs) and over (past the cap, so nothing is staged). As a press: Take mode
+// only stages, and Instant mode confirms more than one route. A line left with one route never unstages it.
 export function lineStage(st, pairs, env, levels) {
   if (!pairs.length) return { st, send: null, confirm: false, skipped: [], over: false };
   const { pairs: kept, err } = stageable(pairs, env);
@@ -113,5 +113,5 @@ export function lineStage(st, pairs, env, levels) {
   }
   const r = stageRoutes(base, kept, levels);
   if (r.st.error) return { ...r, st: { ...st, error: r.st.error }, skipped, over: r.st.error.code === 'cap' };
-  return { ...r, confirm: kept.length > 1, skipped, over: false };
+  return { ...r, skipped, over: false };
 }

@@ -2,7 +2,6 @@
 // with canEdit set by the server, which is the only place that decides who can change one.
 import { cellsIn } from './panelrules.js';
 import { wordScore } from './findrules.js';
-import { slotFor } from './uptime.js';
 
 const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 
@@ -220,21 +219,6 @@ export function shownInstances(p) {
   const seen = new Set((p.instances || []).map((i) => i.device.toLowerCase()));
   const gone = (p.watchingInstances || []).filter((d) => !seen.has(d)).map((d) => ({ device: d, online: false, seen: '' }));
   return [...(p.instances || []), ...gone].filter((i) => !hidden.has(i.device.toLowerCase()));
-}
-
-// One instance's uptime as slots() reads it, drawn against the server's clock (to). Off is the time Sode was stopped:
-// for an instance that is no record, where /log's router graph counts it as down.
-export function instanceUptime(u) {
-  const rec = (s) => (s === 'off' ? '' : s);
-  return {
-    start: rec(u.start),
-    trans: u.trans.map((t) => ({ t: t.t, s: rec(t.s) })),
-    counts: [],
-    from: u.from,
-    to: u.to,
-    slot: slotFor(u.from, u.to),
-    now: u.to,
-  };
 }
 
 // The hidden instances still worth naming: those Sode knows or the user watches.
