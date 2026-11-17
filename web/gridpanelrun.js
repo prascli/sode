@@ -227,7 +227,7 @@ export function gridBody(ctx, first) {
     boxes?.paint(find, countsOf());
     status();
   };
-  // A panel with no items on an axis has no crosspoints, so the grid says so (pb-empty) over its scroller.
+  // A panel with no items on an axis has no crosspoints, so the grid says so (pb-empty) under the corner.
   let empty = null;
   function paintEmpty() {
     const t = g && emptyText({ srcs: full.srcs.length, dsts: full.dsts.length, canEdit: panel.canEdit && !ctx.embedded });
@@ -247,7 +247,8 @@ export function gridBody(ctx, first) {
     }
     say(empty.title, t.title);
     say(empty.msg, t.msg);
-    empty.edit.hidden = !t.edit;
+    // In the editor's Test it live (ui.back) the editor is already open, so the note has no link.
+    empty.edit.hidden = !t.edit || !!ui.back;
     empty.node.hidden = false;
   }
   // Results and errors fade on the clock, so the status line and the header boxes are what the tick paints each time.
