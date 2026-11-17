@@ -120,7 +120,8 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
 - Public panel: route `POST /panels/{id}/public` (also by short name, no body, no key). It answers `200` with `public` `false`, or `201` with `public` `true`, `key`, `expires` and `panel` (the panel id). The key starts `sode_pub.` and lives in memory only, never in `keys.json`; the page holds it in memory and stores nothing.
 - Monitoring: `panelwatch.yaml` beside the config. It is a map of lowercased user name to watch keys, never part of a panel file. A key is a panel id for the whole panel, or `<panel id>/<device name lowercased>` for one instance. So a file from before instance watches loads unchanged.
   - Panel read fields `online`, `watching`, `watchingInstances`, `hiddenInstances`, `instancesOnline`, `instancesKnown` and `instances` are output only. `instances` has `device`, `seen`, `online` and `uptime`. `uptime` has `from`, `to`, `start` and `trans` of `t` and `s`.
-  - Route `POST` and `DELETE /panels/{id}/instances/hide` (query `instance`, memory only).
+  - Route `POST` and `DELETE /panels/{id}/instances/hide` (query `instance`). The hide is for every user.
+  - `panelinstances.json` beside the config has `alive` (Unix ms), `hidden` (watch keys) and `instances`. `instances` is a map of panel id to rows. A row has `device`, `seen` (Unix ms) and `trans`. `trans` has `t` and `s` as in `uptime`.
   - Route `POST /panels/{id}/instances` (body `device`). A blank `device` is a 400 while `askInstanceName` is on. Otherwise a blank one names the instance by the caller's address.
   - Route `GET /panels/{id}/instances/stream` (query `device`, the same). It answers `online` and `graceSeconds` lines.
   - Route `POST` and `DELETE /panels/{id}/watch` (optional query `instance`).

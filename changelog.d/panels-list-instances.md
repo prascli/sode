@@ -1,0 +1,1 @@
+- Panels page: each instance's uptime strip and the hidden instances stay after a restart. A Hide now applies to all users and stays until you click Show them. Open now shows the panel's All Online, Some Online or All Offline status.

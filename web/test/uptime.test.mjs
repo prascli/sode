@@ -76,6 +76,20 @@ test('summary: rounds down, counts drops, and always has text', () => {
   assert.equal(summary(base({ start: '' })), 'No record for this time');
 });
 
+test('a change to no record is no drop', () => {
+  assert.equal(
+    drops(
+      base({
+        trans: [
+          { t: 1, s: '' },
+          { t: 2, s: 'up' },
+        ],
+      }),
+    ),
+    0,
+  );
+});
+
 test('drops counts up-to-not-up changes only', () => {
   const d = base({
     trans: [

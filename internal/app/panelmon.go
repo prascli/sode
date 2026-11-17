@@ -24,8 +24,8 @@ import (
 // Panel monitoring (docs/panels-design.md). An open panel page is an instance named by its device.
 // It sends a keepalive and holds a stream open. A panel is online while any instance has a stream
 // and was heard within monMiss. It is also online if it was heard within monGrace after its last
-// stream closed. Instances live in memory only: after a restart nothing is known, so nothing is
-// alerted. Watches are a user's list of panel ids in panelwatch.yaml beside the config. They are
+// stream closed. Instances, their uptime and hides are kept in instFile (panelmonfile.go). After a
+// restart they come back offline and raise no alert. Watches are a user's list of panel ids in panelwatch.yaml beside the config. They are
 // never part of a panel file, so a save of the panel cannot drop another user's watch.
 
 const (
@@ -59,6 +59,7 @@ type monInst struct {
 	conns    map[int]monConn
 	next     int
 	trans    []UptimeTrans // up and down changes for the uptime strip, see mark
+	restored bool          // read from instFile at start and not heard since; lost is also set
 
 	// Set by the last stream to open and kept after it closes, for the Assign to list. page is not
 	// streamed: a keepalive clears streamed, and a timed-out page must still be told from an API client.
@@ -82,7 +83,8 @@ func (in *monInst) limit() time.Duration {
 	return monMiss
 }
 
-func (in *monInst) live(now time.Time) bool { return now.Sub(in.seen) <= in.limit() }
+// A restored instance was last heard before Sode started, so it is offline until it is heard again.
+func (in *monInst) live(now time.Time) bool { return !in.restored && now.Sub(in.seen) <= in.limit() }
 
 // monConn is one held stream: cancel ends it, and out carries its last line, an Assign or a rename.
 type monConn struct {
@@ -155,17 +157,20 @@ type panelMon struct {
 	inst  map[string]map[string]*monInst
 	watch map[string]map[string]bool // lowercased user -> watch keys, see watchKey
 	clear map[string]map[string]bool // lowercased user -> watch keys whose current outage was cleared
-	hide  map[string]map[string]bool // lowercased user -> watch keys of instances hidden on the panels page
+	hide  map[string]bool            // watch keys of instances hidden on the panels page, for every viewer
 
 	keyless map[string]*keylessInst // panelkeyless.go, by keylessKey
 	addrs   map[string]addrName     // the last name a stream from each address carried
+
+	monFileState // panelmonfile.go
 }
 
 func loadPanelMon(cfgPath string) *panelMon {
-	m := &panelMon{now: time.Now, inst: map[string]map[string]*monInst{}, watch: map[string]map[string]bool{}, clear: map[string]map[string]bool{}, hide: map[string]map[string]bool{}}
+	m := &panelMon{now: time.Now, inst: map[string]map[string]*monInst{}, watch: map[string]map[string]bool{}, clear: map[string]map[string]bool{}, hide: map[string]bool{}}
 	if cfgPath == "" {
 		return m
 	}
+	m.loadFile(filepath.Join(filepath.Dir(cfgPath), instFile))
 	m.path = filepath.Join(filepath.Dir(cfgPath), watchFile)
 	b, err := os.ReadFile(m.path)
 	if err != nil {
@@ -261,6 +266,15 @@ func (m *panelMon) setWatchInst(user, id, inst string, on bool) error {
 	return m.saveLocked()
 }
 
+func (m *panelMon) watchedByAnyLocked(k string) bool {
+	for _, set := range m.watch {
+		if set[k] {
+			return true
+		}
+	}
+	return false
+}
+
 // watchersOf maps, by lowercased name, who is told about a device of panel id. The value is true for
 // a whole-panel watch and false for one that names only this device.
 func (m *panelMon) watchersOf(id, device string) map[string]bool {
@@ -290,6 +304,7 @@ func (m *panelMon) forget(id string, watches bool) {
 	delete(m.inst, id)
 	m.unclearLocked(id, "")
 	m.unhideLocked(id, "")
+	m.dirty = true
 	if !watches {
 		return
 	}
@@ -490,13 +505,13 @@ func (m *panelMon) touchLocked(id, device string) (*monInst, *monEvent, error) {
 		in = &monInst{}
 		set[k] = in
 	}
-	was, lost := in.seen, in.lost
-	in.device, in.seen, in.lost = device, now, false
-	in.mark(upUp, now)
-	if !known || lost {
-		m.unhideLocked(id, device)
+	was, lost, restored := in.seen, in.lost, in.restored
+	in.device, in.seen, in.lost, in.restored = device, now, false, false
+	if in.mark(upUp, now) || !known {
+		m.dirty = true
 	}
-	if !lost {
+	// A device heard before the restart is no return: its outage was Sode's.
+	if !lost || restored {
 		return in, nil, nil
 	}
 	return in, &monEvent{panel: id, device: device, state: "back", secs: int(now.Sub(was).Seconds())}, nil
@@ -514,9 +529,20 @@ func (m *panelMon) sweep(now time.Time) []monEvent {
 			switch {
 			case in.lost && age > monForget:
 				delete(set, k)
+				m.dirty = true
+				// A watched one keeps its hide, or it would come back as a not-seen row.
+				if !m.watchedByAnyLocked(watchKey(id, k)) {
+					delete(m.hide, watchKey(id, k))
+				}
+			case in.restored:
+				// Still not heard monMiss after the start: offline from then, with no notice.
+				if at := m.startedLocked(now).Add(monMiss); now.After(at) && in.mark(upDown, at) {
+					m.dirty = true
+				}
 			case !in.lost && age > in.limit():
 				in.lost = true
 				in.mark(upDown, in.seen.Add(in.limit()))
+				m.dirty = true
 				out = append(out, monEvent{panel: id, device: in.device, state: "lost", secs: int(age.Seconds()), offline: !m.onlineLocked(id, now)})
 			}
 		}
@@ -712,7 +738,7 @@ func (a *App) monFields(m map[string]any, cl *apiCtx, p Panel, edit bool) {
 	if cl.Actor.Kind == actorUser {
 		user = cl.Actor.Name
 		m["watchingInstances"] = a.mon.watchedInstances(user, p.ID)
-		m["hiddenInstances"] = a.mon.hiddenInstances(user, p.ID)
+		m["hiddenInstances"] = a.mon.hiddenInstances(p.ID)
 	}
 	m["instancesOnline"], m["instancesKnown"] = a.mon.counts(user, p.ID)
 	if edit {

@@ -166,6 +166,7 @@ func (m *panelMon) forgetDevice(id, device string) {
 			c.cancel()
 		}
 		delete(m.inst[id], k)
+		m.dirty = true
 	}
 	m.unhideLocked(id, k)
 }

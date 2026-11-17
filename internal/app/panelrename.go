@@ -35,7 +35,7 @@ func (m *panelMon) deviceNames(id string) []string {
 	return out
 }
 
-// followRename moves every user's watch of the old instance name to the new one.
+// followRename moves every user's watch of the old instance name, and its hide, to the new one.
 func (m *panelMon) followRename(id, old, name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -52,6 +52,11 @@ func (m *panelMon) followRename(id, old, name string) {
 		}
 	}
 	m.unclearLocked(id, old)
+	if m.hide[from] {
+		delete(m.hide, from)
+		m.hide[to] = true
+		m.dirty = true
+	}
 	if changed {
 		if err := m.saveLocked(); err != nil {
 			log.Printf("panels: watches not saved: %v", err)
