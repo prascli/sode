@@ -46,6 +46,11 @@ html:has(.sode-gridpanel) {
   flex: 1 1 auto;
   min-height: 0;
 }
+/* Lines and boxes between the bands have no padding of their own. A kiosk fixes the foot to the bottom instead. */
+:root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel) > :is(.sode__hint, .sode-panel__device, .pb-btn),
+:root:not([data-layout="phone"], [data-sode-kiosk]) .sode-panels:has(.sode-gridpanel) > .sode-panel__foot {
+  margin: var(--pb-space-4) 0.7rem;
+}
 /* The header is a raised band. Only the end and block padding is set here, as the start clears the Lock chip
    (panels.css). */
 :where(:root:not([data-layout="phone"]) .sode-panels:has(.sode-gridpanel)) > .sode-panels__head {
@@ -186,7 +191,7 @@ html:has(.sode-gridpanel) {
   border: var(--pb-border-w) solid var(--pb-surface-base);
   color: var(--pb-text-strong);
   display: flex;
-  font-size: var(--pb-text-xs);
+  font-size: var(--pb-text-sm);
   font-weight: var(--pb-weight-medium);
   justify-content: center;
   letter-spacing: var(--pb-tracking-button);
@@ -195,6 +200,10 @@ html:has(.sode-gridpanel) {
   overflow-wrap: anywhere;
   padding: var(--pb-space-1);
   text-align: center;
+}
+/* The prototype's 13 px: text-xs at the desktop root, text-sm at the phone's. */
+:root:not([data-layout="phone"]) :is(.sode-gridpanel__src, .sode-gridpanel__dst, .sode-gridpanel__find-input) {
+  font-size: var(--pb-text-xs);
 }
 .sode-gridpanel__src,
 .sode-gridpanel__src:hover {
@@ -404,7 +413,7 @@ html:has(.sode-gridpanel) {
   position: relative;
 }
 .sode-gridpanel__find-input {
-  font-size: var(--pb-text-xs);
+  font-size: var(--pb-text-sm);
   height: 1.8rem;
   -webkit-user-select: text;
   user-select: text;
