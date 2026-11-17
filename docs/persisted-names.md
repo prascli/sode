@@ -79,6 +79,11 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
 
 - Directory `panels/` beside the config: `<id>.yaml` per panel (id `p-` and 8 hex digits) and `<id>.art/<art id>` for artwork (`a-` and 8 hex digits). A file with a name and id that differ is skipped.
 - Panel fields (YAML and JSON): `id`, `name`, `owner`, `acts`, `client`, `share`, `rows`, `cols`, `pages`, `settings` and `art`. `acts` is `session`, `api`, `both` or `public`. `share` has `mode` (`me`, `named` or `everyone`) and `users`. `canEdit` is output only. Fields not listed are kept as they are.
+- Grid panels (ADR 0011): the panel fields `type` (`buttons` or `grid`, omitted or empty reads as `buttons`), `sources` and `destinations`. A Grid panel has no `rows`, `cols`, `cells` or `pages`. Each of `sources` and `destinations` is an edge:
+  - `members`: the string `all`, or a list of router numbers in order.
+  - `hide`: router numbers left out of an `all` edge. It is refused on a list.
+  - `items`: a map from a plain decimal router number to `pinned` (at most 8 for an edge), `art` and `artB`, written as on a cell.
+  Checkpoint and Push layouts carry the same three fields. A layout of the other type is refused.
 - Pages (ADR 0007): `pages` is a list of 1 to 16 Pages in order. Each Page has these fields:
   - `id`: 1 to 16 letters, digits, dashes and underscores. Sode makes 8 hex digits, and a Page sent without one gets one.
   - `name`: at most 40 characters, omitted when empty.

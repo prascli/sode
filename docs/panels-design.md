@@ -1,12 +1,14 @@
 # Sode Panels: design
 
-A prototype on branch `prototype/panels` validated this design. The branch has three variants and stays the primary source. The terms are in GLOSSARY.md under Panels. ADR 0006 tells who can create the API client of a panel.
+A prototype on branch `prototype/panels` validated this design. The branch has three variants and stays the primary source. The terms are in GLOSSARY.md under Panels. ADR 0006 tells who can create the API client of a panel. ADR 0011 tells how the panel types work. The Grid panel prototypes are on the same branch (`grid/`, served by `serve-grid.mjs`).
 
 The panel page prototype is `git switch prototype/panels && node prototype/panels/serve.mjs`: variants A, B and C on :8101 to :8103, with stub data and no router.
 
 ## What a panel is
 
-A panel is a saved 4x8 grid of cells on its own URL (`/panels/<id>`, or `/panels/<slug>` when it has a short name). It drives the router through `/api/v1` only. 4x8 is the default size, chosen so that a panel maps one to one onto a hardware key deck later. Rows and columns become user settings, and merged cells stay inside the grid. The panels page `/panels` signs in like the rest of Sode and launches a user's panels. The editor, at `/panels/editor`, edits them live.
+A panel is a Buttons panel or a Grid panel. The person who makes it chooses the type, and the type never changes (ADR 0011). A panel with no stored `type` is a Buttons panel. This file is about Buttons panels, except the Grid panels section. Authentication, the panels page, Monitoring and Push cover both types.
+
+A Buttons panel is a saved 4x8 grid of cells on its own URL (`/panels/<id>`, or `/panels/<slug>` when it has a short name). It drives the router through `/api/v1` only. 4x8 is the default size, chosen so that a panel maps one to one onto a hardware key deck later. Rows and columns become user settings, and merged cells stay inside the grid. The panels page `/panels` signs in like the rest of Sode and launches a user's panels. The editor, at `/panels/editor`, edits them live.
 
 Pages (ADR 0007): a panel holds `pages`, 1 to 16 Pages in order. Each Page has an id that never changes, an optional name of at most 40 characters, an enabled switch and its own `cells`. A Page with no name shows as "Page N". Every Page has the panel's size and shares its one plan.
 
@@ -46,6 +48,85 @@ Storage: one YAML file per panel under `panels/`, with an `id` and a display nam
 - Before it arms, the page refuses these with an error. They are a Protected destination, a route outside the panel's Rights, and a Source and Destination with no common level. Levels are set per panel and per Source or Destination cell, and a take sends the intersection.
 - Fixed destination (`settings.fixedDests`) gives a panel a list of destinations and no viewing step. A Source press stages a route from that source to every fixed destination, except one that already has it. When all of them have it, the press drops the staged routes instead. A Preset press stages only the preset's routes to fixed destinations. If the preset has none, the page refuses the press and names the preset. A refusal on any one fixed destination (Protected, outside the Rights, no common level) refuses the whole press. Each press replaces the plan, so Stage several Destinations has no effect. Take mode, Instant mode and the guards work as without it. Clear drops the staged routes but keeps the list. Destination cells stay stored but are not drawn. The page has no list of them (a strip that showed each one was removed on request). The Current Destination cell and the Source cells' current state read the first one. A panel without the setting behaves as before.
 - The viewed destination and the staged routes have no clock: only a press, a take or Clear ends them. (An earlier build cleared them after 30 idle seconds. A wall tablet that forgot its destination mid-thought was worse than one that kept it.) A saved edit refreshes open panels after a 10 second countdown. A banner shows the countdown, with Snooze 60 s and Apply now. The Live update note below says what each button does with staged routes. The page keeps a viewed destination through the refresh.
+
+## Grid panels
+
+A Grid panel is a patch field: sources across the top, destinations down the side and one crosspoint for each pair. It is for a person at a desk who works on a large router, where a Buttons panel would need a cell for every item. The prototypes are on branch `prototype/panels` (`grid/`, `serve-grid.mjs`). ADR 0011 gives the type rules.
+
+### What it stores
+
+- A Grid panel has `type: grid`, a `sources` list and a `destinations` list. It has no `rows`, `cols`, `cells` or Pages. The server refuses a body with a non-empty `cells` or `pages`, so a client can send a read back unchanged. A change of `type` is 409 `conflict`.
+- An edge (the sources, or the destinations) keeps its members apart from its per-item settings. Members are `all`, which tracks the router in router order, or an ordered list of router numbers. `hide` leaves items out of an `all` edge. A list with `hide` is refused.
+- `items` holds one entry for each router number, keyed by the plain decimal number. An entry has `pinned`, `art` and `artB`. A pin does not stop an `all` edge from following the router. Only a move or an add in the editor turns `all` into a list.
+- An edge pins at most 8 items. The API refuses more than 8, and a number given two times in a list or in `hide`. Items for numbers that are not members stay stored.
+- The Rights are the only limit that the server applies. A Grid panel draws only the items that the router reports and the viewer's Rights allow. A list number that the router does not report, or that the Rights exclude, stays stored and is not drawn.
+- Push, Copy, Checkpoint sets and restores carry the lists, hidden items, pins and item artwork. A Push or a Checkpoint set of the other type is 409 `conflict`. Default artwork shows on a Grid panel's names, and the Icon library use count includes them.
+
+### The page
+
+- Layout: the Source bar is across the top, the Destination bar is down the side and the crosspoints fill the rest. The Levels box is above the grid. In Take mode, a Take button sits beside the Levels box with the number of staged routes. The page fills the window and the grid goes to the edges.
+- Pinned sources and destinations stay at the top and side edges while the rest scrolls, and their crosspoints stay with them. The corner holds what is pinned on both axes, and the two search boxes. The grid scrolls on both axes, and its scrollbars are thick and always show.
+- Names show as text, with the item's artwork beside them: its own `art` and `artB`, else its Default artwork. Hide text does not apply, since a name always shows as text.
+- A crosspoint shows a pie of the destination's levels. A level that has the crosspoint's source is filled. A destination whose current source is not on the panel names that source, plus "+N" for more. A protected destination shows a lock and "Protected", and its crosspoints stage nothing.
+- The cursor is a ring on one crosspoint. It grows and shrinks, and it is still when reduced motion is set. The mouse and the keys share it (see Keys).
+- The page draws only what shows (`web/gridpanelview.js`, window maths in `gridpanelwindow.js`). It was tested at 2500 sources by 750 destinations. The number of nodes stays bounded, and a scroll adds or removes none.
+- Authentication mode, sharing and Assign work as on a Buttons panel. So do the page lock, the Lock bar and the Offline message. A Grid panel has no Pages, Take cell, Preset cell or Fixed destination. Full width has no button on a Grid panel, since the page already fills the window.
+
+### Levels, staging and the take
+
+- The Levels box is the main page's (`web/levelbox.js`). It starts from the panel's `levels` setting, limited to the viewer's Rights, and `f` moves focus to it. A press stages a route on the levels in the box. Levels that the Rights exclude drop out of the route.
+- A press on a crosspoint stages one route, and a second press on that crosspoint unstages it. Staged crosspoints pulse. Only the staged crosspoints run the animation, so a large grid costs no more than a small one.
+- At most 128 routes can be staged. A press that would pass the cap stages nothing and says so.
+- The take is its own Confirm, as `POST /takes` is. In Take mode, Enter or the Take button opens the confirm. It lists the plan and the routes that Sode left out. In Instant mode, a press of one route sends it at once. A press of more than one route (a Diagonal or a Drawn line) opens the confirm, also in Instant mode. The confirm uses the churning letter and the lockout, and the Enter-optional setting applies.
+- Sode checks each staged route again before the take. A route is left out when its destination became protected, or when its source or destination left the Rights or the router. The confirm names each one and says why. A failed route stays staged.
+- Esc drops one thing at a time. The first Esc ends a Drawn line in progress, the next drops the picks and the last drops the staged routes. This also holds in Kiosk mode.
+
+### Picks, Diagonals and Drawn lines
+
+- A click on a name picks it. Shift-click picks a range, and Cmd or Ctrl-click adds or removes one. Picking stages nothing. The header shows the number of staged routes.
+- A crosspoint press with names picked stages a Diagonal. It pairs the picked sources with the picked destinations in order, from that crosspoint, and stops at the last shown destination. The crosspoints that it will stage show numbered before the press.
+- A Diagonal and a Drawn line skip protected destinations. If every target is protected, the press stages nothing and says why.
+- A Drawn line is a drag across the crosspoints (a long-press and drag on touch, or `v` and the cursor keys). It stages one route for each destination row that it crosses. With no names picked, the line snaps to evenly spaced targets, and the preview shows the snapped line. A line of more than one route always opens the confirm.
+- A live update, or a Filter that changes the shown names, ends a Drawn line in progress.
+
+### Find and Filter
+
+- The Source bar and the Destination bar each have a search box in the corner. `s` and `d` go to them. A box matches the router number and the name, with the editor Find's scoring as a yes or no, and keeps the panel's order.
+- Find marks the matches and moves the cursor to the first. Enter and Shift+Enter, or `n` and `N` on the grid, step through the matches. Ctrl+/ or the mode button changes a box to Filter. A Filter shows only the matches and the pinned items. Each box has its own mode. Esc clears the box and puts focus back on the grid.
+- A Filter never hides a pinned item. It does not change the picks, or the other sources that a destination names.
+
+### Keys
+
+- Arrows and `h`, `j`, `k` and `l` move the cursor one crosspoint (`h`, `j`, `k` and `l` by the physical key). PageUp, PageDown and Alt with an arrow move one window. Home goes to the corner and End to the last row. Ctrl or Cmd with Home or End goes to the start or the end of the row. Space stages at the cursor.
+- On a bar, Space picks the name at the cursor and `x` adds or removes one name. Shift with a move along the bar picks a range. A focused header button keeps its own Space and Enter.
+- `g` or a right-click on a crosspoint or a destination goes to its current source, on the lowest level in the Levels box. `G` or a right-click on a source goes to the next destination that has that source on any level. `u` stages the Undo of this panel instance in place of the staged routes. It asks first when routes are staged. The Undo always has its confirm, also in Instant mode.
+- `?` and Ctrl+? open the key list in the main page's style. The page lock and open dialogs take their keys first. An embedded run (Test it live) takes the keys only while focus is in the grid.
+- A pointer move changes only the cursor. After a pointer move, a scroll keeps the cursor under the pointer. After a key, a scroll leaves it where the key put it.
+
+### Live update
+
+- A saved change or a Default artwork change reaches an open Grid panel through the same banner as a Buttons panel (Panel page, below). The page keeps the search, the picks, the cursor and the mode.
+- The countdown alone never drops staged routes. Snooze and Apply now drop them and close an open confirm, as on a Buttons panel. A staged Undo goes with them.
+- The Rights from each panel read reach an open page at once, so staged routes that leave the Rights are left out. A Rights change does not move `rev`.
+
+### Phone and touch
+
+- On the phone layout, a tap on a name picks it, and a long-press on a name picks a range. A double-tap on a name jumps, as `g` does. A tap on a crosspoint stages.
+- Crosspoints are larger (4rem) and names are narrower, so that more names show. The numbered targets show while names are picked. A touch move does not move the cursor, and there is no key list.
+- Two taps on one name inside 350 ms are a double-tap. Both taps still pick or unpick, so a double-tap leaves the picks as they were.
+
+### The editor
+
+- The Panel tab of a new panel has a Buttons or Grid choice. It is greyed after the first save. A Grid panel has Sources and Destinations tabs in place of the grid, the Cell tab and Templates. The Panel tab hides the settings that a Grid panel does not use. They are size, Take button behavior, Fixed destination, Stage several Destinations, result text and Wrap between Pages.
+- Each tab has the panel's list beside the router list. The panel's list shows the list order, not the drawn order, and marks pinned items with "pinned". Each row has Pin, Move up, Move down, Remove and Artwork. Clear empties the list. All (follow router) sets the edge back to `all`.
+- On an `all` edge, a move turns the edge into a list. Remove hides the item and unpins it. Items that the Rights exclude stay stored and show as a count.
+- The router list is in router order, limited to the Rights. Find narrows it, and a range such as `101-140` uses the numbers as shown. Click, Shift-click and Cmd or Ctrl-click select. Enter in Find selects every row shown. Add puts the selection at the end in router order and skips items that the panel has.
+- Both lists draw only the rows in view, so a Pin, Remove or Move on a list of thousands takes milliseconds.
+- Test it live runs the saved panel in place of the tabs. It has no confirm, so Enter does nothing there in Take mode. It has no key list. The Share button works as for a Buttons panel.
+
+### Known gaps
+
+- The panels page (`/panels`) draws no picture of a Grid panel and reads "0 by 0 grid" under its name, since the picture comes from `rows` and `cols`.
 
 ## Authentication
 
