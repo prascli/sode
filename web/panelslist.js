@@ -66,8 +66,14 @@ function thumb(p, small) {
     i.style.gridArea = `${c.r} / ${c.c} / span ${c.rs} / span ${c.cs}`;
     box.append(i);
   }
-  // The count sits on the picture as text, columns by rows for a Buttons panel and sources by destinations for a Grid panel.
-  box.append(el('span', 'sode-ov__count', g ? g.label : `${p.cols} \u00d7 ${p.rows}`));
+  // A Grid panel's counts are tiles in its two bars. A Buttons panel's picture has no bars, so its count is text on the picture.
+  if (g) {
+    for (const t of g.tiles) {
+      const i = el('i', `sode-ov__k-${t.kind} sode-ov__tile sode-ov__tile--${t.kind}`, t.label);
+      i.style.gridArea = `${t.r} / ${t.c} / span ${t.rs} / span ${t.cs}`;
+      box.append(i);
+    }
+  } else box.append(el('span', 'sode-ov__count', `${p.cols} \u00d7 ${p.rows}`));
   return box;
 }
 

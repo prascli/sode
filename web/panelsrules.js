@@ -99,13 +99,15 @@ export function deleteStep(armed, id) {
 export const thumbCells = (p) => cellsIn(p).map(({ r, c, rs, cs, kind }) => ({ r, c, rs, cs, kind }));
 
 // A Grid panel has no cells. Its picture is a Source bar across the top, a Destination bar down the side and a
-// diagonal of routes. It has three fixed sizes. The size follows the larger edge, and the count shows as text
-// inside the picture. The page reads no names, so an "all" edge counts as GRID_ALL_ITEMS, which is Large.
+// diagonal of routes. It has three fixed sizes. The size follows the larger edge. Each count is one tile, centred
+// across a few squares of its bar. The page reads no names, so an "all" edge counts as GRID_ALL_ITEMS, which is Large.
 export const GRID_ALL_ITEMS = 256;
 export const GRID_MEDIUM_FROM = 13;
 export const GRID_LARGE_FROM = 65;
 // Squares per edge in each picture size.
 export const GRID_SQUARES = { small: 3, medium: 5, large: 8 };
+// Squares a count tile spans. Each differs from the squares per edge by an even number, so the tile is centred.
+export const GRID_TILE_SPAN = { small: 3, medium: 3, large: 4 };
 export const gridEdgeCount = (edge) => (Array.isArray(edge?.members) ? edge.members.length : GRID_ALL_ITEMS);
 export const gridEdgeLabel = (edge) => (Array.isArray(edge?.members) ? String(edge.members.length) : 'all');
 export function pictureSize(n) {
@@ -120,7 +122,13 @@ export function gridThumb(p) {
   const cells = [];
   for (let c = 2; c <= cols; c++) cells.push({ r: 1, c, rs: 1, cs: 1, kind: 'source' });
   for (let r = 2; r <= rows; r++) cells.push({ r, c: 1, rs: 1, cs: 1, kind: 'destination' }, { r, c: r, rs: 1, cs: 1, kind: 'on' });
-  return { size, rows, cols, cells, label: `${gridEdgeLabel(p.sources)} \u00d7 ${gridEdgeLabel(p.destinations)}` };
+  const span = GRID_TILE_SPAN[size];
+  const first = 2 + (n - span) / 2;
+  const tiles = [
+    { kind: 'source', r: 1, c: first, rs: 1, cs: span, label: gridEdgeLabel(p.sources) },
+    { kind: 'destination', r: first, c: 1, rs: span, cs: 1, label: gridEdgeLabel(p.destinations) },
+  ];
+  return { size, rows, cols, cells, tiles };
 }
 
 // The words under a Grid panel's picture. An "all" edge counts the router's items, which the list page does not read.
