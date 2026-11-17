@@ -1,6 +1,5 @@
-// The sidebar's Cell tab: caption, levels, font size and artwork of the selected cells. On a Grid panel it sets the
-// artwork of the rows selected in a list. With several selected, each field sets them all. Icon B runs one glyph per
-// cell in Find's fill order, or per row in list order, as the smart menu's Artwork tool does (arttoolrules.js). Fields are built one time and updated in place, so typing a caption keeps the caret.
+// The sidebar's Cell tab: the selected cells' settings, or on a Grid panel the selected rows' artwork. Fields are built
+// one time and updated in place, so typing a caption keeps the caret.
 import { el, S } from './core.js';
 import { field } from './formbits.js';
 import { single, setCells, selCells } from './gridmodel.js';
@@ -15,7 +14,6 @@ import { defaultFor, withDefault } from './panellook.js';
 import { isGridPanel } from './gridpaneledges.js';
 import { artToolPlan, applyArtTool, leftNote } from './arttoolrules.js';
 import { plural } from './gridclip.js';
-import { itemsArt } from './editorgridrules.js';
 
 const CAPTION_MAX = 40;
 const LEVEL_KINDS = ['source', 'destination'];
@@ -104,13 +102,7 @@ export function createCellTab(ed, { picked }) {
     let unit = 'cell';
     if (isGridPanel(ed.fields())) {
       if (!g) return;
-      const out = itemsArt(
-        g.list.edge(),
-        g.rows.map((r) => r.n),
-        choice,
-      );
-      g.list.set(out.edge);
-      left = out.left;
+      left = g.list.art(choice);
       unit = 'row';
     } else {
       const plan = artToolPlan(ed.grid(), choice, ed.fillOrder());
@@ -144,7 +136,7 @@ export function createCellTab(ed, { picked }) {
     form.hidden = !on;
   }
 
-  // A Grid panel: the artwork of the selected rows, in list order.
+  // A Grid panel: the artwork of the selected rows.
   function updateRows() {
     const g = picked();
     for (const n of [...cellOnly, deflt.node]) n.hidden = true;
@@ -157,11 +149,11 @@ export function createCellTab(ed, { picked }) {
     const { what } = g.list;
     const one = g.rows.length === 1 ? g.rows[0] : null;
     kindLine.textContent = one ? `${kindLabel(what)} ${one.n + off}, ${one.name || `${what} ${one.n + off}`}` : `${plural(g.rows.length, what)} selected`;
-    const items = g.rows.map((r) => g.list.edge()?.items?.[r.n] || {});
+    const items = g.rows.map((r) => g.list.item(r.n));
     const key = `rows ${g.rows.map((r) => r.n).join()}`;
     if (key !== at) artNote.textContent = '';
     at = key;
-    art.update(same(items, 'art'), '', null, same(items, 'artB'), false);
+    art.update({ value: same(items, 'art'), artB: same(items, 'artB'), text: false });
   }
 
   function update() {
@@ -208,13 +200,13 @@ export function createCellTab(ed, { picked }) {
     for (const i of [caption, size]) i.disabled = ed.readOnly();
     // The controls edit what the cells set; Hide text shows as drawn, so a default that hides the text reads as hidden.
     const drawn = cs.map((x) => withDefault(x, ed.defaults()));
-    art.update(
-      same(cs, 'art'),
-      several ? '' : first.caption || '',
-      drawn.every((x) => x.hideText === true),
-      same(cs, 'artB'),
-      drawn.some((x) => x.art || x.artB),
-    );
+    art.update({
+      value: same(cs, 'art'),
+      caption: several ? '' : first.caption || '',
+      hideText: drawn.every((x) => x.hideText === true),
+      artB: same(cs, 'artB'),
+      drawn: drawn.some((x) => x.art || x.artB),
+    });
     deflt.node.hidden = several;
     if (!several) deflt.update(c);
   }

@@ -25,18 +25,18 @@ func TestChromeGridPanelEditor(t *testing.T) {
 	b.waitFor("a new panel is a Buttons panel", tabs+` === 'Cell,Panel,Access' && document.getElementById('ed-set-type-buttons').checked && !document.getElementById('ed-set-type-grid').disabled`)
 
 	b.eval(`document.getElementById('ed-set-type-grid').click(); true`)
-	b.waitFor("a Grid panel keeps the Cell, Panel and Access tabs, and starts with no sources and no destinations", tabs+` === 'Cell,Panel,Access' && document.getElementById('ed-sources-state').textContent.startsWith('No sources yet') && document.getElementById('ed-destinations-state').textContent.startsWith('No destinations yet') && !document.querySelector('#ed-sources-list li')`)
+	b.waitFor("a Grid panel keeps the Cell, Panel and Access tabs, and starts with no sources and no destinations", tabs+` === 'Cell,Panel,Access' && !document.getElementById('ed-sources-empty').hidden && !document.getElementById('ed-destinations-empty').hidden && document.getElementById('ed-sources-acts').hidden && !document.querySelector('#ed-sources-list li')`)
 	shown := func(id string) string { return `!!document.getElementById('` + id + `')?.offsetParent` }
 	b.waitFor("the Buttons settings, the cells and Templates are hidden", `!`+shown("ed-rows")+` && !`+shown("ed-set-guard")+` && !`+shown("ed-set-multi")+` && !`+shown("ed-set-wrapPages")+` && !`+shown("ed-grid")+` && !`+shown("ed-pages")+` && !`+shown("ed-templates"))
 	b.waitFor("the Grid keeps Mode, levels and Kiosk mode", shown("ed-set-mode")+` && `+shown("ed-set-kiosk")+` && `+shown("ed-set-wake"))
 
 	b.eval(`document.getElementById('ed-sources-all').click(); document.getElementById('ed-destinations-all').click(); true`)
 	src := `document.querySelector('#ed-sources-list li[data-id="5"]')`
-	b.waitFor("the Sources list follows the router", src+` !== null && document.getElementById('ed-sources-state').textContent.startsWith('200 sources') && document.getElementById('ed-sources-all').disabled`)
+	b.waitFor("the Sources list follows the router", src+` !== null && document.getElementById('ed-sources-state').textContent === '200' && document.getElementById('ed-sources-all').checked && document.getElementById('ed-sources-empty').hidden`)
 	b.eval(src + `.querySelector('[data-act="pin"]').click(); true`)
-	b.waitFor("the source is pinned", src+`.querySelector('[data-act="pin"]').getAttribute('aria-pressed') === 'true' && document.getElementById('ed-sources-state').textContent.includes('1 of 8 pinned')`)
+	b.waitFor("the source is pinned", src+`.querySelector('[data-act="pin"]').getAttribute('aria-pressed') === 'true' && document.getElementById('ed-sources-state').textContent === '200 · 1 pinned'`)
 	b.eval(`document.querySelector('#ed-sources-list li[data-id="0"] [data-act="delete"]').click(); true`)
-	b.waitFor("Remove takes the source out", `!document.querySelector('#ed-sources-list li[data-id="0"]') && document.getElementById('ed-sources-all').disabled`)
+	b.waitFor("Remove takes the source out, and the list still follows the router", `!document.querySelector('#ed-sources-list li[data-id="0"]') && document.getElementById('ed-sources-all').checked`)
 	b.shot("sources")
 
 	b.eval(`document.getElementById('ed-name').value = 'Edited grid'; document.getElementById('ed-name').dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('ed-save').click(); true`)
@@ -69,7 +69,10 @@ func TestChromeGridPanelEditor(t *testing.T) {
 	}
 
 	b.eval(`document.getElementById('ed-live').click(); true`)
-	b.waitFor("Test it live runs the Grid panel", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp')`)
+	b.waitFor("Test it live runs the Grid panel as its own page does: the header band, the Levels box and Take, with the editor's bars hidden", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp') && !!document.querySelector('#ed-live-view .sode-gridpanel__deck #ed-live-back') && !document.getElementById('panel-levels').hidden && !!document.getElementById('panel-take') && !!document.getElementById('confirm') && !document.querySelector('.sode-ed__bar').offsetParent`)
+	b.shot("live")
+	b.eval(`document.getElementById('ed-live-back').click(); true`)
+	b.waitFor("Back to editing puts the editor back", `!!document.querySelector('.sode-ed__bar').offsetParent && !document.getElementById('confirm') && !document.getElementById('panel-levels')`)
 
 	b.open(srv.URL + "/panels/" + id)
 	b.waitFor("the panel opens as a Grid panel", `!!document.querySelector('.sode-gridpanel__xp')`)

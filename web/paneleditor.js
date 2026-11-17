@@ -712,7 +712,7 @@ export async function runEditor() {
         refresh();
         fieldsChanged();
       })
-      .catch(() => {}),
+      .catch(() => say('ed-status', 'The new router names did not load. The editor shows the names it had.')),
   );
   startSession();
   show(null);

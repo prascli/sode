@@ -1,7 +1,7 @@
 // Find in the panel editor's smart menu: one search over every kind a square can be (Sources, Destinations, Presets
 // and the one-entry kinds). It shows a preview of the fill in the grid before anything changes. Ranking, Rights and the fill itself are findrules.js; this file is
 // the DOM. initFind(editor) accepts what runEditor returns.
-import { el, icon, $ } from './core.js';
+import { el, icon, $, on } from './core.js';
 import { myRights, onMyRights } from './editorrights.js';
 import { sessionFetch, jsonCall } from './sessionkey.js';
 import { resultStep } from './keys.js';
@@ -95,6 +95,12 @@ export function initFind(editor) {
     entries = findEntries(data.names, data.presets, rights, { fixed: editor.fixedOn() });
     draw();
   }
+
+  // A rename on the router goes out on the socket, so Find reads the names again then, and not only after STALE_MS.
+  on('names', () => {
+    data.at = 0;
+    if (active()) load(true);
+  });
 
   async function load(force = false) {
     if (data.loading || (!force && Date.now() - data.at < STALE_MS)) return;
