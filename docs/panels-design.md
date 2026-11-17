@@ -128,7 +128,7 @@ A Grid panel is a patch field: sources across the top, destinations down the sid
 - Add from the router, under each list, shows the router's items that the panel does not have, in router order, limited to the Rights. Find narrows it, and a range such as `101-140` uses the numbers as shown. A click adds one item. In Find, Enter adds the highlighted match, which is the first at the start. Up and Down move the highlight. The next match takes the place of the one added. Shift+Enter, or Add all beside Find, adds every match at the end in router order. Hover does not move the highlight.
 - Alt+Up and Alt+Down move the selected rows, and so do Ctrl+Up and Ctrl+Down. macOS gives Ctrl+Up and Ctrl+Down to Mission Control unless that is turned off, so Cmd+Shift or Ctrl+Shift with Up or Down also moves them. A router rename reaches the open editor and its Find at once; a failed read of the new names shows in the status line.
 - Both lists draw only the rows in view, so a Pin, Remove or Move on a list of thousands takes milliseconds.
-- Test it live runs the saved panel in place of the lists and the sidebar. A Grid panel looks as on its own page, and the editor's bars hide. The deck has the Levels box, the search boxes, Take and Back to editing. It has the take confirm and no key list. The Share button works as for a Buttons panel.
+- Test it live runs the saved panel in place of the lists and the sidebar. A Grid panel looks as on its own page, and the editor's bars hide. The deck has the Levels box, the search boxes, Take and Back to editing. It has the take confirm and no key list. Share is in the editor's bar, as for a Buttons panel.
 
 ## Authentication
 
