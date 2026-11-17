@@ -1,7 +1,7 @@
-// A Grid panel's header parts. The title is over a line that says whose panel it is; the Router, Mode and Signed in
-// boxes go with the header buttons. On the panel page the header and the Levels box share one band, the deck, with the search boxes between
-// them (gridpanel.css lays it out). The run (gridpanelrun.js) makes them on the panel page only and its stop puts the
-// page back. The words come from gridpanelhead.js.
+// A Grid panel's header parts. The title has a line that says whose panel it is. The Router, Mode and Signed in
+// boxes go with the header buttons. On the panel page they share one band, the deck, with the Levels box and the search
+// boxes (gridpanel.css lays it out). The run (gridpanelrun.js) makes them on the panel page only, and its stop puts
+// the page back. The words come from gridpanelhead.js.
 import { el, icon, on } from './core.js';
 import { routerStat, modeStat, whoStat, metaOf } from './gridpanelhead.js';
 
@@ -25,12 +25,14 @@ export function gridHead(ui, count) {
   const badge = document.createTextNode('');
   const size = document.createTextNode('');
   const rights = document.createTextNode('');
+  // A part too long for the deck ends in an ellipsis on its own span, and tooltip.js shows it whole on hover.
+  const cut = (text) => el('span', 'sode-gridpanel__cut', text);
   const meta = el(
     'div',
     'sode-gridpanel__meta',
     el('span', 'pb-badge pb-badge--info', icon('share-2'), badge),
-    el('span', null, icon('grid-3x3'), size),
-    el('span', null, rights),
+    el('span', null, icon('grid-3x3'), cut(size)),
+    el('span', null, cut(rights)),
     count,
   );
   const dot = el('span', 'pb-dot');
@@ -47,8 +49,9 @@ export function gridHead(ui, count) {
   const tools = el('div', 'sode-gridpanel__tools', stats, ...btns);
   ui.head.insertBefore(tools, after);
   if (ui.home && ui.head.contains(ui.home)) tools.append(ui.home);
+  ui.tools = tools;
   // The deck: the header and the Levels box are display: contents in it, so their parts are cells of one grid.
-  const box = document.getElementById('panel-levels');
+  const box = ui.levels;
   const finds = el('div', 'sode-gridpanel__finds');
   const rule = (n) => {
     const r = el('div', `pb-divider pb-divider--vertical sode-gridpanel__rule sode-gridpanel__rule--${n}`);
@@ -75,6 +78,7 @@ export function gridHead(ui, count) {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
     stop() {
+      delete ui.tools;
       id.replaceWith(ui.title, ui.name);
       tools.replaceWith(...btns);
       if (ui.home?.parentNode === tools) ui.head.append(ui.home);

@@ -1,6 +1,7 @@
 // The Source bar and Destination bar search boxes of a Grid panel. The rules are in gridpanelfind.js and
 // the keys in gridpanelkeys.js (findBoxAction); the run (gridpanelrun.js) joins them.
 import { el, icon } from './core.js';
+import { segmented } from './formbits.js';
 
 const NOUN = { srcs: 'sources', dsts: 'destinations' };
 const KEY = { srcs: 's', dsts: 'd' };
@@ -18,10 +19,8 @@ const STEPS = {
   ],
 };
 
-// host is the deck's search slot (gridpanelheadview.js), or the view's corner (g.head) in the editor's live test.
-// onText(kind, text) runs on each edit and onMode() on a press of the other mode. onStep(kind, dir) runs on a step
-// button press, dir 1 for the next match. One mode serves both boxes. The step buttons show only while the box has text, which is
-// when they do something and the placeholder is gone.
+// host is the deck's search slot, or g.head in the editor's live test. One mode serves both boxes. dir is 1 for the
+// next match. The step buttons show only while the box has text, which is when the placeholder is gone.
 export function findBoxes(host, { onText, onMode, onStep }) {
   const make = (kind) => {
     const input = el('input', 'pb-input sode-gridpanel__find-input');
@@ -59,24 +58,22 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   const boxes = { srcs: make('srcs'), dsts: make('dsts') };
   let last = 'srcs';
   let now = 'find';
-  // Find and Filter side by side (patchbay's pb-btn-group); the pressed one is the mode of both boxes.
-  const modeBtn = (m) => {
-    const b = el('button', 'pb-btn pb-btn--outline', document.createTextNode(MODE[m]));
-    b.type = 'button';
-    b.tabIndex = -1;
-    b.dataset.mode = m;
-    b.setAttribute('aria-pressed', String(m === now));
-    b.addEventListener('click', () => {
-      if (m !== now) onMode();
-      boxes[last].input.focus();
-    });
-    return b;
-  };
-  const modes = { find: modeBtn('find'), filter: modeBtn('filter') };
-  const mode = el('div', 'pb-btn-group sode-gridpanel__find-mode', modes.find, modes.filter);
-  mode.setAttribute('role', 'group');
-  mode.setAttribute('aria-label', 'Search mode');
+  // The checked one is the mode of both boxes. A click goes back to the box, so Tab still goes between the boxes.
+  const modes = segmented(
+    'sode-gridpanel-mode',
+    'Search mode',
+    [
+      ['find', MODE.find],
+      ['filter', MODE.filter],
+    ],
+    (m) => m !== now && onMode(),
+  );
+  modes.set(now);
+  const mode = modes.node;
+  mode.classList.add('sode-gridpanel__find-mode');
   mode.dataset.pbTip = 'Find marks matches. Filter shows only matches. Ctrl+/';
+  for (const r of mode.querySelectorAll('input')) r.tabIndex = -1;
+  mode.addEventListener('click', () => boxes[last].input.focus());
   host.prepend(boxes.srcs.wrap, boxes.dsts.wrap, mode);
   return {
     input: (kind) => boxes[kind].input,
@@ -89,8 +86,7 @@ export function findBoxes(host, { onText, onMode, onStep }) {
     paint(find, counts) {
       last = find.last;
       now = find.mode;
-      for (const m of ['find', 'filter'])
-        if (modes[m].getAttribute('aria-pressed') !== String(m === now)) modes[m].setAttribute('aria-pressed', String(m === now));
+      modes.set(now);
       for (const k of ['srcs', 'dsts']) {
         const b = boxes[k];
         const box = find[k];

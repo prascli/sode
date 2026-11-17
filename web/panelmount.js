@@ -24,6 +24,7 @@ export function pageUi() {
     screen: $('panel-screen'),
     kiosk: $('panel-kiosk'),
     home: $('panel-home'),
+    levels: $('panel-levels'),
   };
 }
 
@@ -61,10 +62,11 @@ export function liveUi(host, onBack) {
   offline.setAttribute('role', 'alert');
   for (const n of [status, update, bar, offline]) n.hidden = true;
   note.hidden = true;
-  const main = el('div', 'sode-live', head, note, el('div', 'sode-panel__foot', status, update), levelsBox(), grid, offline, takeConfirm());
+  const levels = levelsBox();
+  const main = el('div', 'sode-live', head, note, el('div', 'sode-panel__foot', status, update), levels, grid, offline, takeConfirm());
   host.replaceChildren(main);
   // home: the run puts it with the header buttons, where the panel page has its Panels link.
-  return { main, head, title, name, home: back, note, status, update, updateText, snooze, applyNow, bar, grid, offline, offlineDetail, back };
+  return { main, head, title, name, home: back, note, status, update, updateText, snooze, applyNow, bar, grid, offline, offlineDetail, back, levels };
 }
 
 // Keep in step with #panel-levels in panel.html. Only a Grid panel shows it (gridpanelrun.js).
@@ -78,6 +80,7 @@ function levelsBox() {
   pick.setAttribute('aria-label', 'Pick levels');
   const all = el('button', 'pb-btn pb-btn--outline pb-btn--sm sode__all', el('span', null, 'Select'), el('span', null, 'All'));
   Object.assign(all, { type: 'button', id: 'panel-lvl-all', tabIndex: -1 });
+  all.dataset.pbTip = 'All levels, or none';
   const label = el('label', 'sode__label', 'Levels');
   label.htmlFor = 'panel-lvl';
   const box = el('div', 'sode__box sode__box--levels sode-gridpanel__levels', el('div', 'sode__box-head', label), input, el('div', 'sode__picker', pick, all));

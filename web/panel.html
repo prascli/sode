@@ -61,7 +61,7 @@
     <input id="panel-lvl" class="pb-input sode__input" spellcheck="false" autocomplete="off" aria-keyshortcuts="f">
     <div class="sode__picker">
       <div class="sode__levels" id="panel-lvl-pick" role="group" aria-label="Pick levels"></div>
-      <button type="button" class="pb-btn pb-btn--outline pb-btn--sm sode__all" id="panel-lvl-all" tabindex="-1"><span>Select</span><span>All</span></button>
+      <button type="button" class="pb-btn pb-btn--outline pb-btn--sm sode__all" id="panel-lvl-all" tabindex="-1" data-pb-tip="All levels, or none"><span>Select</span><span>All</span></button>
     </div>
   </div>
   <div class="sode-panel__grid" id="panel-grid"></div>
@@ -113,11 +113,12 @@
       </dl>
       <div class="sode__label">Crosspoints</div>
       <dl>
-        <dt><kbd>Space</kbd></dt><dd>Stage the route, or the Diagonal when names are picked. On a staged route, open the take confirm</dd>
+        <dt><kbd>Space</kbd></dt><dd>Stage the route, or the Diagonal when names are picked. When that is already staged, open the take confirm</dd>
         <dt><kbd>v</kbd></dt><dd>Draw a line from the cursor: move to stretch it, Space stages it</dd>
         <dt><kbd>Enter</kbd></dt><dd>Take the staged routes (opens the confirm)</dd>
         <dt><kbd>f</kbd></dt><dd>Levels box</dd>
         <dt><kbd>Esc</kbd></dt><dd>Remove the line, then the picks, then the staged routes</dd>
+        <dt><kbd>Delete</kbd> <kbd>Backspace</kbd>, <kbd data-mac="⌥">Alt</kbd>+click</dt><dd>Unstage only the route at the cursor or the click</dd>
         <dt><kbd>g</kbd></dt><dd>Go along the row to its source on the lowest level in the Levels box</dd>
         <dt><kbd>⇧g</kbd></dt><dd>Go down the column to the next destination that has the source</dd>
         <dt><kbd>u</kbd></dt><dd>Stage this panel's Undo</dd>

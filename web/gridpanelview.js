@@ -70,7 +70,7 @@ function paintXp(xp, s, d, view) {
   if (starts) joinPulse(xp);
   setData(xp, 'on', on.length ? on.join(',') : undefined);
   if (xp.getAttribute('aria-disabled') !== String(prot)) xp.setAttribute('aria-disabled', String(prot));
-  const state = out ? ', staged, left out of the take' : staged.length ? ', staged' : '';
+  const state = out ? ', staged, left out of the take' : staged.length ? ', staged. Alt-click to unstage' : '';
   const label = `${view.names.source(s)} to ${view.names.destination(d)}${on.length ? `, levels ${view.levelText(on)}` : ''}${prot ? ', protected' : ''}${state}`;
   if (xp.getAttribute('aria-label') !== label) xp.setAttribute('aria-label', label);
 }
@@ -213,7 +213,7 @@ function pool(host, make, put) {
 const range = (lo, hi) => Array.from({ length: Math.max(0, hi - lo) }, (_, k) => lo + k);
 const cross = (rows, cols) => rows.flatMap((i) => cols.map((j) => [i, j]));
 
-// host is the run's grid element; axes is gridAxes plus srcPins and dstPins. onPress({ src, dst }) is a crosspoint
+// host is the run's grid element; axes is gridAxes plus srcPins and dstPins. onPress({ src, dst }, e) is a crosspoint
 // press. onName(kind, n, e) is a click on a name, kind 'srcs' or 'dsts'. onPoint(clientX, clientY) is each pointer
 // move over the scroller. onJump(kind, n) is a right-click: kind 'xp' with n { src, dst }, or 'srcs' or 'dsts' with a
 // router number. Returns the drawn grid (docs/agents/panels.md).
@@ -485,7 +485,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const xpOf = (xp) => ({ src: Number(xp.dataset.src), dst: Number(xp.dataset.dst) });
   field.addEventListener('click', (e) => {
     const xp = e.target.closest('.sode-gridpanel__xp');
-    if (xp) return onPress(xpOf(xp));
+    if (xp) return onPress(xpOf(xp), e);
     const name = e.target.closest('.sode-gridpanel__src, .sode-gridpanel__dst');
     if (name) onName(name.dataset.src ? 'srcs' : 'dsts', Number(name.dataset.src ?? name.dataset.dst), e);
   });

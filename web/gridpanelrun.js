@@ -5,7 +5,19 @@ import { envFrom, namesFrom } from './panelrules.js';
 import { arrange } from './gridpanelarrange.js';
 import { nameArt } from './gridpanelart.js';
 import { defaultsBy } from './panellook.js';
-import { createStage, restage, stageRoutes, stagedCount, confirmRoutes, cancelConfirm, dropStaged, startSend, afterTake, stageText } from './gridpanelstage.js';
+import {
+  createStage,
+  restage,
+  stageRoutes,
+  stagedCount,
+  confirmRoutes,
+  cancelConfirm,
+  dropStaged,
+  unstageRoute,
+  startSend,
+  afterTake,
+  stageText,
+} from './gridpanelstage.js';
 import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick, dragPick, enterGrid } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
@@ -23,12 +35,15 @@ import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
 import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
-import { el } from './core.js';
+import { el, icon } from './core.js';
+import { editHref } from './panelsrules.js';
+import { plural } from './gridmodel.js';
 import { shortcutList } from './shortcuts.js';
 import { restPoint, takeButton, tapMods, pickNote } from './gridpanelphone.js';
 import { clearNote } from './gridpanelnote.js';
 import { onLayout } from './layout.js';
 import { gridHead } from './gridpanelheadview.js';
+import { emptyText } from './gridpanelhead.js';
 
 const NOTE_MS = 4000;
 const UNDO_MOVED = 'What Undo would undo has changed; press u again';
@@ -92,7 +107,8 @@ export function gridBody(ctx, first) {
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
   const noteOf = (text, ok = false) => ({ text, at: Date.now(), ok });
   const phone = () => document.documentElement.dataset.layout === 'phone';
-  // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box. It looks like a Buttons panel's Take cell. An embedded run has neither.
+  // The Take button (gridpanelphone.js) at the end of the Levels box, since Kiosk mode hides the header, not the box.
+  // It is the main page's red Take. An embedded run has neither.
   const takeCount = el('span', 'sode-gridpanel__take-n');
   const take = ctx.embedded ? null : el('button', 'pb-btn pb-btn--danger sode-panel__take sode-gridpanel__take', 'Take ', takeCount);
   if (take) {
@@ -100,7 +116,7 @@ export function gridBody(ctx, first) {
     take.id = 'panel-take';
     take.hidden = true;
     take.addEventListener('click', () => openConfirm());
-    document.getElementById('panel-levels')?.append(take);
+    ui.levels?.append(take);
   }
   const clearer = take?.parentNode ? clearNote(take.parentNode, take, () => clearStep(clearAction(clearCtx()))) : null;
 
@@ -206,10 +222,35 @@ export function gridBody(ctx, first) {
       if (starts) joinPulse(take);
       say(takeCount, t.count);
     }
+    paintEmpty();
     clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
     boxes?.paint(find, countsOf());
     status();
   };
+  // A panel with no items on an axis has no crosspoints, so the grid says so (pb-empty) under the corner.
+  let empty = null;
+  function paintEmpty() {
+    const t = g && emptyText({ srcs: full.srcs.length, dsts: full.dsts.length, canEdit: panel.canEdit && !ctx.embedded });
+    if (!t) {
+      if (empty) empty.node.hidden = true;
+      return;
+    }
+    if (!empty) {
+      const title = el('p', 'pb-empty__title', document.createTextNode(''));
+      const msg = el('p', 'pb-empty__msg', document.createTextNode(''));
+      const edit = el('a', 'pb-btn pb-btn--outline pb-btn--sm', icon('pencil'), 'Edit panel');
+      edit.href = editHref(ctx.id);
+      const node = el('div', 'pb-empty sode-gridpanel__empty', title, msg, el('div', 'pb-empty__actions', edit));
+      node.setAttribute('role', 'status');
+      g.scroll.append(node);
+      empty = { node, title, msg, edit };
+    }
+    say(empty.title, t.title);
+    say(empty.msg, t.msg);
+    // In the editor's Test it live (ui.back) the editor is already open, so the note has no link.
+    empty.edit.hidden = !t.edit || !!ui.back;
+    empty.node.hidden = false;
+  }
   // Results and errors fade on the clock, so the status line and the header boxes are what the tick paints each time.
   const status = () => {
     head?.paint({
@@ -328,7 +369,7 @@ export function gridBody(ctx, first) {
       const n = (reply?.results || routes).length;
       note = bad.length
         ? noteOf(`${undo ? 'Undo' : 'Take'} failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`)
-        : noteOf(`${undo ? 'Undone' : 'Taken'}: ${n === 1 ? '1 route' : `${n} routes`}`, true);
+        : noteOf(`${undo ? 'Undone' : 'Taken'}: ${plural(n, 'route')}`, true);
     } catch (e) {
       failed =
         e.status === undefined
@@ -374,7 +415,7 @@ export function gridBody(ctx, first) {
   }
 
   // The Levels box (levelbox.js). An embedded run has none, so the panel's levels setting stands in.
-  const boxNode = document.getElementById('panel-levels');
+  const boxNode = ui.levels;
   let boxKey = '';
   let filledKey = null;
   const boxSource = () =>
@@ -436,8 +477,9 @@ export function gridBody(ctx, first) {
     render();
   }
 
-  function onPress(xp) {
+  function onPress(xp, e) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
+    if (e?.altKey) return unstageAt(xp);
     ctx.touched();
     st = keepLive(leaveUndo(st), world());
     const { pairs, err } = stageable(diagonalAt(xp), env);
@@ -450,6 +492,14 @@ export function gridBody(ctx, first) {
     if (r.send) send({ routes: r.send });
     else render();
     if (r.confirm) openConfirm();
+  }
+
+  // Alt-click or Delete on a staged crosspoint: only that route goes. Clear and Esc drop them all.
+  function unstageAt(xp) {
+    if (!view.staged(xp.src, xp.dst).length) return;
+    ctx.touched();
+    st = unstageRoute(leaveUndo(st), xp);
+    render();
   }
 
   const canStage = () => ctx.ready() && !st.busy && !confirm?.isOpen();
@@ -506,8 +556,7 @@ export function gridBody(ctx, first) {
     if (!pairs.length) return render();
     st = r.st;
     if (r.skipped.length && !st.error) {
-      const n = r.skipped.length;
-      note = noteOf(`Skipped ${n === 1 ? '1 protected destination' : `${n} protected destinations`}`);
+      note = noteOf(`Skipped ${plural(r.skipped.length, 'protected destination')}`);
     }
     if (r.send) send({ routes: r.send });
     else render();
@@ -661,7 +710,7 @@ export function gridBody(ctx, first) {
       act === 'pick' ||
       act === 'add' ||
       act.startsWith('range:') ||
-      ['press', 'line', 'jump', 'step', 'undo'].includes(act) ||
+      ['press', 'line', 'jump', 'step', 'undo', 'unstage'].includes(act) ||
       FIND_KEYS.has(act);
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
@@ -683,7 +732,10 @@ export function gridBody(ctx, first) {
         render();
       }
     } else if (act === 'unline' || act === 'unpick' || act === 'drop') clearStep(act);
-    else if (act === 'jump') jumped(jumpFrom(cur));
+    else if (act === 'unstage') {
+      const xp = pointOf(cur, axes);
+      if (xp && canStage()) unstageAt(xp);
+    } else if (act === 'jump') jumped(jumpFrom(cur));
     else if (act === 'step') jumped(holderJump(cur, axes, env));
     else if (act === 'undo') pressUndo();
     else if (act === 'confirm') openConfirm();
