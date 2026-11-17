@@ -751,12 +751,12 @@ html {
   gap: var(--pb-space-5);
   min-width: 0;
 }
+/* Same edge, text size and padding as the destination chips under the Destination box (pb-chip--static). */
 .pb-chip.sode__last {
-  font-size: var(--pb-text-xs);
+  border-color: var(--pb-edge-light);
   gap: var(--pb-space-2);
   max-width: 100%;
   min-width: 0;
-  padding: 0 var(--pb-space-2);
 }
 .sode__last-text {
   min-width: 0;

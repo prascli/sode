@@ -23,6 +23,20 @@ export function resultStep(e, hasResults) {
   return { ArrowDown: 1, ArrowUp: -1 }[e.key] || 0;
 }
 
+// Ctrl-click (also Cmd-click on a Mac) on a destination adds it as + does. Same modifier rule as listStep.
+export const addClick = (e) => !e.altKey && !e.shiftKey && ((e.ctrlKey && !e.metaKey) || (mac && e.metaKey && !e.ctrlKey));
+
+// A Mac's Ctrl-click fires contextmenu and never click. add is optional: without it every click picks.
+export function pickOrAdd(b, pick, add) {
+  b.addEventListener('click', (e) => (add && addClick(e) ? add() : pick()));
+  if (!add || !mac) return;
+  b.addEventListener('contextmenu', (e) => {
+    if (!addClick(e)) return;
+    e.preventDefault();
+    add();
+  });
+}
+
 // Window blur clears both: the key-up of an Alt-Tab never arrives.
 const HELD = { shift: 'shiftKey', alt: 'altKey' };
 function held(e) {
