@@ -256,10 +256,14 @@ html {
   font-size: var(--pb-text-md);
   gap: var(--pb-space-4);
 }
+/* One size for every source and destination chip, buttons (sode__end--pick) included: the height of
+   patchbay's .pb-chip under the Destination box. Its edge is 2px, this one is 1px, so the padding takes the other px. */
 .sode__end {
   border: var(--pb-border-w) solid var(--pb-edge);
   color: var(--pb-text-strong);
-  padding: var(--pb-space-2) var(--pb-space-4);
+  font-size: var(--pb-text-sm);
+  line-height: 0.875rem;
+  padding: calc(var(--pb-space-1) + var(--pb-border-w)) var(--pb-space-4);
 }
 .sode__end--src {
   border-left: var(--sode-side-w) solid var(--pb-source);

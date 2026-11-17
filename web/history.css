@@ -221,19 +221,24 @@
   flex: none;
   max-width: 45%;
   overflow: hidden;
-  padding-bottom: var(--pb-space-1);
-  padding-top: var(--pb-space-1);
   text-overflow: ellipsis;
 }
 .sode__end--pick {
   background: none;
   cursor: pointer;
-  font: inherit;
+  font-family: inherit;
+  font-weight: inherit;
   text-align: left;
   white-space: nowrap;
 }
 .sode__end--pick:hover {
   background: var(--pb-surface-hover);
+}
+.sode__end--before {
+  color: var(--pb-text-muted);
+}
+.sode__hist-route--boxes > .sode__stack-to {
+  flex: none;
 }
 .sode__hist-route--boxes > .sode__hist-note {
   overflow: hidden;
@@ -241,10 +246,6 @@
 }
 .sode__hist-note {
   color: var(--pb-text-muted);
-}
-.sode__follows > .sode__end--follow {
-  padding-bottom: var(--pb-space-1);
-  padding-top: var(--pb-space-1);
 }
 .sode__presets-dlg .pb-modal__footer > .sode__hint {
   flex: 1;

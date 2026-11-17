@@ -12,7 +12,19 @@ import { openFilters } from './filters.js';
 import { emptyNote } from './searchbox.js';
 import { rowActions, disclosureAria, followersHead } from './historyrows.js';
 import { isPicked, picking, pickBox, togglePick, bindPick } from './historypick.js';
-import { byLabel, disclosure, undoButton, againButton, stackSteps, followBoxes, failureRows, clickToToggle, pullToLoad, arrivals } from './widgets.js';
+import {
+  byLabel,
+  disclosure,
+  undoButton,
+  againButton,
+  stackSteps,
+  stackFrom,
+  followBoxes,
+  failureRows,
+  clickToToggle,
+  pullToLoad,
+  arrivals,
+} from './widgets.js';
 
 // What it takes from desktop.js: select(k, item), focusBox(input), openConfirm(plan), focusSearch(k),
 // openKeys() (the shortcut list, built after this), boxes (for the two inputs) and active().
@@ -35,18 +47,19 @@ export function desktopHistory({ select, addEnd, focusBox, openConfirm, focusSea
 
     const open = expanded.has(e.id);
     const detailId = `hist-before-${e.id}`;
-    const disc = disclosure(open, 'Before', detailId, () => {
+    const disc = disclosure(open, e.chain ? `${e.chain.length}` : 'Before', detailId, () => {
       toggle(expanded, e.id);
       renderHistory();
     });
+    if (e.chain) disc.setAttribute('aria-label', disclosureAria(open, e.chain.length, 'changes'));
 
     const row = el(
       'li',
       'pb-input sode__hist-row' + (arrived.entry(e) ? ' sode--enter' : '') + curClass(`e${e.id}`),
-      el('span', 'sode__hist-id', `#${e.id}`),
+      el('span', 'sode__hist-id', e.chain ? `#${e.chain[e.chain.length - 1].id}–#${e.id}` : `#${e.id}`),
       histTime(e.time),
       levelBar(known),
-      el('span', 'sode__hist-route sode__hist-route--boxes', ...routeBoxes(src, dst), entryNote(e), byLabel(e)),
+      el('span', 'sode__hist-route sode__hist-route--boxes', ...(e.chain ? stackFrom(e, useRowSrc) : []), ...routeBoxes(src, dst), entryNote(e), byLabel(e)),
       statusNode({ e }),
       disc,
       el('span', 'sode__hist-actions', ...(picking() ? [pickBox(`e${e.id}`)] : [retry, btn])),
