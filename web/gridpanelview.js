@@ -9,6 +9,7 @@ import { axisSpan, spanMax, indexAt, slotAt, pageOf, placeAt, scrollFor, centreF
 
 const PULSE_MS = 2000; // keep in step with --panel-pulse-s in panels.css
 const HIT_MS = 1400; // keep in step with the sode-gridpanel-hit animations in gridpanel.css (3 x 0.45s).
+const GLIDE_MAX_MS = 3000; // a glide across 2500 sources takes about 1.5 s
 // A newly pulsing node starts in step with the others. All count from time zero.
 export const pulseDelay = () => `${-(document.timeline.currentTime % PULSE_MS)}ms`;
 
@@ -570,6 +571,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       }
       const done = () => {
         scroll.removeEventListener('scrollend', done);
+        clearTimeout(hitEnd.timer);
         hitEnd.timer = setTimeout(() => {
           hit = null;
           hitEnd = null;
@@ -577,7 +579,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
         }, HIT_MS);
       };
       hitEnd = { timer: 0, done };
-      if (to === a.offset) return done();
+      // No scrollend comes for a move under a pixel or on a browser without the event, so a timer ends it too.
+      if (Math.abs(to - a.offset) < 1) return done();
+      hitEnd.timer = setTimeout(done, GLIDE_MAX_MS);
       scroll.addEventListener('scrollend', done);
       scroll.scrollTo({ [cols ? 'left' : 'top']: to, behavior: calm ? 'instant' : 'smooth' });
     },
