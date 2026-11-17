@@ -7,7 +7,7 @@ import { levelBar, levelText, parseLevels, levelInput, defaultLevelsHint, relabe
 import { srcRow, srcEnd } from './routes.js';
 import { fmtClock } from './device.js';
 import { windowAround, growEdge } from './listwindow.js';
-import { beforeGroups, failureGroups } from './history.js';
+import { beforeGroups, failureGroups, stackBefore } from './history.js';
 import { restorePlan, planEmpty } from './plans.js';
 
 // ---- level box: typed levels plus a picker of toggles and All/None
@@ -418,6 +418,15 @@ export function failureRows(e) {
   const why = failureGroups(e);
   if (!why.length) return [];
   return [el('div', 'sode__label', 'Not confirmed'), ...why.map((g) => srcRow(g.levels, g.text))];
+}
+
+// A stacked row's face: what the destination had before its first change, then "to" before the
+// row's own source (after the last change). Several sources across levels show as a count.
+export function stackFrom(e, onPickSrc) {
+  const before = stackBefore(e);
+  const chip = srcEnd(before.src, before.text, onPickSrc);
+  chip.classList.add('sode__end--before');
+  return [chip, el('span', 'sode__hist-note sode__stack-to', 'to')];
 }
 
 // Stacked row timeline, newest first. Every change but the newest has Restore. restore(plan)

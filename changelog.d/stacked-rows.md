@@ -1,0 +1,2 @@
+- History stacks quick changes to one destination into one row. This now applies to takes from any browser, panel or API client, not only to Externals. Each change must come within 30 seconds of the one before, on the same levels. The row shows the source before the first change, then "to" and the source after the last. Open it to see each change.
+- Source and destination chips in History, in a row's Before panel and under the patch boxes now have one size.

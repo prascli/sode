@@ -23,7 +23,7 @@ import {
 import { defaultLevelsWord, levelBar, allLevels, levelText } from './levelview.js';
 import { fedBy, currentlyNodes } from './routes.js';
 import { flipped, fmtTime } from './device.js';
-import { entryNote, historyPager, statusNode, groupTitle, groupLevels } from './history.js';
+import { entryNote, historyPager, statusNode, groupTitle, groupLevels, stackBefore } from './history.js';
 import {
   planVerb,
   resultNode,
@@ -439,7 +439,16 @@ function historyRow(e) {
       el('span', 'sode__hist-time', fmtTime(e.time)),
       el('span', 'sode-m__recent-status', status, ...(picking() ? [pickBox(`e${e.id}`)] : []), disc),
     ),
-    el('div', 'sode-m__recent-route', el('strong', null, labelNode(src)), ' → ', el('strong', null, labelNode(dst)), entryNote(e), byLabel(e)),
+    el(
+      'div',
+      'sode-m__recent-route',
+      ...(e.chain ? [el('span', 'sode__hist-note', stackBefore(e).text), ' to '] : []),
+      el('strong', null, labelNode(src)),
+      ' → ',
+      el('strong', null, labelNode(dst)),
+      entryNote(e),
+      byLabel(e),
+    ),
     changes,
     e.follows && !open ? el('div', 'sode__hint', `Followed by: ${[...new Set(e.follows.map((f) => dstItem(f.dst, f.dstName).label))].join(', ')}`) : null,
     levelBar(e.levels.filter((u) => S.levelBy.has(u))),
