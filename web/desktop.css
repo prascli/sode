@@ -115,12 +115,29 @@
 .sode__menu-count[hidden] {
   display: none;
 }
+/* Room for the Show all button: its xs line, its padding and the gap above it. */
+.sode__box {
+  --sode-all-h: calc(var(--pb-text-xs) * 1.5 + var(--pb-space-1) * 3);
+}
 .sode__menu-all {
   display: flex;
   padding-top: var(--pb-space-1);
 }
 .sode__menu-all[hidden] {
   display: none;
+}
+/* Destination's hangs off the input row, so its place never depends on the chips. The chips start below its row. */
+.sode__entry > .sode__menu-all {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: var(--pb-z-dropdown, 10);
+}
+/* Chips add nothing to the box's width (width 0, then fill), so the button's right edge stays put. */
+.sode__entry ~ .sode__chips:not([hidden]) {
+  min-width: 100%;
+  width: 0;
+  margin-top: calc(var(--sode-all-h) - var(--pb-space-2));
 }
 .sode__menu-all .pb-btn {
   color: var(--pb-text-muted);
