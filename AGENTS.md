@@ -9,11 +9,11 @@ Sode: keyboard-first web patching for one SW-P-08 router (Ross Ultrix). Settings
 ```
 go test -short ./...   (fast group, about 25s: run before every commit)
 go test ./internal/app -run TestName -v   (while editing)
-go test ./internal/app -run '^TestChrome<Area>' -v   (before committing a change under web/ or to panels)
+go test ./internal/app -run '^TestChromeName$' -v   (only the browser checks you added or changed; CI runs the rest)
 go test ./...   (everything, several minutes: only when touching the browser harness, swp08sim or timing code; use run_in_background)
 ```
 
-Pass -timeout (10m for the full run) so a hang fails early. Rerun a failing browser check alone before you call it a regression.
+Develop fast: do not run area-wide or full browser suites locally, push and let CI run them (owner's rule). Pass -timeout (10m for the full run) so a hang fails early. Rerun a failing browser check alone before you call it a regression.
 
 ```
 go vet ./...
