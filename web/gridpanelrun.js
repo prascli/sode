@@ -19,6 +19,8 @@ import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
 import { pinsOf } from './gridpanelwindow.js';
 import { CORNER, MOVES, moveCursor, pointOf, followCursor, cursorAt, barOf, rangeCursor } from './gridpanelcursor.js';
+import { isLine, linePairs, lineShown, lineStage } from './gridpanelline.js';
+import { lineGestures } from './gridpanelgesture.js';
 import { levelTextOf, parseLevelsIn } from './levels.js';
 import { levelBox } from './levelbox.js';
 import { el } from './core.js';
@@ -73,6 +75,8 @@ export function gridBody(ctx, first) {
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
   let ptr = null; // { x, y } in client px while the pointer leads, else null
+  let line = null; // A Drawn line { a, b, keys } in crosspoint units (gridpanelline.js). keys is true for a v line.
+  let gest = null;
   // "N staged" in the header: staged routes can be scrolled out of view.
   const count = el('span', 'pb-badge pb-badge--info sode-gridpanel__count');
   count.id = 'panel-staged';
@@ -154,9 +158,22 @@ export function gridBody(ctx, first) {
   // A Diagonal skips protected rows.
   const pairsAt = (xp) => stageable(diagonalAt(xp), env).pairs;
 
+  // What release would do: the routes numbered, protected rows skipped, red past the cap.
+  const lineDry = () => {
+    const pairs = isLine(line.a, line.b) ? linePairs(picks, line.a, line.b, axes, full) : [];
+    const r = lineStage(st, pairs, env, pressLevels());
+    return { pairs, kept: pairs.filter((x) => !r.skipped.includes(x)), r };
+  };
+
   // Numbered targets only while names are picked; a press with none is the crosspoint itself. A phone has no hover,
   // so with no crosspoint under the cursor the targets show from the picks' rest point.
   const preview = () => {
+    if (line) {
+      const { kept, r } = lineDry();
+      g.line(lineShown(picks, line.a, line.b, axes));
+      return previewGridPanel(g, kept, r.over, r.skipped);
+    }
+    g.line(null);
     const from = at || (phone() && restPoint(picks, axes, cur));
     const pairs = from && pickCount(picks) ? pairsAt(from) : [];
     previewGridPanel(g, pairs, pairs.length > 1 && stageRoutes(st, pairs, pressLevels()).st.error?.code === 'cap');
@@ -201,6 +218,11 @@ export function gridBody(ctx, first) {
     axesKey = key;
     cur = followCursor(cur, axes, next);
     axes = next;
+    // A line is in display order, so new axes end it.
+    if (line) {
+      gest?.cancel();
+      line = null;
+    }
     full = whole;
     shownSrcs = new Set(whole.srcs);
     // Picks on names that left the panel go; picks a Filter hides stay.
@@ -212,6 +234,7 @@ export function gridBody(ctx, first) {
       g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
       boxes = findBoxes(g.head, { onText: findText, onMode: findMode });
+      gest = lineGestures(g, { start: lineStart, move: lineMove, end: lineEnd, cancel: dropLine, name: onTouchName });
     }
     setCursor(cur);
   };
@@ -404,6 +427,59 @@ export function gridBody(ctx, first) {
     if (r.confirm) openConfirm();
   }
 
+  const canStage = () => ctx.ready() && !st.busy && !confirm?.isOpen();
+
+  function lineStart(a) {
+    if (!canStage()) return gest.cancel();
+    ctx.touched();
+    line = { a, b: a, keys: false };
+    preview();
+  }
+
+  function lineMove(b) {
+    if (!line) return;
+    line = { ...line, b };
+    preview();
+  }
+
+  function lineEnd(b) {
+    if (!line) return;
+    line = { ...line, b };
+    stageLine();
+  }
+
+  function dropLine() {
+    if (!line) return;
+    line = null;
+    preview();
+  }
+
+  // Release, or Space in v mode. A line that ends on its start row stages nothing.
+  function stageLine() {
+    if (!canStage()) return dropLine();
+    st = keepLive(leaveUndo(st), world());
+    const { pairs, r } = lineDry();
+    line = null;
+    if (!pairs.length) return render();
+    st = r.st;
+    if (r.skipped.length && !st.error) {
+      const n = r.skipped.length;
+      note = { text: `Skipped ${n === 1 ? '1 protected destination' : `${n} protected destinations`}`, at: Date.now(), ok: false };
+    }
+    if (r.send) send({ routes: r.send });
+    else render();
+    if (r.confirm) openConfirm();
+  }
+
+  const centre = (c) => ({ x: c.j + 0.5, y: c.i + 0.5 });
+
+  // A long-press on a name adds the range from the last pick, as a Shift-click does; a double-tap jumps, as a
+  // right-click does.
+  function onTouchName(kind, n, how) {
+    if (how === 'long') onName(kind, n, { shiftKey: true });
+    else onJump(kind, n);
+  }
+
   function onName(kind, n, e) {
     if (!ctx.ready()) return;
     picks = pickName(picks, kind, n, tapMods(e, phone()), axes[kind]);
@@ -455,9 +531,13 @@ export function gridBody(ctx, first) {
 
   function moveTo(move) {
     ptr = null;
-    setCursor(moveCursor(cur, move, dims()));
+    let next = moveCursor(cur, move, dims());
+    // A v line stays on the crosspoints.
+    if (line?.keys) next = { i: Math.max(0, next.i), j: Math.max(0, next.j) };
+    setCursor(next);
     if (move === 'corner') g.scroll.scrollTo(0, 0);
     else g.revealCell(cur);
+    if (line?.keys) lineMove(centre(cur));
   }
 
   // Space, x and Shift moves on a bar: the same picks as a click, a Cmd-click and a Shift-click.
@@ -514,11 +594,16 @@ export function gridBody(ctx, first) {
       return findBox(box, boxAct);
     }
     const finding = !!find[find.last].text.trim();
-    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding });
+    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding, line: !!line });
     // A phone has no key list.
     if (!act || (act === 'keys' && (!keyList || phone()))) return;
     const moves =
-      MOVES.has(act) || act === 'pick' || act === 'add' || act.startsWith('range:') || ['press', 'jump', 'step', 'undo'].includes(act) || FIND_KEYS.has(act);
+      MOVES.has(act) ||
+      act === 'pick' ||
+      act === 'add' ||
+      act.startsWith('range:') ||
+      ['press', 'line', 'jump', 'step', 'undo'].includes(act) ||
+      FIND_KEYS.has(act);
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
@@ -529,8 +614,18 @@ export function gridBody(ctx, first) {
     } else if (act === 'pick' || act === 'add' || act.startsWith('range:')) pickAt(act);
     else if (act === 'keys') keyList.open();
     else if (act === 'press') {
+      if (line) return stageLine();
       const xp = pointOf(cur, axes);
       if (xp && g) onPress(xp);
+    } else if (act === 'line') {
+      if (pointOf(cur, axes) && canStage()) {
+        ctx.touched();
+        line = { a: centre(cur), b: centre(cur), keys: true };
+        preview();
+      }
+    } else if (act === 'unline') {
+      gest?.cancel();
+      dropLine();
     } else if (act === 'jump') jumped(jumpFrom(cur));
     else if (act === 'step') jumped(holderJump(cur, axes, env));
     else if (act === 'undo') pressUndo();
@@ -590,6 +685,7 @@ export function gridBody(ctx, first) {
     stop() {
       stopped = true;
       document.removeEventListener('keydown', onKey, true);
+      gest?.stop();
       g?.stop();
       count.remove();
       take?.remove();

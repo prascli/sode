@@ -69,15 +69,16 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	picked := func(name string) string { return `('picked' in ` + name + `.dataset)` }
 	b.waitFor("source 13 drawn", src(13)+` !== null && !`+src(13)+`.hidden && `+src(13)+`.getBoundingClientRect().right <= document.querySelector(".sode-gridpanel__scroll").getBoundingClientRect().right`)
 
-	tap(b, src(13))
-	b.waitFor("a tap picks", picked(src(13)))
 	tap(b, src(11))
-	b.waitFor("a second tap adds to the picks", picked(src(11))+` && `+picked(src(13))+` && !`+picked(src(12)))
-	tap(b, src(13))
-	b.waitFor("a tap on a picked name removes it", picked(src(11))+` && !`+picked(src(13)))
+	b.waitFor("a tap picks", picked(src(11)))
+	tap(b, src(12))
+	b.waitFor("a second tap adds to the picks", picked(src(11))+` && `+picked(src(12)))
+	time.Sleep(500 * time.Millisecond) // not a double-tap
+	tap(b, src(12))
+	b.waitFor("a tap on a picked name removes it", picked(src(11))+` && !`+picked(src(12)))
 	cursor := b.eval(gridCursor)
 	touch(b, src(13), 700*time.Millisecond)
-	b.waitFor("a long-press adds the range", picked(src(11))+` && `+picked(src(12))+` && `+picked(src(13)))
+	b.waitFor("a long-press adds the range from the last tap", picked(src(11))+` && `+picked(src(12))+` && `+picked(src(13)))
 	if got := b.eval(gridCursor); got != cursor {
 		t.Errorf("a long-press moved the cursor from %v to %v", cursor, got)
 	}
