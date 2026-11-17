@@ -125,21 +125,32 @@ test('keyConfirm: Esc closes with the plan; Enter takes only when the caller all
   assert.deepEqual(got.take, [plan]);
 });
 
-test('keyConfirm: a second open cancels the first lockout', async () => {
+test('keyConfirm: a second open cancels the first lockout', async (t) => {
+  // Fake clock: real timers slip under CPU load and made the 25ms check land after the second unlock.
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  // lockout.js ready() reads performance.now, so both clocks advance together.
+  let now = 0;
+  t.mock.method(performance, 'now', () => now);
+  const tick = (ms) => {
+    now += ms;
+    t.mock.timers.tick(ms);
+  };
   const { keyConfirm } = await import('../keyconfirm.js');
   const { S } = await import('../core.js');
   const got = setup(S, { cfg: { confirmLockoutMs: 40 } });
   const c = keyConfirm({ prompt: (k) => [k], verb: () => 'take', summary: () => [], onTake: (p) => got.take.push(p), onClose() {} });
   c.open({ verb: 'patch', items: [] });
-  await new Promise((r) => setTimeout(r, 20));
+  tick(20);
   const second = { verb: 'patch', items: [] };
   c.open(second);
-  await new Promise((r) => setTimeout(r, 25));
+  tick(25);
   assert.equal(dom.get('confirm-ok').disabled, true, "the first open's timer must not unlock the second");
   c.take();
+  await new Promise((r) => setImmediate(r));
   assert.equal(got.take.length, 0);
-  await new Promise((r) => setTimeout(r, 30));
+  tick(30);
   c.take();
+  await new Promise((r) => setImmediate(r));
   assert.deepEqual(got.take, [second]);
 });
 
