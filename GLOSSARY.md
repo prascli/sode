@@ -302,7 +302,7 @@ A cell that combines the panel's name, its Page's number, its Page's name and th
 Describes a Take cell after a Source and a Destination are selected. It lights or blinks until a person presses it, and pressing it is the Confirm.
 
 **Take mode** / **Instant mode**:
-The panel setting that decides when a panel's plan is confirmed. In Take mode the armed Take cell must be pressed. In Instant mode pressing the Source is the Confirm. A panel can add a hold or a double press to guard the confirm.
+The panel setting that decides when a panel's plan is confirmed. In Take mode the armed Take cell must be pressed. In Instant mode pressing the Source is the Confirm. A panel can add a hold or a double press to guard the confirm. On a Grid panel, Take mode opens the take confirm box, unless the panel is set to Stage + Take.
 
 **Clear** (cell kind):
 Cancels the plan the panel has pending. It never changes the router.
