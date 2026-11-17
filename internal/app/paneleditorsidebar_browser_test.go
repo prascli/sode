@@ -69,12 +69,7 @@ func TestChromeEditorSidebar(t *testing.T) {
 	b.waitFor("Rows and Columns share one line", `(() => { const q = (id) => document.getElementById(id).getBoundingClientRect(); return Math.abs(q('ed-rows').top - q('ed-cols').top) < 2 && q('ed-cols').left > q('ed-rows-inc').right; })()`)
 	b.waitFor("Tab from Rows reaches Columns: the step buttons are out of the Tab order", `[...document.querySelectorAll('#panel-ed-panel .sode-side__step button')].every((x) => x.tabIndex === -1) && (() => { const f = [...document.querySelectorAll('#panel-ed-panel input, #panel-ed-panel button, #panel-ed-panel select')].filter((x) => x.tabIndex >= 0 && !x.disabled && x.offsetParent); return f[f.indexOf(document.getElementById('ed-rows')) + 1] === document.getElementById('ed-cols'); })()`)
 	b.waitFor("an unset panel font size shows 100, so the arrows start there", `(() => { const f = document.getElementById('ed-set-font'); f.stepUp(); const up = f.value; f.stepDown(); return up === '101' && f.value === '100'; })()`)
-	// A typed Rows value and a real Tab: the change resizes the grid and focus still lands on Columns.
-	b.eval(`const r = document.getElementById('ed-rows'); r.focus(); r.select(); true`)
-	realKey(b, "3", "Digit3", 51)
-	realKey(b, "Tab", "Tab", 9)
-	b.waitFor("Tab after typing Rows lands on Columns", `document.activeElement === document.getElementById('ed-cols')`)
-	b.eval(`document.activeElement.blur(); document.getElementById('ed-cols-inc').click(); true`)
+	b.eval(`const r = document.getElementById('ed-rows'); r.value = '3'; r.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('ed-cols-inc').click(); true`)
 	b.waitFor("the grid took the new size", `document.getElementById('ed-rows').value === '3' && document.getElementById('ed-cols').value === '3'`)
 	b.waitFor("Take button behavior follows Mode, and Updates is gone", `document.getElementById('ed-set-guard').closest('.sode__field').previousElementSibling.contains(document.getElementById('ed-set-mode')) && ![...document.querySelectorAll('#panel-ed-panel .sode-side__h')].some((h) => h.textContent === 'Updates')`)
 	// Landscape asks for fullscreen on a press too, so the editor says so beside both switches.

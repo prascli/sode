@@ -68,21 +68,19 @@ export function artImage(cls, art, id, lib) {
 }
 
 // Replaces a cell's children apart from its artwork, and only when they differ from the last paint. So the one-second
-// redraw does not touch an idle cell. _fitDirty tells panelfit.js to measure the cell again.
+// redraw does not touch an idle cell.
 function fill(b, ...kids) {
   const now = [...b.childNodes].filter((n) => n !== b._art);
   if (now.length === kids.length && now.every((n, i) => n.isEqualNode(kids[i]))) return;
   for (const n of now) n.remove();
   b.append(...kids);
-  b._fitDirty = true;
 }
 
 // hold is { down(cell), cancel() } for a Take cell with a hold guard: pointer or Enter and Space start it, and a leave ends it.
 // art is createArt's answer, for cells with uploaded artwork.
 export function buildGrid(host, panel, cells, onPress, hold, art) {
   host.replaceChildren();
-  // minmax(0, 1fr): long words never make a row or column wider than its share (panelfit.js fits them).
-  host.style.gridTemplate = `repeat(${panel.rows}, minmax(0, 1fr)) / repeat(${panel.cols}, minmax(0, 1fr))`;
+  host.style.gridTemplate = `repeat(${panel.rows}, 1fr) / repeat(${panel.cols}, 1fr)`;
   host.style.aspectRatio = `${panel.cols} / ${panel.rows}`;
   const nodes = cells.map((cell) => {
     const cls = cell.kind === 'take' ? 'pb-btn pb-btn--commit sode-panel__take' : 'pb-btn pb-xpt';
