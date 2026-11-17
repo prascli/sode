@@ -78,6 +78,17 @@ func TestChromeBigScroll(t *testing.T) {
 	b.waitFor("a track press pages down", fmt.Sprintf(`Math.abs(%s.scrollTop - %v) < 3`, menu, from+math.Round(view*0.9)))
 	b.waitFor("the list is still open", menu+`.hidden === false && document.activeElement.id === 'src'`)
 
+	// A little bar (History filter lists) is half as wide, and the list's padding makes room for it.
+	b.eval(`document.getElementById('src').blur(); true`)
+	b.waitFor("a long History Source filter list", `(() => { const t = document.querySelector('#history-search [data-search-src]'); t.focus(); t.value = 's'; t.dispatchEvent(new Event('input', {bubbles: true})); const m = t.parentElement.querySelector('.sode__menu'); return !m.hidden && m.scrollHeight > 2 * m.clientHeight; })()`)
+	little := `document.querySelector('#history-search .sode__menu')`
+	lbar := little + `.nextElementSibling`
+	b.waitFor("its little bar shows", lbar+`.classList.contains('sode-bigscroll--little') && !`+lbar+`.hidden`)
+	if w := num(lbar + `.getBoundingClientRect().width`); w != 14 {
+		t.Fatalf("little bar is %v px wide, want 14 (0.7rem at 125%%)", w)
+	}
+	b.eval(`document.querySelector('#history-search [data-search-src]').blur(); true`)
+
 	// In a short window the main page scrolls: its bar is fixed at the window's right edge and drags the page.
 	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1280, "height": 400, "deviceScaleFactor": 1, "mobile": false})
 	b.eval(`document.getElementById('src').blur(); true`)
@@ -90,5 +101,11 @@ func TestChromeBigScroll(t *testing.T) {
 	mouse("mouseMoved", x, y+100)
 	mouse("mouseReleased", x, y+100)
 	b.waitFor("the drag scrolls the page", `scrollY > 100`)
+
+	// Every page that runs bigScrollAll draws its page bar: /log and the panel editor too.
+	for _, path := range []string{"/log", "/panels/editor"} {
+		b.open(srv.URL + path)
+		b.waitFor(path+" draws its page bar", `(() => { const p = document.querySelector('.sode-bigscroll--page'); return !!p && (document.scrollingElement.scrollHeight <= innerHeight || !p.hidden); })()`)
+	}
 	b.check()
 }

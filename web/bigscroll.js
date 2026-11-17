@@ -5,14 +5,18 @@ import { thumbFor, thumbAt, dragTo, pageDir, wheelPx } from './bigscrollrules.js
 
 // Every scroller a user needs on the pages that run bigScrollAll. A selector that matches no
 // scroller costs nothing; keep in step with the list in docs/agents/web-layout.md.
+// [selector, axis, size]: size is 'big' (default) or 'little'. The first match wins, so little
+// entries go before a broader big one.
 export const SCROLLERS = [
+  ['.sode__search .sode__menu', 'y', 'little'],
   ['.sode__menu', 'y'],
   ['.sode__found', 'y'],
   ['.sode__scroll', 'y'],
   ['#settings-toc', 'y'],
   ['.pb-modal__body', 'y'],
   ['.sode__preset-list', 'y'],
-  ['.sode__key-list', 'y'],
+  ['.sode__key-list', 'y', 'little'],
+  ['[data-sets] > .sode__sets-run', 'x', 'little'],
   ['.sode__sets-run', 'x'],
   ['.sode__box--levels .sode__levels', 'x'],
   ['.sode-log__scroll', 'x'],
@@ -32,20 +36,23 @@ const REPEAT_MS = 60;
 const bars = new WeakMap(); // scroller -> its handle
 const owners = new WeakMap(); // bar -> its scroller
 
-// Draws a bar for scroller on axis 'x' or 'y'. The page's own scroller (document.scrollingElement)
+// Draws a bar for scroller on axis 'x' or 'y'. size 'little' draws a thinner bar for small,
+// secondary lists; the page's bar is always big. The page's own scroller (document.scrollingElement)
 // gets a fixed bar at the window's edge. Returns { update, stop, bar }, or null for a scroller out
 // of the page. Once drawn, nothing is added or removed while the scroller scrolls: only the thumb's
 // transform changes (the Grid needs this).
-export function bigScroll(scroller, axis = 'y') {
+export function bigScroll(scroller, axis = 'y', size = 'big') {
   const had = bars.get(scroller);
   if (had) return had;
   const page = scroller === document.scrollingElement;
   if (!page && !scroller.parentElement?.isConnected) return null;
   const y = axis === 'y';
+  const little = size === 'little' && !page;
+  const width = little ? 'var(--sode-littlescroll-w)' : 'var(--sode-bigscroll-w)';
   const thumb = document.createElement('div');
   thumb.className = 'sode-bigscroll__thumb';
   const bar = document.createElement('div');
-  bar.className = `sode-bigscroll sode-bigscroll--${axis}${page ? ' sode-bigscroll--page' : ''}`;
+  bar.className = `sode-bigscroll sode-bigscroll--${axis}${page ? ' sode-bigscroll--page' : ''}${little ? ' sode-bigscroll--little' : ''}`;
   // Pointer only: keys already scroll, and the bar must not reach tab order or screen readers.
   bar.setAttribute('aria-hidden', 'true');
   bar.hidden = true;
@@ -103,7 +110,7 @@ export function bigScroll(scroller, axis = 'y') {
     }
     const side = y ? 'paddingRight' : 'paddingBottom';
     if (pad === null) pad = getComputedStyle(scroller)[side];
-    scroller.style[side] = on ? `calc(${pad} + var(--sode-bigscroll-w))` : '';
+    scroller.style[side] = on ? `calc(${pad} + ${width})` : '';
   }
 
   function layout() {
@@ -272,7 +279,10 @@ export function bigScrollAll(root = document.body) {
   bigScroll(document.scrollingElement, 'y');
   // One query per added or removed node: match lists and History redraw many rows per keystroke.
   const all = SCROLLERS.map(([sel]) => sel).join(',');
-  const attach = (m) => bigScroll(m, SCROLLERS.find(([sel]) => m.matches(sel))[1]);
+  const attach = (m) => {
+    const [, axis, size] = SCROLLERS.find(([sel]) => m.matches(sel));
+    bigScroll(m, axis, size);
+  };
   const scan = (n) => {
     if (n.matches(all)) attach(n);
     if (n.firstElementChild) for (const m of n.querySelectorAll(all)) attach(m);
