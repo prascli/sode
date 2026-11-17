@@ -241,14 +241,34 @@ func TestChromeGridPanelLook(t *testing.T) {
 	})()`)
 	b.shot("pins-1280")
 
+	members := func(n int) string {
+		l := make([]string, n)
+		for i := range l {
+			l[i] = fmt.Sprint(i + 1)
+		}
+		return `{"members":[` + strings.Join(l, ",") + `]}`
+	}
+	makePanel(t, a, ana, `{"name":"Small grid","type":"grid","settings":{"mode":"take","levels":[1]},"sources":`+members(4)+`,"destinations":`+members(2)+`}`)
+	makePanel(t, a, ana, `{"name":"Medium grid","type":"grid","settings":{"mode":"take","levels":[1]},"sources":`+members(40)+`,"destinations":`+members(20)+`}`)
+
 	b.open(srv.URL + "/panels")
 	b.waitFor("the Grid panel in the list, on a page that keeps the 125% root", `!!document.querySelector('.sode-ov__item[data-id="`+id+`"]') && getComputedStyle(document.documentElement).fontSize === '20px'`)
 	b.eval(`document.querySelector('.sode-ov__item[data-id="` + id + `"]').click(); true`)
 	b.waitFor("its picture and words", `(() => {
 		const big = document.querySelector('.sode-ov__big');
 		return big?.querySelector('.pb-hint')?.textContent === 'Grid, all sources by all destinations' && !!big.querySelector('.sode-ov__thumb--grid .sode-ov__k-on') &&
-			big.querySelector('.sode-ov__thumb--grid').dataset.size === 'large' && big.querySelector('.sode-ov__thumb--grid .sode-ov__count')?.textContent === 'all \u00d7 all' &&
+			big.querySelector('.sode-ov__thumb--grid').dataset.size === 'large' && !big.querySelector('.sode-ov__count') && [...big.querySelectorAll('.sode-ov__thumb--grid .sode-ov__tile')].map((x) => x.textContent).join() === 'a,l,l,a,l,l' &&
 			!!document.querySelector('.sode-ov__item[data-id="`+id+`"] .sode-ov__thumb--grid');
 	})()`)
+	b.waitFor("each size shows its counts one character per square in the two bars, the side bar turned and reading upward, with no N by M label", `(() => {
+		const item = (name) => [...document.querySelectorAll('.sode-ov__item')].find((n) => n.textContent.includes(name));
+		const tiles = (name) => [...item(name).querySelectorAll('.sode-ov__tile')].map((x) => x.textContent).join();
+		const dst = [...item('Medium grid').querySelectorAll('.sode-ov__tile--destination')];
+		const src = [...item('Medium grid').querySelectorAll('.sode-ov__tile--source')];
+		return tiles('Small grid') === '4,2' && tiles('Medium grid') === '4,0,2,0' && !document.querySelector('.sode-ov__thumb--grid .sode-ov__count') &&
+			dst.length === 2 && dst.every((x) => getComputedStyle(x).rotate === '-90deg') && dst[0].textContent === '2' && dst[0].getBoundingClientRect().top > dst[1].getBoundingClientRect().top &&
+			src[0].getBoundingClientRect().left < src[1].getBoundingClientRect().left;
+	})()`)
+	b.shot("panels-list")
 	b.check()
 }
