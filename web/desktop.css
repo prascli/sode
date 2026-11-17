@@ -143,18 +143,18 @@
 .sode__menu-all[hidden] {
   display: none;
 }
-/* Destination's sits at the box's bottom right. With destinations added by +, the box keeps a row for it, so chips never reach it. */
-.sode__box > .sode__menu-all {
-  bottom: calc(-1 * var(--sode-all-h));
+/* Destination's hangs off the input row, so its place never depends on the chips. The chips start below its row. */
+.sode__entry > .sode__menu-all {
   position: absolute;
   right: 0;
+  top: 100%;
   z-index: var(--pb-z-dropdown, 10);
 }
-.sode__box:has(> .sode__chips:not([hidden])) {
-  padding-bottom: var(--sode-all-h);
-}
-.sode__box:has(> .sode__chips:not([hidden])) > .sode__menu-all {
-  bottom: 0;
+/* Chips add nothing to the box's width (width 0, then fill), so the button's right edge stays put. */
+.sode__entry ~ .sode__chips:not([hidden]) {
+  min-width: 100%;
+  width: 0;
+  margin-top: calc(var(--sode-all-h) - var(--pb-space-2));
 }
 .sode__menu-all .pb-btn {
   color: var(--pb-text-muted);
