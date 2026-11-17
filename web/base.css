@@ -1268,6 +1268,13 @@ button.sode-up__bar:not(:disabled):hover,
   top: 0;
   z-index: var(--pb-z-sticky);
 }
+/* Where two bars meet (axis 'xy'), so what scrolls under them does not show between their ends. */
+.sode-bigscroll__corner {
+  background: var(--pb-surface-control);
+  position: absolute;
+  z-index: 2;
+}
+.sode-bigscroll__corner[hidden],
 .sode-bigscroll[hidden],
 :root[data-layout="phone"] .sode-bigscroll {
   display: none;
