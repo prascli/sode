@@ -8,6 +8,8 @@ import { createPicks, pickName, pickCount, dropPicks, diagonal } from './gridpan
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
 import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction } from './gridpanelkeys.js';
+import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
+import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
 import { planOf } from './gridpanelplan.js';
 import { gridConfirm } from './gridpanelconfirm.js';
 import { buildGridPanel, paintGridPanel, previewGridPanel } from './gridpanelview.js';
@@ -18,6 +20,7 @@ import { levelBox } from './levelbox.js';
 import { el } from './core.js';
 
 const NOTE_MS = 4000;
+const UNDO_MOVED = 'What Undo would undo has changed; press u again';
 
 const say = (n, text) => {
   if (n.textContent !== text) n.textContent = text;
@@ -27,7 +30,7 @@ const say = (n, text) => {
 const stateOf = (p, was) => {
   const st = createStage({ mode: p.settings?.mode });
   // Instant mode holds nothing staged.
-  return was && st.mode === 'take' ? { ...st, staged: was.staged, busy: was.busy } : { ...st, busy: !!was?.busy };
+  return was && st.mode === 'take' ? { ...st, staged: was.staged, undoId: was.undoId, busy: was.busy } : { ...st, busy: !!was?.busy };
 };
 
 // A focused field or header button keeps its own Enter; the crosspoints are the grid's.
@@ -60,6 +63,7 @@ export function gridBody(ctx, first) {
   count.hidden = true;
   ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
+  let stopped = false;
 
   // What the last polls said, for the staged routes that no longer apply.
   const world = () => ({ env, rights: panel.rights, names: namesReply });
@@ -100,7 +104,7 @@ export function gridBody(ctx, first) {
     }
     const n = stagedCount(st);
     say(count, n ? `${n} staged` : '');
-    const text = stageText(st.error) || refusalText(st.error, names) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const text = stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
     say(ui.status, text);
     ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
   };
@@ -120,28 +124,69 @@ export function gridBody(ctx, first) {
     const all = { ...axes, srcPins: pinsOf(panel.sources, axes.srcs), dstPins: pinsOf(panel.destinations, axes.dsts) };
     if (g) g.setAxes(all);
     else {
-      g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint });
+      g = buildGridPanel(ui.grid, all, { onPress, onName, onPoint, onJump });
       g.onDraw(() => ptr && pointAt(ptr.x, ptr.y));
     }
     setCursor(cur);
   };
 
-  async function send(routes) {
+  // plan is what the confirm showed. An Undo goes to its own route with the id it was staged from, so the server
+  // marks that take undone.
+  async function send(plan) {
+    const { routes, undoId } = plan;
+    const undo = undoId !== undefined;
+    const word = undo ? 'undo' : 'take';
     st = startSend(st);
     render();
     let failed = null;
     try {
-      const reply = await ctx.post('api/v1/takes', { routes });
+      const reply = await (undo ? ctx.post(`api/v1/panels/${ctx.id}/undo`, { id: undoId }) : ctx.post('api/v1/takes', { routes }));
       const bad = (reply?.results || []).filter((r) => !r.ok);
+      const n = (reply?.results || routes).length;
       note = bad.length
-        ? { text: `Take failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`, at: Date.now(), ok: false }
-        : { text: `Taken: ${routes.length === 1 ? '1 route' : `${routes.length} routes`}`, at: Date.now(), ok: true };
+        ? { text: `${undo ? 'Undo' : 'Take'} failed on ${[...new Set(bad.map((r) => names.destination(r.dst)))].join(', ')}`, at: Date.now(), ok: false }
+        : { text: `${undo ? 'Undone' : 'Taken'}: ${n === 1 ? '1 route' : `${n} routes`}`, at: Date.now(), ok: true };
     } catch (e) {
-      failed = e.status === undefined ? 'Sode did not answer, so it is possible that the take was not sent' : e.message || 'The take was refused';
+      failed =
+        e.status === undefined
+          ? `Sode did not answer, so it is possible that the ${word} was not sent`
+          : (undo && e.code === 'conflict' && UNDO_MOVED) || e.message || `The ${word} was refused`;
     }
-    st = afterTake(st, failed);
+    st = undo ? afterUndo(st, failed) : afterTake(st, failed);
     render();
     ctx.poll();
+  }
+
+  // Each ask walks History, so u asks once per press. Only the newest ask's answer counts, and only while nothing
+  // else is in progress.
+  let undoAsk = 0;
+  async function pressUndo() {
+    if (!confirm || st.busy || !ctx.ready()) return;
+    ctx.touched();
+    const ask = ++undoAsk;
+    let next;
+    try {
+      next = (await ctx.callJSON(`api/v1/panels/${ctx.id}/undo`)).undo;
+    } catch (e) {
+      next = e;
+    }
+    if (ask !== undoAsk || stopped || st.busy || confirm.isOpen()) return;
+    if (next instanceof Error) {
+      note = { text: next.status === undefined ? 'Sode did not answer' : next.message || 'Undo is refused', at: Date.now(), ok: false };
+      return render();
+    }
+    const staged = st.undoId === null ? stagedCount(st) : 0;
+    const tried = stageUndo(st, next, env);
+    if (tried.error || !staged) return takeUndo(next);
+    confirm.open({ verb: 'undo', replace: staged, next });
+    render();
+  }
+
+  // Instant mode holds nothing staged, so its Undo confirm opens at once.
+  function takeUndo(next) {
+    st = stageUndo(st, next, env);
+    render();
+    if (!st.error && st.mode === 'instant') openConfirm();
   }
 
   // The Levels box (levelbox.js). An embedded run has none, so the panel's levels setting stands in.
@@ -182,7 +227,7 @@ export function gridBody(ctx, first) {
   const confirm = document.getElementById('confirm')
     ? gridConfirm({
         tally: () => tally,
-        onTake: (plan) => send(plan.routes),
+        onTake: (plan) => (plan.replace ? takeUndo(plan.next) : send(plan)),
         onClose: () => {
           st = cancelConfirm(st);
           render();
@@ -193,6 +238,11 @@ export function gridBody(ctx, first) {
   // Routes that no longer apply are left out with the reason and dropped here.
   function openConfirm() {
     if (!confirm || st.busy) return;
+    // The server sends an Undo whole, so nothing is left out of it here.
+    if (st.undoId !== null) {
+      const routes = confirmRoutes(st);
+      return confirm.open({ ...planOf(routes, names), verb: 'undo', routes, undoId: st.undoId });
+    }
     const was = leftOut(st, world());
     st = keepLive(st, world());
     const routes = confirmRoutes(st);
@@ -204,7 +254,7 @@ export function gridBody(ctx, first) {
   function onPress(xp) {
     if (!ctx.ready() || st.busy || confirm?.isOpen()) return;
     ctx.touched();
-    st = keepLive(st, world());
+    st = keepLive(leaveUndo(st), world());
     const { pairs, err } = stageable(diagonal(picks, xp, axes), env);
     if (err) {
       st = { ...st, error: err };
@@ -240,6 +290,28 @@ export function gridBody(ctx, first) {
     pointAt(x, y);
   }
 
+  // A jump moves the cursor as a key does. r is from gridpaneljump.js.
+  function jumped(r) {
+    if (!r || !g) return;
+    if (r.c) {
+      ptr = null;
+      setCursor(r.c);
+      g.revealCell(r.c);
+    } else {
+      note = { text: jumpText(r, names, tally?.levels || []), at: Date.now(), ok: false };
+      render();
+    }
+  }
+  const jumpFrom = (c) => sourceJump(c, axes, env, pressLevels());
+
+  // A right-click on a source steps on from the cursor while the cursor is in its column.
+  function onJump(kind, n) {
+    if (kind === 'xp') return jumped(jumpFrom({ i: axes.dsts.indexOf(n.dst), j: axes.srcs.indexOf(n.src) }));
+    if (kind === 'dsts') return jumped(jumpFrom({ i: axes.dsts.indexOf(n), j: -1 }));
+    const j = axes.srcs.indexOf(n);
+    jumped(holderJump({ i: cur.j === j ? cur.i : -1, j }, axes, env));
+  }
+
   function moveTo(move) {
     ptr = null;
     setCursor(moveCursor(cur, move, { rows: axes.dsts.length, cols: axes.srcs.length, page: g.page() }));
@@ -260,7 +332,7 @@ export function gridBody(ctx, first) {
     if (e.defaultPrevented) return;
     const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid) });
     if (!act) return;
-    const moves = MOVES.has(act) || act === 'press';
+    const moves = MOVES.has(act) || act === 'press' || act === 'jump' || act === 'step';
     // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
@@ -271,7 +343,10 @@ export function gridBody(ctx, first) {
     } else if (act === 'press') {
       const xp = pointOf(cur, axes);
       if (xp && g) onPress(xp);
-    } else if (act === 'confirm') openConfirm();
+    } else if (act === 'jump') jumped(jumpFrom(cur));
+    else if (act === 'step') jumped(holderJump(cur, axes, env));
+    else if (act === 'undo') pressUndo();
+    else if (act === 'confirm') openConfirm();
     else if (act === 'unpick') {
       picks = dropPicks(picks);
       render();
@@ -318,6 +393,7 @@ export function gridBody(ctx, first) {
       render();
     },
     stop() {
+      stopped = true;
       document.removeEventListener('keydown', onKey, true);
       g?.stop();
       count.remove();

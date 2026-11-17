@@ -12,6 +12,9 @@ const ACTIONS = {
   // Picks go first, then staged routes. With neither, Kiosk mode's own Esc works.
   escape: (c) => (c.picks ? 'unpick' : c.staged ? 'drop' : null),
   ' ': free('press'),
+  g: free('jump'),
+  'shift+g': free('step'),
+  u: free('undo'),
   up: free('up'),
   down: free('down'),
   left: free('left'),

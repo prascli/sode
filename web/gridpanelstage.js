@@ -6,7 +6,8 @@
 // The server takes 200 routes in one take; the Grid stops well under it.
 export const STAGE_MAX = 128;
 
-export const createStage = ({ mode } = {}) => ({ mode: mode === 'instant' ? 'instant' : 'take', staged: [], busy: false, error: null });
+// undoId is set while the stage is this instance's Undo (gridpanelundo.js).
+export const createStage = ({ mode } = {}) => ({ mode: mode === 'instant' ? 'instant' : 'take', staged: [], busy: false, error: null, undoId: null });
 
 // The staged entries as routes for POST /takes, one per destination and source, in the order first staged.
 export function routesOf(st) {
@@ -54,7 +55,7 @@ export const confirmRoutes = (st) => (st.staged.length ? routesOf(st) : null);
 // The confirm closed without a take. Instant mode holds nothing staged.
 export const cancelConfirm = (st) => (st.mode === 'instant' ? dropStaged(st) : st);
 
-export const dropStaged = (st) => ({ ...st, staged: [], error: null });
+export const dropStaged = (st) => ({ ...st, staged: [], error: null, undoId: null });
 
 export function stageText(err) {
   switch (err?.code) {

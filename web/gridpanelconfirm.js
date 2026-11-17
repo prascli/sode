@@ -41,8 +41,12 @@ function routeRow(tally, g, dstName) {
   );
 }
 
-// plan is planOf (gridpanelplan.js); tally() is the last GET /tally answer.
+const routesText = (n) => (n === 1 ? '1 staged route' : `${n} staged routes`);
+
+// plan is planOf (gridpanelplan.js); tally() is the last GET /tally answer. A plan with verb 'undo' is this instance's
+// Undo; with replace set too, it only asks to drop that many staged routes for the Undo.
 export function gridSummary(plan, tally) {
+  if (plan.replace) return [el('div', null, 'Are you sure you want to drop ', strong(routesText(plan.replace)), " and stage this panel's Undo?")];
   const n = plan.items.length;
   const srcs = new Set(plan.items.flatMap((i) => i.groups.map((g) => g.src)));
   const firstSrc = plan.items[0].groups[0].srcName;
@@ -65,6 +69,7 @@ export function gridSummary(plan, tally) {
         ),
       ]
     : [];
+  if (plan.verb === 'undo') left.push(el('div', null, 'This undoes the last take of this panel instance.'));
   if (n === 1) return [...left, question, ...plan.items[0].groups.map((g) => routeRow(tally, g, plan.items[0].dstName))];
   return [
     ...left,
@@ -83,7 +88,7 @@ export function gridSummary(plan, tally) {
 // onTake(plan) sends; onClose(plan) is a cancel.
 export function gridConfirm({ tally, onTake, onClose }) {
   return keyConfirm({
-    verb: () => 'take',
+    verb: (plan) => plan.verb,
     summary: (plan) => gridSummary(plan, tally()),
     // As on the main page (desktop.js): Enter also confirms when the setting says so.
     enter: () => !!S.cfg?.confirmEnter,
