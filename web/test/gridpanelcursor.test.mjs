@@ -1,7 +1,7 @@
 // The Grid panel cursor (gridpanelcursor.js): where it starts, how keys move it, and how it follows new axes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CORNER, MOVES, moveCursor, cursorAt, followCursor, pointOf } from '../gridpanelcursor.js';
+import { CORNER, MOVES, moveCursor, cursorAt, followCursor, pointOf, barOf, rangeCursor } from '../gridpanelcursor.js';
 
 // 10 destination rows by 20 source columns, 4 rows and 6 columns to a screen.
 const dims = { rows: 10, cols: 20, page: { rows: 4, cols: 6 } };
@@ -78,4 +78,20 @@ test('with an item gone the cursor keeps its index on that axis, inside the new 
   const was = { srcs: [7, 3, 9], dsts: [40, 41, 42] };
   assert.deepEqual(followCursor({ i: 2, j: 1 }, was, { srcs: [7, 9], dsts: [40, 41] }), { i: 1, j: 1 });
   assert.deepEqual(followCursor({ i: 2, j: 2 }, was, { srcs: [], dsts: [] }), CORNER);
+});
+
+test('barOf names the bar the cursor is on', () => {
+  assert.equal(barOf({ i: -1, j: 3 }), 'srcs');
+  assert.equal(barOf({ i: 2, j: -1 }), 'dsts');
+  assert.equal(barOf(CORNER), 'corner');
+  assert.equal(barOf({ i: 2, j: 3 }), null);
+});
+
+test('a range move stays on its bar and never reaches the corner', () => {
+  assert.deepEqual(rangeCursor({ i: -1, j: 3 }, 'right', dims), { i: -1, j: 4 });
+  assert.deepEqual(rangeCursor({ i: -1, j: 0 }, 'left', dims), { i: -1, j: 0 });
+  assert.deepEqual(rangeCursor({ i: -1, j: 2 }, 'pageLeft', dims), { i: -1, j: 0 });
+  assert.deepEqual(rangeCursor({ i: -1, j: 18 }, 'pageRight', dims), { i: -1, j: 19 });
+  assert.deepEqual(rangeCursor({ i: 0, j: -1 }, 'up', dims), { i: 0, j: -1 });
+  assert.deepEqual(rangeCursor({ i: 4, j: -1 }, 'pageDown', dims), { i: 8, j: -1 });
 });

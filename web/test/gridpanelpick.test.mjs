@@ -1,7 +1,7 @@
 // Picks and the Diagonal on a Grid panel (gridpanelpick.js). Axes are in display order, which is not router order.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPicks, pickName, dropPicks, pickCount, diagonal } from '../gridpanelpick.js';
+import { createPicks, pickName, dropPicks, pickCount, diagonal, extendPick } from '../gridpanelpick.js';
 
 const axes = { srcs: [30, 10, 20, 40, 50], dsts: [7, 3, 5, 9, 1, 2] };
 const click = (p, kind, n, mods = {}, shown = axes[kind]) => pickName(p, kind, n, mods, shown);
@@ -145,4 +145,20 @@ test('picks no longer on the panel are left out', () => {
     [10, 7],
     [20, 3],
   ]);
+});
+
+test('a Shift move with nothing picked picks from the name the cursor left to the name it is on', () => {
+  let p = extendPick(createPicks(), 'srcs', 10, 20, axes.srcs);
+  assert.deepEqual(p.srcs, [10, 20]);
+  p = extendPick(p, 'srcs', 20, 40, axes.srcs);
+  assert.deepEqual(p.srcs, [10, 20, 40]);
+  p = extendPick(p, 'srcs', 40, 20, axes.srcs);
+  assert.deepEqual(p.srcs, [10, 20], 'moving back makes the range smaller');
+});
+
+test('a Shift move after a pick runs the range from that pick', () => {
+  let p = click(createPicks(), 'dsts', 3);
+  p = extendPick(p, 'dsts', 9, 1, axes.dsts);
+  assert.deepEqual(p.dsts, [3, 5, 9, 1]);
+  assert.deepEqual(p.srcs, [], 'the other bar keeps its picks');
 });
