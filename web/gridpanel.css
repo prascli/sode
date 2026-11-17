@@ -544,6 +544,9 @@ html:has(.sode-gridpanel) {
   margin: 0;
   padding: 0.3rem 0.4rem;
 }
+:root:not([data-layout="phone"]) .sode-gridpanel__levels > .sode__box-head {
+  min-height: 0;
+}
 :root:not([data-layout="phone"]) .sode-gridpanel__levels > .sode__input {
   align-self: start;
   grid-column: 3;
