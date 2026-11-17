@@ -13,6 +13,9 @@ export const COLS_MAX = 24;
 export const DEFAULT_ROWS = 4; // maps one to one onto a hardware key deck
 export const DEFAULT_COLS = 8;
 
+// A Buttons panel's size in words, columns first as in the Panel tab, so it never reads backwards.
+export const sizeText = (rows, cols) => `${cols} column${cols === 1 ? '' : 's'} by ${rows} row${rows === 1 ? '' : 's'}`;
+
 export const FILL_ORDERS = [
   { id: 'across', name: 'Across, then down' },
   { id: 'across-rev', name: 'Right to left, then down' },

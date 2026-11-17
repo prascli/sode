@@ -7,8 +7,8 @@ import { ART_B_CHOICES } from './panellook.js';
 const runEnd = (i) => (i <= ART_B_CHOICES.indexOf('16') ? ART_B_CHOICES.indexOf('16') : ART_B_CHOICES.length - 1);
 
 // The patch one choice gives each target in turn, for the smart menu, the Cell tab and a Grid panel's rows alike.
-// choice is { a } (Icon A: an `art` value, undefined clears it), { b } (Icon B: the glyph the first target gets, each
-// next target the next glyph; undefined clears it) or { clear: true }. The function gives null past the end of an Icon
+// choice is { a }, { b } or { clear: true }. a is Icon A, an `art` value. b is Icon B, the glyph the first target
+// gets; each next target gets the next glyph. An undefined a or b clears it. The function gives null past the end of an Icon
 // B run. null when the choice is no choice or an unknown glyph.
 export function artRun(choice) {
   if (!choice) return null;

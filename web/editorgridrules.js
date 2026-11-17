@@ -234,8 +234,8 @@ export function removeItems(edge, ns) {
   return { ...e, hide: [...hide, ...[...ns].filter((n) => !had.has(n))], items };
 }
 
-// One artwork choice (arttoolrules.js artRun) on the rows ns, a list of router numbers in list order: Icon A on each,
-// or an Icon B run from the first. left counts the rows past the end of the run. The edge is the same when nothing changes.
+// One artwork choice (arttoolrules.js artRun) on the rows ns, router numbers in list order. Icon A goes on each, or
+// Icon B runs from the first. left counts the rows past the end of the run. The edge is the same when nothing changes.
 export function itemsArt(edge, ns, choice) {
   const run = artRun(choice);
   if (!run) return { edge, left: 0 };

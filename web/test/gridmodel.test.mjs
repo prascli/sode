@@ -464,5 +464,8 @@ test('setCells patches each listed cell in one copy and skips a null patch', () 
       ['-', '-'],
     ],
   );
-  assert.equal(setCells(g, [{ r: 1, c: 2 }], () => null), g);
+  assert.equal(
+    setCells(g, [{ r: 1, c: 2 }], () => null),
+    g,
+  );
 });

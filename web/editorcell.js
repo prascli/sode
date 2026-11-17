@@ -1,7 +1,6 @@
-// The sidebar's Cell tab: caption, levels, font size and artwork of the selected cells, or the artwork of the rows
-// selected in a Grid panel's list. With several selected, each field sets them all, and Icon B runs one glyph per cell
-// in Find's fill order (one row per glyph in list order on a Grid panel), as the smart menu's Artwork tool does
-// (arttoolrules.js). Fields are built one time and updated in place, so typing a caption keeps the caret.
+// The sidebar's Cell tab: caption, levels, font size and artwork of the selected cells. On a Grid panel it sets the
+// artwork of the rows selected in a list. With several selected, each field sets them all. Icon B runs one glyph per
+// cell in Find's fill order, or per row in list order, as the smart menu's Artwork tool does (arttoolrules.js). Fields are built one time and updated in place, so typing a caption keeps the caret.
 import { el, S } from './core.js';
 import { field } from './formbits.js';
 import { single, setCells, selCells } from './gridmodel.js';

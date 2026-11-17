@@ -52,7 +52,10 @@ export function createPanelTab(ed) {
       ['buttons', 'Buttons'],
       ['grid', 'Grid'],
     ],
-    (v) => ed.setFields(v === 'grid' ? { type: v, sources: { members: [] }, destinations: { members: [] } } : { type: v, sources: undefined, destinations: undefined }),
+    (v) =>
+      ed.setFields(
+        v === 'grid' ? { type: v, sources: { members: [] }, destinations: { members: [] } } : { type: v, sources: undefined, destinations: undefined },
+      ),
   );
   const typeNote = el('span', 'sode__hint');
   const typeField = el('div', 'sode__field', el('span', 'sode__field-label', 'Panel type'), type.node, typeNote);

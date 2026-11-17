@@ -78,4 +78,3 @@ test('Clear empties the list but keeps entries outside the Rights; All goes back
   assert.deepEqual(clearEdge({ members: 'all', hide: [1] }, null, 'sources'), { members: [], items: {} });
   assert.deepEqual(followRouter({ members: [3], hide: [], items: { 3: { art: 'tv' } } }), { members: 'all', items: { 3: { art: 'tv' } } });
 });
-

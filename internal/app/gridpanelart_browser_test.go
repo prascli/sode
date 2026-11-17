@@ -70,21 +70,19 @@ func TestChromeGridPanelArt(t *testing.T) {
 			t.Errorf("a name lost its text under a default that hides text: %s", q)
 		}
 	}
-	// The editor's list rows set artwork: Icon A and Icon B on source 3, saved on the item.
+	// The editor's Cell tab sets a selected row's artwork: Icon A and Icon B on source 3, saved on the item.
 	b.open(srv.URL + "/panels/editor?panel=" + id)
 	b.waitFor("the lock goes", `!document.documentElement.dataset.sodeLock`)
-	b.waitFor("the Sources and Destinations tab", `!!document.getElementById('tab-ed-lists')`)
-	b.eval(`document.getElementById('tab-ed-lists').click(); true`)
 	row := `document.querySelector('#ed-sources-list li[data-id="3"]')`
 	b.waitFor("the source rows", row+` !== null`)
-	b.eval(row + `.querySelector('[data-act="art"]').click(); true`)
-	b.waitFor("the artwork control opens for that row", `!document.getElementById('ed-sources-art').hidden && document.getElementById('ed-sources-art-head').textContent.startsWith('Artwork for ')`)
-	b.eval(`document.querySelector('#ed-sources-art .pb-btn[aria-expanded]').click(); true`)
-	b.waitFor("Icon A choices", `!!document.querySelector('#ed-sources-art button[aria-label="camera"]')`)
-	b.eval(`document.querySelector('#ed-sources-art button[aria-label="camera"]').click(); true`)
-	b.waitFor("Icon B choices", `!!document.querySelector('#ed-sources-art [role="group"][aria-label="Icon B"] button[aria-label="7"]')`)
-	b.eval(`document.querySelector('#ed-sources-art [role="group"][aria-label="Icon B"] button[aria-label="7"]').click(); true`)
-	b.waitFor("the row says it has artwork", row+`.textContent.includes('artwork')`)
+	b.eval(row + `.querySelector('.sode-pages__name').click(); true`)
+	cell := `document.getElementById('panel-ed-cell')`
+	b.waitFor("the Cell tab opens on that row", `document.getElementById('tab-ed-cell').getAttribute('aria-selected') === 'true' && document.getElementById('ed-cell-kind').textContent.startsWith('Source 4')`)
+	b.eval(`[...` + cell + `.querySelectorAll('.pb-btn')].find((x) => x.textContent === 'Choose icon').click(); true`)
+	b.waitFor("Icon A choices", `!!`+cell+`.querySelector('button[aria-label="camera"]')`)
+	b.eval(cell + `.querySelector('button[aria-label="camera"]').click(); true`)
+	b.eval(cell + `.querySelector('[role="group"][aria-label="Icon B"] button[aria-label="7"]').click(); true`)
+	b.waitFor("the row shows its artwork", row+`.querySelector('.sode-edge__art .sode-panel__art-b')?.textContent === '7'`)
 	b.eval(`document.getElementById('ed-save').click(); true`)
 	b.waitFor("saved", `document.getElementById('ed-state').textContent === 'Saved'`)
 	srcs, _ := readPanel(t, a, ana, id)["sources"].(map[string]any)

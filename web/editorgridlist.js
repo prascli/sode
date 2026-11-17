@@ -1,5 +1,5 @@
 // A Grid panel's Sources or Destinations list in the editor: the panel's items in list order, each with a grip, Pin,
-// Move and Remove, and Add from the router under it (editorrouterlist.js). Pin, Move and Remove act on every selected
+// Move and Remove. Add from the router is under it (editorrouterlist.js). Pin, Move and Remove act on every selected
 // row; the Cell tab sets the selected rows' artwork (editorcell.js). Rules are editorgridrules.js; each edit is one
 // ed.setFields of the edge.
 import { el, icon } from './core.js';
@@ -15,8 +15,8 @@ import { edgeRows, moveRow, clearEdge, followRouter, selectRows, moveRows, stepR
 const FIRST = 30; // rows drawn before the list has a height
 const NONE = () => ({ selected: new Set(), anchor: null });
 
-// key is the panel field and the /names list ('sources' or 'destinations'), rights the Rights key, what the item word,
-// edge the side of the grid it is drawn on. onPick runs when the selection changes.
+// key is the panel field and the /names list ('sources' or 'destinations'). rights is the Rights key, what the item
+// word, side the edge of the grid it is drawn on. onPick runs when the selection changes.
 export function createEdgeList(ed, { key, rights, what, side, onPick }) {
   const edge = () => ed.fields()[key];
   const router = () => ed.routerNames()?.[key] || [];
@@ -97,7 +97,17 @@ export function createEdgeList(ed, { key, rights, what, side, onPick }) {
     all,
     clear,
   );
-  const acts = el('div', 'sode-edge__acts', selAll, selNone, el('span', 'sode-edge__sep'), selPin, selUnpin, el('span', 'sode-edge__moves', ...moves), selRemove);
+  const acts = el(
+    'div',
+    'sode-edge__acts',
+    selAll,
+    selNone,
+    el('span', 'sode-edge__sep'),
+    selPin,
+    selUnpin,
+    el('span', 'sode-edge__moves', ...moves),
+    selRemove,
+  );
   const add = el('section', 'sode-edge__add', el('h3', 'sode-side__h', 'Add from the router'), routerList.node);
   const node = el('section', 'sode-edge', head, state, outside, acts, selNote, list, add);
   node.id = `ed-${key}-col`;

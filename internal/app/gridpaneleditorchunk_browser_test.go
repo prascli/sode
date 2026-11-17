@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-// A Grid panel's Sources tab at 2500 sources: the router list draws only the rows in view. A typed range uses the
-// numbers as shown (offset 1), and Enter selects it. Add appends it and skips what is there. Shift-click covers only
-// the rows Find shows, and the selection stays when Find changes. Save keeps the list.
+// A Grid panel's Sources list at 2500 sources. Add from the router draws only the rows in view. It lists only what
+// the panel does not have. A typed range uses the numbers as shown (offset 1), and Enter selects it. Add appends it.
+// A click adds one item. Shift-click covers only the rows Find shows. Save keeps the list.
 func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t, "SIM_SOURCES=2500", "SIM_DESTS=750")
@@ -21,10 +21,7 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b.open(srv.URL + "/panels/editor?new")
 	signInOnPad(b)
 	b.waitFor("the lock goes", `!document.documentElement.dataset.sodeLock`)
-	b.waitFor("the sidebar is built", `!!document.getElementById('ed-set-type')`)
-	b.eval(`const s = document.getElementById('ed-set-type'); s.value = 'grid'; s.dispatchEvent(new Event('change', { bubbles: true })); true`)
-	b.waitFor("the Sources and Destinations tab", `!!document.getElementById('tab-ed-lists')`)
-	b.eval(`document.getElementById('tab-ed-lists').click(); true`)
+	asGrid(b, false)
 
 	rows := `document.querySelectorAll('#ed-sources-router [data-n]:not([hidden])')`
 	b.waitFor("the router list shows its first rows", `!!document.querySelector('#ed-sources-router [data-n="0"]:not([hidden])')`)
@@ -34,8 +31,10 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	b.eval(`const r = document.getElementById('ed-sources-router'); r.scrollTop = r.scrollHeight; true`)
 	b.waitFor("the last source shows at the end", `!!document.querySelector('#ed-sources-router [data-n="2499"]:not([hidden])')`)
 
-	// The panel's own list follows the router too, so it has 2500 rows. Only the rows in view have nodes, and an
+	// All (follow router): the panel's own list has 2500 rows, and nothing is left to add. Only the rows in view have nodes, and an
 	// edit draws only those again. Every row drawn cost 66,000 elements, 33,000 listeners and 800 ms an edit.
+	b.eval(`document.getElementById('ed-sources-all').click(); true`)
+	b.waitFor("nothing is left to add", `!document.querySelector('#ed-sources-router [data-n]:not([hidden])') && document.getElementById('ed-sources-shown').textContent === '0 not on the panel.'`)
 	b.waitFor("the panel's list has every source", `document.getElementById('ed-sources-state').textContent.startsWith('2500 sources')`)
 	b.waitFor("the panel's list shows its first rows", `!!document.querySelector('#ed-sources-list li[data-id="0"]')`)
 	if n := int(b.eval(`document.querySelectorAll('#ed-sources-list li').length`).(float64)); n > 60 {
@@ -109,16 +108,17 @@ func TestChromeGridPanelEditorChunk(t *testing.T) {
 	find("bars")
 	b.waitFor("Find shows Bars", rows+`.length === 1`)
 	click(1, "")
+	b.waitFor("a click adds Bars at the end", `(async () => (await `+members+`) === '`+span(100, 149)+`,1')()`)
 	find("cam 1")
 	b.waitFor("Find shows four cameras", rows+`.length === 4`)
 	click(12, "metaKey: true")
 	click(22, "shiftKey: true")
-	b.waitFor("Shift-click covers only the rows Find shows, and Bars stays selected", `document.getElementById('ed-sources-add').textContent === 'Add 4' && document.getElementById('ed-sources-selected').textContent.includes('1 not shown')`)
+	b.waitFor("Shift-click covers only the rows Find shows", `document.getElementById('ed-sources-add').textContent === 'Add 3' && document.getElementById('ed-sources-selected').textContent === '3 selected.'`)
 	b.waitFor("the selection is marked", `document.querySelector('#ed-sources-router [data-n="21"]').getAttribute('aria-selected') === 'true'`)
 	b.shot("selected")
 	b.eval(`document.getElementById('ed-sources-add').click(); true`)
 	b.waitFor("Add appends the selection in router order", `(async () => (await `+members+`) === '`+span(100, 149)+`,1,12,21,22')()`)
-	b.waitFor("the router list marks what the panel has", `document.querySelector('#ed-sources-router [data-n="12"]').textContent.includes('in panel')`)
+	b.waitFor("what the panel has leaves Add from the router", `!document.querySelector('#ed-sources-router [data-n="12"]:not([hidden])') && `+rows+`.length === 1`)
 	b.shot("chunk")
 
 	b.eval(`document.getElementById('ed-name').value = 'Chunk grid'; document.getElementById('ed-name').dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('ed-save').click(); true`)

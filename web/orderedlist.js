@@ -7,8 +7,8 @@ import { dropTo, canMove } from './orderedlistrules.js';
 // opts: rowClass, toolsClass, move(from, to), remove(i), removeTip (the button's name, for example 'Delete Page').
 // drop(from, over, after) is opt-in: the drop goes before or after the row under it by the pointer's half, and the
 // caller places it. Without it a drop takes the place of the row under it, as the Pages bar needs.
-// grip(i) is opt-in too: a drag then starts only from a grip handle at the row's start, and the browser's drag image
-// is a chip with grip(i)'s text, not the row. dragging(i | -1) tells the caller when a drag starts and ends.
+// grip(i) is opt-in too. A drag then starts only from a grip handle at the row's start. The browser's drag image is a
+// chip with the text of grip(i), not the row. dragging(i | -1) tells the caller when a drag starts and ends.
 // Buttons carry data-act (the caller's act, or up, down, delete) and data-i, so a caller can put focus back after a repaint.
 export function createOrderedList(opts) {
   let dragFrom = -1;
@@ -89,7 +89,7 @@ export function createOrderedList(opts) {
       if (opts.drop) opts.drop(from, i, sideOf(li, e));
       else opts.move(from, dropTo(from, i));
     });
-    // A row a scroll redraws is a new node, so the drop, not the old row's dragend, may be the last event.
+    // A row a scroll redraws is a new node, so the drop, not the old row's dragend, can be the last event.
     from.addEventListener('dragend', () => {
       dragFrom = -1;
       opts.dragging?.(-1);

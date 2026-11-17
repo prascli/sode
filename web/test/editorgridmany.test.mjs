@@ -96,7 +96,9 @@ test('itemsArt runs Icon B down the rows in list order, as the Cell tab does on 
   const end = itemsArt(e, [5, 3, 4], { b: '15' });
   assert.deepEqual([end.edge.items, end.left], [{ 5: { artB: '15' }, 3: { artB: '16' } }, 1]);
   assert.deepEqual(itemsArt(out, [5, 3, 4], { b: undefined }).edge.items, {});
-  assert.deepEqual(itemsArt({ members: [1], items: { 1: { art: 'icon:mic', artB: '2', pinned: true } } }, [1], { clear: true }).edge.items, { 1: { pinned: true } });
+  assert.deepEqual(itemsArt({ members: [1], items: { 1: { art: 'icon:mic', artB: '2', pinned: true } } }, [1], { clear: true }).edge.items, {
+    1: { pinned: true },
+  });
 });
 
 test('edgeListKey names the list keys by chord; other keys are null', () => {
