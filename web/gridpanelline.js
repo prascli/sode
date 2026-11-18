@@ -100,7 +100,7 @@ export function lineShown(p, a, b, axes) {
 
 // A release: pairs through stageable (protected rows skipped), then stageRoutes. Returns stageRoutes' { st, send,
 // confirm } plus skipped (the protected pairs) and over (past the cap, so nothing is staged). As a press: Take mode
-// only stages, and Instant mode confirms more than one route. A line left with one route never unstages it.
+// only stages, and Instant mode sends at once. A line left with one route never unstages it.
 export function lineStage(st, pairs, env, levels) {
   if (!pairs.length) return { st, send: null, confirm: false, skipped: [], over: false };
   const { pairs: kept, err } = stageable(pairs, env);

@@ -1830,7 +1830,7 @@ body {
 .sode-side__icons::-webkit-scrollbar-thumb {
   background: var(--pb-edge-hard);
 }
-/* Panel picker in the toolbar, with the Rename pencil (editorname.js) beside it. The Name field stays hidden. */
+/* Panel picker in the toolbar, with the Rename icon (editorname.js) beside it. The Name field stays hidden. */
 .sode-ed__pick {
   padding-inline-start: var(--pb-space-3);
 }

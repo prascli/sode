@@ -266,9 +266,11 @@ export function gridBody(ctx, first) {
   // the state clears.
   const status = () => {
     const held = stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names);
-    const text = held || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const fresh = Date.now() - note.at < NOTE_MS && note.text;
+    const text = held || fresh || '';
     const ok = !st.error && !!text && note.ok;
-    const banner = head?.say({ text, kind: ok ? 'ok' : 'error', key: held || `${note.at}`, held: !!held });
+    const behind = held && fresh && fresh !== held ? `${note.at}` : undefined;
+    const banner = head?.say({ text, kind: ok ? 'ok' : 'error', key: held || `${note.at}`, held: !!held, behind });
     say(ui.status, banner ? '' : text);
     ui.status.classList.toggle('sode-panel__status--ok', ok);
   };

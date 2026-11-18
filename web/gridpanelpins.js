@@ -5,9 +5,14 @@
 import { el } from './core.js';
 import { bigScroll } from './bigscroll.js';
 
+// A wheel notch is about 100 px and a trackpad step a few px; Chrome's own wheel glide on the grid is about this long.
+const STEP_PX = 40;
+const GLIDE_MS = 140;
+
 // frame holds the grid's scroller (scroll). onAt(kind, at) runs when a bar moves a band's start; kind is 'srcs' or
 // 'dsts'. at is in pins with the part of a pin, so the band moves with each px, as the grid does. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
 // of its pinned names.
+
 export function pinBars(frame, scroll, onAt) {
   const make = (kind) => {
     const y = kind === 'dsts';
@@ -21,6 +26,31 @@ export function pinBars(frame, scroll, onAt) {
     let size = 1;
     let at = 0;
     const pos = () => (y ? sc.scrollTop : sc.scrollLeft);
+    const put = (v) => {
+      sc[y ? 'scrollTop' : 'scrollLeft'] = v;
+    };
+    // A wheel step glides to its goal as the grid's own scroll does; a trackpad's small steps go at once. goal is
+    // null with no glide running.
+    let goal = null;
+    let from = 0;
+    let t0 = 0;
+    let raf = 0;
+    const glide = (now) => {
+      const k = Math.min(1, (now - t0) / GLIDE_MS);
+      const v = from + (goal - from) * (1 - (1 - k) ** 3);
+      put(v);
+      if (k < 1 && Math.abs(pos() - goal) >= 0.5) raf = requestAnimationFrame(glide);
+      else {
+        put(goal);
+        raf = 0;
+        goal = null;
+      }
+    };
+    const halt = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      goal = null;
+    };
     sc.addEventListener(
       'scroll',
       () => {
@@ -59,14 +89,27 @@ export function pinBars(frame, scroll, onAt) {
       },
       // Puts the bar at band start k (pins, with the part of a pin), with no onAt: the view set it.
       to(k) {
+        halt();
         at = k;
         const v = k * size;
         if (Math.abs(pos() - v) >= 1) sc[y ? 'scrollTop' : 'scrollLeft'] = v;
       },
+      // d in px. A step of a wheel notch's size glides; a run of small ones (a trackpad) goes at once.
       by(d) {
-        sc[y ? 'scrollTop' : 'scrollLeft'] = pos() + d;
+        const max = (y ? sc.scrollHeight - sc.clientHeight : sc.scrollWidth - sc.clientWidth) || 0;
+        const base = goal ?? pos();
+        const next = Math.max(0, Math.min(max, base + d));
+        if (Math.abs(d) < STEP_PX) {
+          halt();
+          return put(next);
+        }
+        goal = next;
+        from = pos();
+        t0 = performance.now();
+        raf ||= requestAnimationFrame(glide);
       },
       stop() {
+        halt();
         bar?.stop();
         sc.remove();
       },

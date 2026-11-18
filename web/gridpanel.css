@@ -1306,19 +1306,27 @@ html:has(.sode-gridpanel) {
   border-color: var(--pb-accent);
 }
 /* The panel page (gridpanelheadview.js): results, refusals and the "This panel was changed" banner fill the gap
-   between the search boxes and Clear, under the note's row too. The gap keeps room for the banner (10rem) before the
-   search boxes grow to 14rem. The box takes the gap's size and never sets it (contain: size), so a message that shows
-   or goes never moves the grid. A result shows over the "This panel was changed" banner. */
+   between the search boxes and Clear, as tall as the Find box, with a rule (r3) after the Find box. The gap keeps room
+   for the banner (10rem) before the search boxes grow to 14rem. The box takes the gap's size and never sets it
+   (contain: size), so a message that shows or goes never moves the grid. A result shows over the "This panel was
+   changed" banner. */
 :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-gridpanel__msg) {
   grid-template-areas:
-    "top   top   top  top  top  top  top  top   top"
-    "lab   lab   .    .    .    msg  note note  note"
-    "picks input r1   fsrc mode msg  r2   clear take"
-    "picks input r1   fdst mode msg  r2   clear take";
-  grid-template-columns: auto var(--sode-lvl-w) auto minmax(8rem, 14rem) 4.5rem minmax(10rem, 1fr) auto 5rem 7rem;
+    "top   top   top  top  top  top  top  top  top   top"
+    "lab   lab   .    .    .    .    .    note note  note"
+    "picks input r1   fsrc mode r3   msg  r2   clear take"
+    "picks input r1   fdst mode r3   msg  r2   clear take";
+  grid-template-columns: auto var(--sode-lvl-w) auto minmax(8rem, 14rem) 4.5rem auto minmax(10rem, 1fr) auto 5rem 7rem;
+}
+.sode-gridpanel__rule--3 {
+  grid-area: r3;
+}
+/* The column gap spaces this rule, so the banner keeps room for Snooze and Apply now side by side at 1280 px. */
+:root:not([data-layout="phone"]) .sode-gridpanel__rule--3 {
+  margin: 0;
 }
 :root:not([data-layout="phone"]) .sode-gridpanel__msg {
-  align-items: center;
+  align-items: stretch;
   contain: size;
   display: grid;
   grid-area: msg;
@@ -1328,6 +1336,33 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__msg > * {
   grid-area: 1 / 1;
   min-width: 0;
+}
+/* A result fills the box, top to bottom. */
+:root:not([data-layout="phone"]) .sode-gridpanel__res > .sode__banner {
+  height: 100%;
+}
+:root:not([data-layout="phone"]) .sode-gridpanel__res .sode__banner-in {
+  display: flex;
+  flex-direction: column;
+}
+:root:not([data-layout="phone"]) .sode-gridpanel__res .pb-alert {
+  align-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+:root:not([data-layout="phone"]) .sode-gridpanel__msg > .sode-panel__update {
+  align-self: center;
+}
+/* The count of messages held back (bannerStep), in the box's bottom corner, over the result. */
+.sode-gridpanel__held {
+  align-self: end;
+  font-size: var(--pb-text-xs);
+  justify-self: end;
+  margin: var(--pb-space-1);
+  z-index: 1;
+}
+.sode-gridpanel__held[hidden] {
+  display: none;
 }
 .sode-gridpanel__msg:has(.sode__banner:not(.sode__banner--out)) > .sode-panel__update {
   visibility: hidden;
@@ -1355,6 +1390,10 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__msg > .sode-panel__update .sode__banner-body {
   flex: 1 1 100%;
 }
+/* Less room above and below, so the words and the buttons fit in the Find box's height. */
+:root:not([data-layout="phone"]) .sode-gridpanel__msg > .sode-panel__update .pb-alert {
+  padding-block: var(--pb-space-1);
+}
 /* The header row on the panel page: the header, the buttons out of it, then the status block at the right end. Kiosk
    mode has no header row, so the grid moves up. */
 :root:not([data-layout="phone"]) .sode-gridpanel__headrow > .sode__conn {
@@ -1369,7 +1408,19 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) :is(.sode-gridpanel__namerule, .sode-gridpanel__toolrule) {
   margin: var(--pb-space-2) var(--pb-space-1);
 }
-.sode-gridpanel__name > .sode-gridpanel__namerule:has(+ [hidden]),
+/* A rule right of the Lock chip's "Signed in as". The chip floats (lock.css), so the rule takes the clearance that the
+   header and the buttons have on the other pages (panels.css). */
+.sode-gridpanel__whorule {
+  display: none;
+}
+[data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-gridpanel__whorule {
+  display: block;
+  flex: none;
+  margin: var(--pb-space-2) 0 var(--pb-space-2) calc(var(--sode-who-w, 0px) + var(--pb-space-2));
+}
+[data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-gridpanel__whorule ~ .sode-panels__head {
+  padding-inline-start: 0;
+}
 .sode-gridpanel__tools:has(> #panel-screen[hidden]) > .sode-gridpanel__toolrule,
 :root[data-layout="phone"] :is(.sode-gridpanel__namerule, .sode-gridpanel__toolrule, .sode-gridpanel__edit, .sode-gridpanel__copy, .sode-gridpanel__msg) {
   display: none;
@@ -1382,7 +1433,7 @@ html:has(.sode-gridpanel) {
     grid-template-columns: auto minmax(5rem, var(--sode-lvl-w)) auto minmax(5rem, 14rem) 4.5rem 1fr auto 5rem 6.4rem;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__deck:has(> .sode-gridpanel__msg) {
-    grid-template-columns: auto minmax(5rem, var(--sode-lvl-w)) auto minmax(5rem, 14rem) 4.5rem minmax(6rem, 1fr) auto 5rem 6.4rem;
+    grid-template-columns: auto minmax(5rem, var(--sode-lvl-w)) auto minmax(5rem, 14rem) 4.5rem auto minmax(6rem, 1fr) auto 5rem 6.4rem;
   }
   :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-gridpanel__levels > .sode__input {
     font-size: var(--pb-text-lg);
@@ -1410,4 +1461,7 @@ html:has(.sode-gridpanel) {
    (panels.css). */
 [data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-panels__head[hidden] + .sode-gridpanel__tools {
   margin-inline-start: calc(var(--sode-who-w, 0px) + var(--pb-space-4));
+}
+[data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-gridpanel__whorule ~ .sode-panels__head[hidden] + .sode-gridpanel__tools {
+  margin-inline-start: 0;
 }

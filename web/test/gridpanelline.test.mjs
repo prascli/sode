@@ -149,7 +149,7 @@ test('a line skips protected rows and says which', () => {
   );
 });
 
-test('a line of more than one route stages in Take mode and confirms in Instant mode', () => {
+test('a line of more than one route stages in Take mode and sends at once in Instant mode', () => {
   const pairs = [
     { src: 1, dst: 7 },
     { src: 1, dst: 3 },
@@ -162,8 +162,8 @@ test('a line of more than one route stages in Take mode and confirms in Instant 
     [7, 3],
   );
   const inst = lineStage(createStage({ mode: 'instant' }), pairs, env(), [1]);
-  assert.equal(inst.confirm, true);
-  assert.equal(inst.send, null);
+  assert.equal(inst.confirm, false);
+  assert.equal(inst.send.length, 2);
 });
 
 test('a line left with one route stages it like a press, but never unstages a staged one', () => {

@@ -230,17 +230,15 @@ test(`a Diagonal that would take the total past ${STAGE_MAX} stages nothing and 
   );
 });
 
-test('Instant mode: a press of more than one route stages it and asks for the confirm', () => {
+test('Instant mode: a press of more than one route sends at once, with no confirm', () => {
   const r = diag(createStage({ mode: 'instant' }), three);
-  assert.equal(r.send, null);
-  assert.equal(r.confirm, true);
-  assert.equal(confirmRoutes(r.st).length, 3);
+  assert.equal(r.confirm, false);
+  assert.equal(r.send.length, 3);
+  assert.equal(stagedCount(r.st), 0);
 });
 
-test('Instant mode: a cancelled confirm drops those routes, so the next press stands alone', () => {
-  const st = cancelConfirm(diag(createStage({ mode: 'instant' }), three).st);
-  assert.equal(stagedCount(st), 0);
-  const { send } = press(st, 5, 20);
+test('Instant mode: the press after a Diagonal stands alone', () => {
+  const { send } = press(diag(createStage({ mode: 'instant' }), three).st, 5, 20);
   assert.deepEqual(send, [{ src: 5, dst: 20, levels: [1, 2] }]);
 });
 
