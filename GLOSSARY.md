@@ -236,6 +236,10 @@ The list of copies that other users sent to a user and that the user has not acc
 A link to one preset or one panel on this install, also shown as a QR code. It works only on the install that made it.
 _Avoid_: share link
 
+**Interruptions**:
+The live panels, streams, sessions and browsers that a Settings save ends or narrows. The review lists them before Save, and the record of the save keeps them, since they do not come back. The exception is a Public panel page, which comes back by itself when its panel is Public again.
+_Avoid_: What this stops
+
 ### Panels
 
 **Panel**:
@@ -410,6 +414,18 @@ The state where keys act on History entries instead of the patch boxes. Esc from
 
 **Compact view**:
 The desktop main page with History hidden and the title, patch boxes and a smaller Presets row centred in the window. The Settings and Sode Panels buttons, the Lock bar and the Server and Router status fade out until pointed at or focused. The status shows again whenever either link is not up. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
+
+**Topic**:
+A top-level group of Settings sections, with a heading band on the page and a branch in the sidebar tree. With v2, Settings has five topics: Preferences, Look and feel, Routers, Access and Server.
+
+**Preferences**:
+The Settings topic for a person's own choices, saved to This browser or Me. It holds This browser and My user. Every role sees it.
+
+**Look and feel**:
+The Settings topic for how Sode looks and acts on every browser: Everyone's defaults, Branding, History, Level colors and Confirm and results.
+
+**Routers** / **Access** / **Server**:
+The other three Settings topics. Routers holds the Routers list and one block of sections for each router. Access holds the locks, users, API and panel sign-in. Server holds the proxy, Export & Import and the setup wizard.
 
 **Server link**:
 The connection between a browser and the Sode server.
