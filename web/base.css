@@ -1,7 +1,7 @@
 /* Sode page layout. Tokens only; components come from patchbay. */
 
 /* Whole-UI scale: sizes are rem, so the root font size scales everything (never zoom); the phone layout stays at 100%.
-   A Grid panel's page and its Test it live preview are 112.5%: the owner asked for the size of 125% at 90% zoom. The
+   A Grid panel's page and its Live Editor preview are 112.5%: the owner asked for the size of 125% at 90% zoom. The
    :not() keeps this rule from winning over the phone's 100%. */
 html {
   font-size: 125%;

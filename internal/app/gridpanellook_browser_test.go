@@ -318,5 +318,21 @@ func TestChromeGridPanelLook(t *testing.T) {
 			Math.abs(src[0].width - cell.width) < 1.5 && tiles.every((x) => getComputedStyle(x).translate === 'none');
 	})()`)
 	b.shot("panels-list")
+	// One square size in every picture size: the list's pictures alike, and the large preview of a Large and a Small panel alike.
+	b.waitFor("the list's Small, Medium and Large pictures have squares of one size, and the pictures grow with them", `(() => {
+		const w = (name) => [...document.querySelectorAll('.sode-ov__item')].find((n) => n.textContent.includes(name)).querySelector('.sode-ov__thumb--grid > i').getBoundingClientRect().width;
+		const item = (name) => [...document.querySelectorAll('.sode-ov__item')].find((n) => n.textContent.includes(name));
+		const box = (name) => item(name).querySelector('.sode-ov__thumb--grid').getBoundingClientRect();
+		const who = (name) => item(name).querySelector('.sode-ov__who').getBoundingClientRect().left;
+		const big = document.querySelector('.sode-ov__item[data-id="`+id+`"] .sode-ov__thumb--grid > i').getBoundingClientRect().width;
+		const small = w('Small grid'), medium = w('Medium grid');
+		return small > 4 && Math.abs(small - big) < 1 && Math.abs(medium - big) < 1 && box('Small grid').width < box('Medium grid').width &&
+			Math.abs(who('Small grid') - who('Medium grid')) < 1;
+	})()`)
+	b.eval(`window.__bigSq = document.querySelector('.sode-ov__big .sode-ov__thumb--grid > i').getBoundingClientRect().width; [...document.querySelectorAll('.sode-ov__item')].find((n) => n.textContent.includes('Small grid')).click(); true`)
+	b.waitFor("the Small panel's large preview has the Large panel's square size", `(() => {
+		const big = document.querySelector('.sode-ov__big .sode-ov__thumb--grid');
+		return big?.dataset.size === 'small' && Math.abs(big.querySelector(':scope > i').getBoundingClientRect().width - window.__bigSq) < 1;
+	})()`)
 	b.check()
 }
