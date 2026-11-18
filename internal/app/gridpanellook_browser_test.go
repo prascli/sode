@@ -71,7 +71,7 @@ func TestChromeGridPanelLook(t *testing.T) {
 		const name = [...document.querySelector('.sode-gridpanel__name').children].filter((n) => n.getClientRects().length).map((n) => n.id || (n.classList.contains('pb-divider') ? '|' : '?'));
 		return !!s && new URL(s.href).hash === '#settings' && new URL(s.href).pathname === '/' && s.classList.contains('pb-btn--ghost') &&
 			ids.join() === 'Settings,Panels,Edit panel,|,panel-screen' && new URL(edit.href).pathname === '/panels/editor' &&
-			name.join() === 'panel-title,|,panel-instance' && r.left > title.right && r.right < innerWidth / 2;
+			name.join() === 'panel-title,panel-instance,|' && r.left > title.right && r.right < innerWidth / 2;
 	})()`)
 	b.waitFor("the title, the instance name and the buttons are on the Lock chip's centre line", `(() => {
 		const mid = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return (r.top + r.bottom) / 2; };
