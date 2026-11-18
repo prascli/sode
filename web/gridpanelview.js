@@ -9,7 +9,6 @@ import { bigScroll } from './bigscroll.js';
 import {
   axisSpan,
   spanMax,
-  indexAt,
   slotAt,
   pageOf,
   placeAt,
@@ -264,6 +263,14 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), icon(arrow));
   const head = el('div', 'sode-gridpanel__head', label('src', 'Sources', 'arrow-left'), label('dst', 'Destinations', 'arrow-down'));
   corner.append(head);
+  // A pinned band's pins sit in a box that moves by the part of a pin (bandVars) inside one that clips at the band's
+  // edges (gridpanel.css), so a band scroll moves one node and restyles none of its pins. axes is 'x', 'y' or 'xy'.
+  const bandBox = (host, axes) => {
+    const box = el('div', 'sode-gridpanel__shift');
+    host.append(el('div', `sode-gridpanel__clip sode-gridpanel__clip--${axes}`, box));
+    return box;
+  };
+  const bands = { top: bandBox(top, 'y'), side: bandBox(side, 'x'), corner: bandBox(corner, 'xy'), srcs: bandBox(corner, 'x'), dsts: bandBox(corner, 'y') };
   // The cursor (gridpanelcursor.js) is one node, moved by transform only. It is not in the overlay: on a bar or a
   // pinned item it must draw above the sticky bands.
   const cursor = el('div', 'sode-gridpanel__cursor', el('span', 'sode-gridpanel__ring'));
@@ -374,8 +381,6 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // The names of the crosspoint under the cursor; none while the cursor is on a bar.
   const cueOf = () => (cur.i >= 0 && cur.j >= 0 ? { src: ax.srcs[cur.j], dst: ax.dsts[cur.i] } : {});
   // Pools and the window maths work in slots (gridpanelwindow.js itemOf); ax, the cursor and the run in items.
-  const srcOf = (j) => ax.srcs[itemOf(j, band.srcs)];
-  const dstOf = (i) => ax.dsts[itemOf(i, band.dsts)];
   const cueName = (n, on) => setData(n, 'cue', on ? '' : undefined);
   const cueNames = () => {
     const c = cueOf();
@@ -407,37 +412,50 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     cueName(n, cueOf().dst === d);
     setData(n, 'hit', hitOf('dsts', d));
   };
-  const xpPut = (n, i, j) => {
-    place(n, i, j);
-    const s = srcOf(j);
-    const d = dstOf(i);
-    n.dataset.src = s;
-    n.dataset.dst = d;
-    if (view) paintXp(n, s, d, view);
-    markXp(n, s, d);
-    setData(n, 'hit', hitXp(s, d));
+  // A band pool's slot k shows pin at + k, up to slot slots (the part pin at the far end); the others go by itemOf.
+  const srcIn = (inBand) => (j) => ax.srcs[inBand ? band.srcs.at + j : itemOf(j, band.srcs)];
+  const dstIn = (inBand) => (i) => ax.dsts[inBand ? band.dsts.at + i : itemOf(i, band.dsts)];
+  const xpPut = (rowBand, colBand) => {
+    const srcOf = srcIn(colBand);
+    const dstOf = dstIn(rowBand);
+    return (n, i, j) => {
+      place(n, i, j);
+      const s = srcOf(j);
+      const d = dstOf(i);
+      n.dataset.src = s;
+      n.dataset.dst = d;
+      if (view) paintXp(n, s, d, view);
+      markXp(n, s, d);
+      setData(n, 'hit', hitXp(s, d));
+    };
   };
-  const srcPut = (n, i, j) => {
-    place(n, 0, j);
-    const s = srcOf(j);
-    n.dataset.src = s;
-    paintSrc(n, s);
+  const srcPut = (inBand) => {
+    const srcOf = srcIn(inBand);
+    return (n, i, j) => {
+      place(n, 0, j);
+      const s = srcOf(j);
+      n.dataset.src = s;
+      paintSrc(n, s);
+    };
   };
-  const dstPut = (n, i) => {
-    place(n, i, 0);
-    const d = dstOf(i);
-    n.dataset.dst = d;
-    paintDst(n, d);
+  const dstPut = (inBand) => {
+    const dstOf = dstIn(inBand);
+    return (n, i) => {
+      place(n, i, 0);
+      const d = dstOf(i);
+      n.dataset.dst = d;
+      paintDst(n, d);
+    };
   };
   const pools = {
-    body: pool(body, makeXp, xpPut),
-    top: pool(top, makeXp, xpPut),
-    side: pool(side, makeXp, xpPut),
-    corner: pool(corner, makeXp, xpPut),
-    srcs: pool(top, makeSrc, srcPut),
-    dsts: pool(side, makeDst, dstPut),
-    srcPinned: pool(corner, makeSrc, srcPut),
-    dstPinned: pool(corner, makeDst, dstPut),
+    body: pool(body, makeXp, xpPut(false, false)),
+    top: pool(bands.top, makeXp, xpPut(true, false)),
+    side: pool(bands.side, makeXp, xpPut(false, true)),
+    corner: pool(bands.corner, makeXp, xpPut(true, true)),
+    srcs: pool(top, makeSrc, srcPut(false)),
+    dsts: pool(side, makeDst, dstPut(false)),
+    srcPinned: pool(bands.srcs, makeSrc, srcPut(true)),
+    dstPinned: pool(bands.dsts, makeDst, dstPut(true)),
   };
   const xpPools = [pools.body, pools.top, pools.side, pools.corner];
 
@@ -460,12 +478,16 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // Each edge's pinned band (gridpanelwindow.js itemOf): slots is how many pins draw as pinned (pinsShown), set by
   // setAxes and a resize. On the desktop layout the pins past them scroll in the band: its bar, the wheel, a key or
   // Find moves it. The phone has no band bars, so there the pins past them scroll first with the rest.
-  const band = { srcs: { pins: 0, slots: 0, at: 0 }, dsts: { pins: 0, slots: 0, at: 0 } };
+  // f is the part of a pin the band has moved past at (0 to 1), so the band follows the wheel px by px as the grid
+  // does. While the band can move on, its pools draw one slot more, the pin that shows in part at the far end.
+  const band = { srcs: { pins: 0, slots: 0, at: 0, f: 0 }, dsts: { pins: 0, slots: 0, at: 0, f: 0 } };
+  const extra = (b) => (b.at + b.slots < b.pins ? 1 : 0);
   const bandsNow = (m = metricsNow()) => {
     const one = (pins, head, view, was) => {
       const slots = pinsShown({ pins, size: px.xp, head, view });
       const all = document.documentElement.dataset.layout === 'phone' ? slots : pins;
-      return { pins: all, slots, at: Math.min(was.at, all - slots) };
+      const at = Math.min(was.at, all - slots);
+      return { pins: all, slots, at, f: at === was.at && at < all - slots ? was.f : 0 };
     };
     return { srcs: one(ax.srcPins || 0, px.w, m.cw, band.srcs), dsts: one(ax.dstPins || 0, px.h, m.ch, band.dsts) };
   };
@@ -490,11 +512,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const m = metricsNow();
     const ra = axis(false, m);
     const ca = axis(true, m);
-    // A pin that its band does not show now has no slot, so the cursor hides until the band shows it.
+    // A pin that its band does not show whole now has no slot, so the cursor hides until the band shows it. A band's
+    // pin moves back by the part of a pin the band has moved.
     const ci = slotOf(cur.i, band.dsts);
     const cj = slotOf(cur.j, band.srcs);
-    const x = placeAt(cj ?? 0, ca);
-    const y = placeAt(ci ?? 0, ra);
+    const shift = (k, a, b) => (k !== null && k >= 0 && k < a.pins ? b.f * a.size : 0);
+    const x = placeAt(cj ?? 0, ca) - shift(cj, ca, band.srcs);
+    const y = placeAt(ci ?? 0, ra) - shift(ci, ra, band.dsts);
     const w = cur.j < 0 ? px.w : px.xp;
     const h = cur.i < 0 ? px.h : px.xp;
     const inBand = ci < ra.pins || cj < ca.pins;
@@ -521,13 +545,17 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const m = metricsNow();
     const r = spanMax(axis(false, m));
     const c = spanMax(axis(true, m));
-    const rp = band.dsts.slots;
-    const cp = band.srcs.slots;
+    // A band that can scroll draws a part pin past its slots at some starts and not at its end, so it is reserved.
+    const rp = band.dsts.slots + (band.dsts.pins > band.dsts.slots ? 1 : 0);
+    const cp = band.srcs.slots + (band.srcs.pins > band.srcs.slots ? 1 : 0);
     pools.body.reserve(r * c);
     pools.top.reserve(rp * c);
     pools.side.reserve(r * cp);
+    pools.corner.reserve(rp * cp);
     pools.srcs.reserve(c);
     pools.dsts.reserve(r);
+    pools.srcPinned.reserve(cp);
+    pools.dstPinned.reserve(rp);
   };
 
   const draw = () => {
@@ -542,8 +570,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     const { rows, cols } = spans();
     const rs = range(rows.lo, rows.hi);
     const cs = range(cols.lo, cols.hi);
-    const rp = range(0, band.dsts.slots);
-    const cp = range(0, band.srcs.slots);
+    const rp = range(0, band.dsts.slots + extra(band.dsts));
+    const cp = range(0, band.srcs.slots + extra(band.srcs));
     pools.body.sync(cross(rs, cs));
     pools.top.sync(cross(rp, cs));
     pools.side.sync(cross(rs, cp));
@@ -573,6 +601,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     size();
     setVar(field, '--sode-col-pins', band.srcs.slots);
     setVar(field, '--sode-row-pins', band.dsts.slots);
+    bandVars();
     pinBar.srcs.set(band.srcs, px);
     pinBar.dsts.set(band.dsts, px);
     for (const p of Object.values(pools)) p.clear();
@@ -580,17 +609,40 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     draw();
   };
 
+  // The part of a pin moves the band boxes (bandBox), so it writes no pin. Only a band that scrolls clips its boxes,
+  // since a clip also cuts a name's tip.
+  function bandVars() {
+    const x = -band.srcs.f * px.xp;
+    const y = -band.dsts.f * px.xp;
+    const move = (n, t) => {
+      if (n.style.transform !== t) n.style.transform = t;
+    };
+    move(bands.top, y ? `translateY(${y}px)` : '');
+    move(bands.dsts, y ? `translateY(${y}px)` : '');
+    move(bands.side, x ? `translateX(${x}px)` : '');
+    move(bands.srcs, x ? `translateX(${x}px)` : '');
+    move(bands.corner, x || y ? `translate(${x}px, ${y}px)` : '');
+    setData(field, 'bandX', band.srcs.pins > band.srcs.slots ? '' : undefined);
+    setData(field, 'bandY', band.dsts.pins > band.dsts.slots ? '' : undefined);
+  }
+
   const onScroll = () => draw();
-  // Moves a band's start to k and draws the band again; mark is false when its bar moved it. The band's pools are
-  // cleared, so their nodes go to the new pins on the sync (no node is made).
-  const setBand = (kind, k, mark = true) => {
+  // Moves a band's start to v (pins, with the part of a pin) and draws it again; mark is false when its bar moved it.
+  // A new whole pin clears the band's pools, so their nodes go to the new pins on the sync (no node is made).
+  const setBand = (kind, v, mark = true) => {
     const b = band[kind];
-    const at = Math.max(0, Math.min(k, b.pins - b.slots));
-    if (at === b.at) return;
+    const to = Math.max(0, Math.min(v, b.pins - b.slots));
+    if (to === b.at + b.f) return;
+    const at = Math.floor(to);
+    const moved = at !== b.at;
     b.at = at;
-    if (mark) pinBar[kind].to(at);
-    const drop = kind === 'srcs' ? [pools.side, pools.corner, pools.srcPinned] : [pools.top, pools.corner, pools.dstPinned];
-    for (const p of drop) p.clear();
+    b.f = to - at;
+    if (mark) pinBar[kind].to(to);
+    bandVars();
+    if (moved) {
+      const drop = kind === 'srcs' ? [pools.side, pools.corner, pools.srcPinned] : [pools.top, pools.corner, pools.dstPinned];
+      for (const p of drop) p.clear();
+    }
     draw();
   };
   scroll.addEventListener('scroll', onScroll, { passive: true });
@@ -600,6 +652,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     curKey = '';
     // A size that changes how many pins fit redraws as new axes would; a scroll never gets here.
     if (!sameBands(bandsNow())) return setAxes(ax);
+    bandVars();
     pinBar.srcs.set(band.srcs, px);
     pinBar.dsts.set(band.dsts, px);
     reserve();
@@ -668,13 +721,26 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   setAxes(axes);
 
   const at = (map, n) => map.get(n) ?? -1;
+  // The pool slot of item k: a band slot (the part pin too) or a slot past the band, or null for none drawn.
+  const slotIn = (k, b) => {
+    if (k < 0) return null;
+    if (k >= b.pins) return { k: k - b.pins + b.slots, band: false };
+    const s = k - b.at;
+    return s >= 0 && s < b.slots + extra(b) ? { k: s, band: true } : null;
+  };
   const nodeOf = (src, dst) => {
-    const k = `${slotOf(at(dstAt, dst), band.dsts)},${slotOf(at(srcAt, src), band.srcs)}`;
-    for (const p of xpPools) {
-      const n = p.live.get(k);
-      if (n) return n;
-    }
-    return null;
+    const r = slotIn(at(dstAt, dst), band.dsts);
+    const c = slotIn(at(srcAt, src), band.srcs);
+    if (!r || !c) return null;
+    const p = r.band ? (c.band ? pools.corner : pools.top) : c.band ? pools.side : pools.body;
+    return p.live.get(`${r.k},${c.k}`) ?? null;
+  };
+  // The item under p px from the view's start on axis a, -1 on the name bar, or null past the last item. In the band
+  // the pin under p counts the part of a pin the band has moved.
+  const itemAt = (p, a, b) => {
+    const s = slotAt(p, a);
+    if (s === null || s < 0 || s >= a.pins) return s === null ? null : itemOf(s, b);
+    return b.at + Math.floor((p - a.head) / a.size + b.f);
   };
   return {
     scroll,
@@ -694,7 +760,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       const p = local(x, y, m);
       const unit = (v, a, b) => {
         const k = (v - a.head) / a.size;
-        return k < a.pins ? k + b.at : k + a.offset / a.size - b.slots + b.pins;
+        return k < a.pins ? k + b.at + b.f : k + a.offset / a.size - b.slots + b.pins;
       };
       return { x: unit(p.x, axis(true, m), band.srcs), y: unit(p.y, axis(false, m), band.dsts) };
     },
@@ -709,7 +775,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       if (!seg) return;
       const set = (k, v) => lineNode.setAttribute(k, String(v));
       // Display units to slot units: a pin by its band's start, the rest past the band.
-      const at = (u, b) => (u < b.pins ? u - b.at : u - b.pins + b.slots);
+      const at = (u, b) => (u < b.pins ? u - b.at - b.f : u - b.pins + b.slots);
       set('x1', px.w + at(seg.a.x, band.srcs) * px.xp);
       set('y1', px.h + at(seg.a.y, band.dsts) * px.xp);
       set('x2', px.w + at(seg.b.x, band.srcs) * px.xp);
@@ -720,9 +786,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       const m = metricsNow();
       const p = local(x, y, m);
       if (p.x >= m.cw || p.y >= m.ch) return null;
-      const j = slotAt(p.x, axis(true, m));
-      const i = slotAt(p.y, axis(false, m));
-      return i === null || j === null ? null : { i: itemOf(i, band.dsts), j: itemOf(j, band.srcs) };
+      const j = itemAt(p.x, axis(true, m), band.srcs);
+      const i = itemAt(p.y, axis(false, m), band.dsts);
+      return i === null || j === null ? null : { i, j };
     },
     // Places the cursor at display cell { i, j }. Only the cursor node changes.
     // keys is true when a key moved it: only then does the cursor draw its box on a bar.
@@ -793,9 +859,9 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
       const m = metricsNow();
       const p = local(x, y, m);
       if (p.x >= m.cw || p.y >= m.ch) return null;
-      const j = indexAt(p.x, axis(true, m));
-      const i = indexAt(p.y, axis(false, m));
-      return i < 0 || j < 0 ? null : { src: srcOf(j), dst: dstOf(i), i: itemOf(i, band.dsts), j: itemOf(j, band.srcs) };
+      const j = itemAt(p.x, axis(true, m), band.srcs) ?? -1;
+      const i = itemAt(p.y, axis(false, m), band.dsts) ?? -1;
+      return i < 0 || j < 0 ? null : { src: ax.srcs[j], dst: ax.dsts[i], i, j };
     },
     // The drawn crosspoint node of src and dst, or null when it is out of view.
     node: (src, dst) => nodeOf(src, dst),

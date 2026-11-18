@@ -239,6 +239,31 @@ html:has(.sode-gridpanel) {
   top: 0;
   width: calc(min(var(--sode-col-pins), 1) * var(--pb-state-border-w));
 }
+/* A pinned band's box and the box in it that moves by the part of a pin (gridpanelview.js bandBox). Each is the size
+   of its layer, so a pin is placed as it is in the layer. The boxes take no press; the pins do. A band that scrolls
+   clips at its edges: the name bar on the near edge, the layer's end on the far edge, where the part pin is. */
+.sode-gridpanel__clip,
+.sode-gridpanel__shift {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+.sode-gridpanel__shift > * {
+  pointer-events: auto;
+}
+.sode-gridpanel__field[data-band-y] .sode-gridpanel__clip--y {
+  clip-path: inset(var(--sode-name-h) 0 0 0);
+}
+.sode-gridpanel__field[data-band-x] .sode-gridpanel__clip--x {
+  clip-path: inset(0 0 0 var(--sode-name-w));
+}
+.sode-gridpanel__field:is([data-band-x], [data-band-y]) .sode-gridpanel__clip--xy {
+  clip-path: inset(var(--sode-name-h) 0 0 var(--sode-name-w));
+}
+.sode-gridpanel__field[data-band-x] :is(.sode-gridpanel__side, .sode-gridpanel__corner) .sode-gridpanel__shift,
+.sode-gridpanel__field[data-band-y] :is(.sode-gridpanel__top, .sode-gridpanel__corner) .sode-gridpanel__shift {
+  will-change: transform;
+}
 .sode-gridpanel__probe {
   height: var(--sode-name-h);
   left: 0;
@@ -412,7 +437,7 @@ html:has(.sode-gridpanel) {
 }
 /* No hover wash on a crosspoint: the cursor ring already marks the one under the pointer. */
 /* A pinned crosspoint sits in a sticky band over what scrolls, so it draws the field and its own crosshair. */
-:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) > .sode-gridpanel__xp {
+:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) .sode-gridpanel__xp {
   background-color: var(--sode-patch-field);
   background-image: linear-gradient(var(--sode-line), var(--sode-line)), linear-gradient(var(--sode-line), var(--sode-line));
   background-position: center;
@@ -1035,13 +1060,13 @@ html:has(.sode-gridpanel) {
 .sode-gridpanel__xp[data-row][data-col] {
   background-color: color-mix(in oklab, var(--pb-text) 18%, transparent);
 }
-:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) > .sode-gridpanel__xp[data-row] {
+:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) .sode-gridpanel__xp[data-row] {
   background-color: color-mix(in oklab, var(--pb-dest) 30%, var(--sode-patch-field));
 }
-:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) > .sode-gridpanel__xp[data-col] {
+:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) .sode-gridpanel__xp[data-col] {
   background-color: color-mix(in oklab, var(--pb-source) 30%, var(--sode-patch-field));
 }
-:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) > .sode-gridpanel__xp[data-row][data-col] {
+:is(.sode-gridpanel__top, .sode-gridpanel__side, .sode-gridpanel__corner) .sode-gridpanel__xp[data-row][data-col] {
   background-color: color-mix(in oklab, var(--pb-text) 18%, var(--sode-patch-field));
 }
 /* A protected crosspoint keeps its own look in a picked row or column. */
