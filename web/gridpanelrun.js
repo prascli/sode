@@ -107,7 +107,8 @@ export function gridBody(ctx, first) {
   count.id = 'panel-staged';
   count.hidden = true;
   // The panel page's header has its own boxes (gridpanelheadview.js); the editor's live test keeps its own.
-  const head = ctx.embedded || !ui.name ? null : gridHead(ui, count);
+  const head = ctx.embedded || !ui.name ? null : gridHead(ui, count, { onCopy: copyPanel });
+  head?.access(first, !ctx.keyed?.());
   if (!head) ui.head?.querySelector('.sode-panels__spacer')?.before(count);
   let note = { text: '', at: 0 }; // a result or refusal, shown for NOTE_MS
   const noteOf = (text, ok = false) => ({ text, at: Date.now(), ok });
@@ -258,13 +259,27 @@ export function gridBody(ctx, first) {
     empty.edit.hidden = !t.edit || !!ui.back;
     empty.node.hidden = false;
   }
-  // Results and errors fade on the clock, so the status line is what the tick paints each time.
+  // Results and errors fade on the clock, so the status line is what the tick paints each time. On the panel page's
+  // desktop layout they show in the banner (gridpanelheadview.js). A note is new by its time. A state's text goes when
+  // the state clears.
   const status = () => {
-    const text =
-      stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names) || (Date.now() - note.at < NOTE_MS ? note.text : '');
-    say(ui.status, text);
-    ui.status.classList.toggle('sode-panel__status--ok', !st.error && !!text && note.ok);
+    const held = stageText(st.error) || refusalText(st.error, names) || undoText(st.error) || leftOutText(out, names);
+    const text = held || (Date.now() - note.at < NOTE_MS ? note.text : '');
+    const ok = !st.error && !!text && note.ok;
+    const banner = head?.say({ text, kind: ok ? 'ok' : 'error', key: held || `${note.at}`, held: !!held });
+    say(ui.status, banner ? '' : text);
+    ui.status.classList.toggle('sode-panel__status--ok', ok);
   };
+  // The page's Copy: the same copy as /panels and the editor's Save a copy, then the editor opens on it.
+  async function copyPanel() {
+    try {
+      const made = await ctx.callJSON(`api/v1/panels/${ctx.id}/copy`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      location.assign(editHref(made.id));
+    } catch (e) {
+      note = noteOf(e.status === undefined ? 'Sode did not answer, so no copy was made.' : e.message || 'The copy was not saved');
+      render();
+    }
+  }
   // From the run after each poll and every second.
   const tick = () => (dirty ? render() : status());
 
@@ -797,6 +812,7 @@ export function gridBody(ctx, first) {
       // The staged routes it shows are dropped below.
       if (confirm?.isOpen()) confirm.close();
       panel = p;
+      head?.access(p, !ctx.keyed?.());
       st = restage(st, p);
       drawn = null;
       // env reads the panel's Rights, so the next poll makes it again.
@@ -808,7 +824,9 @@ export function gridBody(ctx, first) {
     },
     renamed: render,
     // From each panel read (panelrun.js), so staged routes that leave the Rights are left out at once.
-    read({ rights: r, confirm: c }) {
+    read(p) {
+      const { rights: r, confirm: c } = p;
+      head?.access(p, !ctx.keyed?.());
       if (c) panel = { ...panel, confirm: c };
       if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
       panel = { ...panel, rights: r };

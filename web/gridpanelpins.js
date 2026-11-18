@@ -1,11 +1,12 @@
 // The little scroll bars of the pinned bands that hold fewer pins than their edge has (owner, 2026-11-17). Each bar
-// drives a scroller of its own beside the grid's, one pin per item size. Its offset in pins is the band's start, which
-// the view draws (gridpanelview.js). The grid's scroller does not move, so a band scroll leaves the rest where it is.
+// drives a scroller of its own beside the grid's, one pin per item size. Its offset in pins, with the part of a pin, is
+// the band's start, which the view draws (gridpanelview.js). The grid's scroller does not move, so a band scroll leaves
+// the rest where it is.
 import { el } from './core.js';
 import { bigScroll } from './bigscroll.js';
 
 // frame holds the grid's scroller (scroll). onAt(kind, at) runs when a bar moves a band's start; kind is 'srcs' or
-// 'dsts'. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
+// 'dsts'. at is in pins with the part of a pin, so the band moves with each px, as the grid does. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
 // of its pinned names.
 export function pinBars(frame, scroll, onAt) {
   const make = (kind) => {
@@ -23,7 +24,9 @@ export function pinBars(frame, scroll, onAt) {
     sc.addEventListener(
       'scroll',
       () => {
-        const k = Math.round(pos() / size);
+        // Under half a px from a whole pin is that pin, since the browser rounds the offset to a device px.
+        const v = pos() / size;
+        const k = Math.abs(v - Math.round(v)) * size < 0.5 ? Math.round(v) : v;
         if (k === at) return;
         at = k;
         onAt(kind, k);
@@ -51,10 +54,10 @@ export function pinBars(frame, scroll, onAt) {
           s.width = `${b.slots * size}px`;
           fill.style.width = `${b.pins * size}px`;
         }
-        this.to(b.at);
+        this.to(b.at + b.f);
         bar?.now();
       },
-      // Puts the bar at band start k, with no onAt: the view set it.
+      // Puts the bar at band start k (pins, with the part of a pin), with no onAt: the view set it.
       to(k) {
         at = k;
         const v = k * size;

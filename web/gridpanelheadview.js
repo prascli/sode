@@ -1,11 +1,13 @@
-// A Grid panel's header parts, laid out as on the main page. The Lock chip, the title and the icon buttons (Settings,
-// Full screen, the Panels link) are on the left. The Server and Router status (connview.js) is top right. Beside the
-// status is the status slot: the result line and the "This panel was changed" banner. On the panel page they share
-// one band, the deck, with the Levels box and the search boxes (gridpanel.css lays it out). The run (gridpanelrun.js)
-// makes them on the panel page only, and its stop puts the page back.
-import { el, icon, on } from './core.js';
+// A Grid panel's header parts, laid out as on the main page. The Lock chip, the title and the icon buttons are on the
+// left. The Server and Router status (connview.js) is top right. On the panel page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays
+// it out). Results, refusals and the "This panel was changed" banner show in the gap between the search boxes and
+// Clear. The editor's Test it live (ui.back) keeps its status slot beside the status block. The run (gridpanelrun.js)
+// makes them, and its stop puts the page back.
+import { el, icon, on, S } from './core.js';
 import { connBox, paintConn } from './connview.js';
 import { layout, onLayout } from './layout.js';
+import { setResult, resultNode, dismissResult } from './banner.js';
+import { actionsFor, editHref } from './panelsrules.js';
 
 // core.js's on() has no unsubscribe, so one subscription at import paints every head a run has made.
 const conns = new Set();
@@ -13,9 +15,25 @@ on('conn', () => {
   for (const c of conns) paintConn(c);
 });
 
-// count is the run's "N staged" badge; the note beside Take shows the count, so the deck hides this one.
-export function gridHead(ui, count) {
-  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ui.title, ui.name), count);
+const iconLink = (cls, name, label) => {
+  const n = el('a', `pb-btn pb-btn--ghost pb-btn--icon ${cls}`, icon(name, false));
+  n.setAttribute('aria-label', label);
+  n.dataset.pbTip = label;
+  return n;
+};
+const rule = (cls) => {
+  const r = el('div', `pb-divider pb-divider--vertical ${cls}`);
+  r.setAttribute('aria-hidden', 'true');
+  return r;
+};
+
+// count is the run's "N staged" badge; the note beside Take shows the count, so the deck hides this one. onCopy is
+// the page's Copy (gridpanelrun.js).
+export function gridHead(ui, count, { onCopy } = {}) {
+  const page = !ui.back;
+  // The panel page puts a rule between the panel's name and the instance name.
+  const nameRule = page ? rule('sode-gridpanel__namerule') : null;
+  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ...[ui.title, nameRule, ui.name].filter(Boolean)), count);
   ui.head.prepend(id);
   const conn = connBox();
   conns.add(conn);
@@ -25,34 +43,45 @@ export function gridHead(ui, count) {
   ui.screen?.classList.remove(...screenCls);
   ui.screen?.classList.add('pb-btn--ghost');
   // The main page's Settings button (index.html #settings-open), as a link: settings.js opens the view at #settings.
-  const settings = el('a', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__settings', icon('settings', false));
+  const settings = iconLink('sode-gridpanel__settings', 'settings', 'Settings');
   settings.href = './#settings';
-  settings.setAttribute('aria-label', 'Settings');
-  settings.dataset.pbTip = 'Settings';
   // The header buttons in one group; the Panels link joins it (panelfull.js). Kiosk mode and Full width stay in it
-  // for their code, and gridpanel.css hides them.
+  // for their code, and gridpanel.css hides them. On the panel page the order is Settings, Panels, Edit or Copy, a
+  // rule, then Full screen. Edit and Copy use the rules of /panels (actionsFor, see access).
   const btns = [ui.kiosk, ui.screen, ui.full].filter(Boolean);
   const after = btns.at(-1)?.nextSibling ?? null;
-  const tools = el('div', 'sode-gridpanel__tools', settings, ...btns);
+  const home = page ? el('span', 'sode-gridpanel__home') : null;
+  const edit = page ? iconLink('sode-gridpanel__edit', 'pencil', 'Edit panel') : null;
+  const copy = page ? el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__copy', icon('copy', false)) : null;
+  if (copy) {
+    copy.type = 'button';
+    copy.setAttribute('aria-label', 'Save a copy');
+    copy.dataset.pbTip = 'Save a copy';
+    copy.addEventListener('click', () => onCopy?.());
+  }
+  for (const n of [edit, copy]) if (n) n.hidden = true;
+  const parts = page ? [settings, home, edit, copy, rule('sode-gridpanel__toolrule'), ...btns] : [settings, ...btns];
+  const tools = el('div', 'sode-gridpanel__tools', ...parts);
   ui.head.insertBefore(tools, after);
-  if (ui.home && ui.head.contains(ui.home)) tools.append(ui.home);
-  ui.tools = tools;
+  // On the panel page the link joins the buttons even with the Title bar setting off; panelfull.js moves it out in kiosk mode.
+  if (ui.home && (home || ui.head.contains(ui.home))) (home || tools).append(ui.home);
+  ui.tools = home || tools;
   // The deck: the header and the Levels box are display: contents in it, so their parts are cells of one grid.
   const box = ui.levels;
   const finds = el('div', 'sode-gridpanel__finds');
-  const rule = (n) => {
-    const r = el('div', `pb-divider pb-divider--vertical sode-gridpanel__rule sode-gridpanel__rule--${n}`);
-    r.setAttribute('aria-hidden', 'true');
-    return r;
-  };
   const deck = el('div', 'sode-gridpanel__deck');
-  // The status slot is outside the header, since kiosk mode and the Title bar setting hide the header. Its height is
+  // Test it live's status slot is outside the header, since the Title bar setting hides the header. Its height is
   // fixed (gridpanel.css), so a line or the banner that shows or goes never moves the grid.
-  const slot = el('div', 'sode-gridpanel__slot');
+  const slot = page ? null : el('div', 'sode-gridpanel__slot');
+  // The panel page's message box, in the gap before Clear and Take. Its size is the gap's (gridpanel.css), so what it
+  // shows never moves the grid. A result (res) shows over the "This panel was changed" banner.
+  const res = page ? el('div', 'sode-gridpanel__res') : null;
+  const msg = page ? el('div', 'sode-gridpanel__msg', res) : null;
   const top = el('div', 'sode-gridpanel__headrow');
   ui.head.before(deck);
-  top.append(ui.head, slot, conn.root);
-  deck.append(top, ...(box ? [box] : []), rule(1), finds, rule(2));
+  top.append(...[ui.head, slot, conn.root].filter(Boolean));
+  deck.append(top, ...(box ? [box] : []), rule('sode-gridpanel__rule sode-gridpanel__rule--1'), finds, rule('sode-gridpanel__rule sode-gridpanel__rule--2'));
+  if (msg) deck.append(msg);
   // The phone's band (gridpanel.css): More and the levels in words open the rest of the deck under it.
   const more = el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__more', icon('menu', false));
   more.type = 'button';
@@ -75,33 +104,84 @@ export function gridHead(ui, count) {
     if (lvText.data !== t) lvText.data = t;
   };
   box?.prepend(more, lv);
-  // The desktop layout moves the status line and the banner into the slot. The phone keeps them where the page has
-  // them.
-  const moved = [ui.status, ui.update].filter(Boolean).map((n) => [n, n.parentNode, n.nextSibling]);
+  // The desktop layout moves the banner into the deck, and in Test it live the status line too. On the panel page it
+  // moves the buttons into the header row, so they show with the Title bar setting off. The phone keeps them in place.
+  const moved = (page ? [ui.update] : [ui.status, ui.update]).filter(Boolean).map((n) => [n, n.parentNode, n.nextSibling]);
+  const toolsHome = [tools.parentNode, tools.nextSibling];
   // Back in reverse order, since the status line's next sibling is the banner.
-  const placeStatus = (l) => {
-    if (l !== 'phone') slot.append(...moved.map(([n]) => n));
-    else for (const [n, home, next] of [...moved].reverse()) if (n.parentNode === slot) home.insertBefore(n, next);
+  const place = (l) => {
+    if (l !== 'phone') {
+      (msg || slot).append(...moved.map(([n]) => n));
+      if (page) ui.head.after(tools);
+    } else {
+      for (const [n, home, next] of [...moved].reverse()) if (n.parentNode !== home) home.insertBefore(n, next);
+      if (page && tools.parentNode !== toolsHome[0]) toolsHome[0].insertBefore(tools, toolsHome[1]);
+    }
   };
-  placeStatus(layout());
-  const offLayout = onLayout(placeStatus);
+  place(layout());
+  const offLayout = onLayout(place);
+  // With the buttons out of the header, kiosk mode alone hides them (panelfull.js).
+  if (page) ui.toolsShown = (kiosk) => !kiosk && (tools.parentNode !== ui.head || !ui.head.hidden);
+
+  // The banner in msg: the main page's result banner and its timed dismiss (banner.js). A new key is a new message.
+  // held marks a message from the run's state, which goes when the state clears. The others follow the main page's
+  // rules: an ok one goes on its timer, an error by its X.
+  let shown = null;
+  let updating = false;
+  const drop = () => {
+    if (shown) dismissResult(shown.r);
+    shown = null;
+  };
+  const say = ({ text, kind, key, held }) => {
+    if (!msg || layout() === 'phone') {
+      drop();
+      return false;
+    }
+    // A "This panel was changed" banner that comes up is the newest message, so it takes the place of a result.
+    const up = !ui.update.hidden;
+    if (up && !updating) drop();
+    updating = up;
+    if (!text) {
+      if (shown?.held) drop();
+      return true;
+    }
+    if (shown?.key === key) return true;
+    drop();
+    setResult({ kind, title: text, text: '' });
+    shown = { key, held, r: S.result };
+    res.replaceChildren(resultNode(S.result));
+    return true;
+  };
   return {
     // The run's search boxes go here (gridpanelfindbox.js).
     finds,
     // The run calls this on each render and on each Levels box change.
     paintLevels,
+    // msg is { text, kind ('ok' or 'error'), key, held }. It gives false on the phone and in Test it live, which have
+    // no banner here, so the run shows its status line.
+    say,
+    // p is the panel as read; mayOwn is true when a signed-in user runs the page, since only a user owns a panel.
+    access(p, mayOwn) {
+      if (!edit) return;
+      const acts = actionsFor(p);
+      edit.href = editHref(p.id);
+      edit.hidden = !acts.includes('edit');
+      copy.hidden = !(mayOwn && acts.includes('copy'));
+    },
     stop() {
+      drop();
       more.remove();
       lv.remove();
       conns.delete(conn);
       delete ui.tools;
+      delete ui.toolsShown;
       id.replaceWith(ui.title, ui.name);
       ui.screen?.classList.remove('pb-btn--ghost');
       ui.screen?.classList.add(...screenCls);
-      tools.replaceWith(...btns);
-      if (ui.home?.parentNode === tools) ui.head.append(ui.home);
       offLayout();
-      placeStatus('phone');
+      place('phone');
+      tools.replaceWith(...btns);
+      if (ui.home && (ui.home.parentNode === tools || ui.home.parentNode === home)) ui.head.append(ui.home);
       deck.replaceWith(ui.head);
       if (box) ui.grid.before(box);
     },

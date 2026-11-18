@@ -29,7 +29,7 @@ func TestChromeGridPanelUndo(t *testing.T) {
 	signInOnPad(b)
 	b.waitFor("the grid", gridXp(5, 2)+` !== null`)
 	b.waitFor("the lock screen goes", `document.querySelector('.sode-lock').hidden`)
-	status := `document.getElementById('panel-status').textContent`
+	status := gridMessage
 
 	b.eval(gridXp(5, 2) + `.click()`)
 	realKey(b, "Enter", "Enter", 13)

@@ -44,6 +44,42 @@ const gridSweep = `(async () => {
 	return { added, removed, most, missing, median: times[times.length >> 1], worst: times[times.length - 1] };
 })()`
 
+// bandSweep wheels the KIND band ('dsts' or 'srcs') one pin per step to its end and back, two frames a step. It
+// counts the elements added and removed and the steps, and gives the median and worst step time.
+const bandSweep = `(async () => {
+	const grid = document.getElementById('panel-grid');
+	const sc = grid.querySelector('.sode-gridpanel__scroll');
+	const y = 'KIND' === 'dsts';
+	const pinned = () => [...grid.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__' + (y ? 'dst' : 'src') + ':not([hidden])')];
+	const first = () => Math.min(...pinned().map((n) => Number(y ? n.dataset.dst : n.dataset.src)));
+	const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+	// The band's first pin: its pools are in no order, and the part pin past the band is drawn too.
+	const r = pinned().map((n) => n.getBoundingClientRect()).sort((p, q) => (y ? p.top - q.top : p.left - q.left))[0];
+	const at = y ? { clientX: r.right + 200, clientY: r.bottom - 2 } : { clientX: r.right - 2, clientY: r.bottom + 200 };
+	const top = sc.scrollTop, left = sc.scrollLeft, was = first();
+	let added = 0, removed = 0, moved = false;
+	const els = (list) => [...list].filter((n) => n.nodeType === 1).length;
+	const mo = new MutationObserver((recs) => { for (const q of recs) { added += els(q.addedNodes); removed += els(q.removedNodes); } });
+	mo.observe(grid, { childList: true, subtree: true });
+	const frame = () => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+	const times = [];
+	for (const dir of [1, -1]) {
+		for (let k = 0; k < 60; k++) {
+			const before = first();
+			const t0 = performance.now();
+			sc.dispatchEvent(new WheelEvent('wheel', { ...at, deltaY: y ? dir * xp : 0, deltaX: y ? 0 : dir * xp, bubbles: true, cancelable: true }));
+			await frame();
+			if (first() === before) break;
+			moved = true;
+			times.push(performance.now() - t0);
+		}
+	}
+	mo.takeRecords().forEach((q) => { added += els(q.addedNodes); removed += els(q.removedNodes); });
+	mo.disconnect();
+	times.sort((p, q) => p - q);
+	return { added, removed, moved, back: first() === was, still: sc.scrollTop === top && sc.scrollLeft === left, steps: times.length, median: times[times.length >> 1], worst: times[times.length - 1] };
+})()`
+
 // A Grid panel on a 2500 by 750 router. The page holds a bounded number of nodes and adds or removes none while
 // it scrolls corner to corner: nodes are moved, never made again. Pinned names stay at the edge. The open time
 // and the time for each scroll step are reported, not asserted.
@@ -236,12 +272,12 @@ func TestChromeGridPanelScale(t *testing.T) {
 	// A wheel over the Destination band scrolls the band alone: the grid does not move, and no node is made.
 	band, ok := b.eval(`(async () => {
 		const sc = document.querySelector('.sode-gridpanel__scroll'), grid = document.querySelector('.sode-gridpanel__field');
-		const first = () => [...document.querySelectorAll('.sode-gridpanel__corner > .sode-gridpanel__dst:not([hidden])')].map((n) => Number(n.dataset.dst)).sort((x, y) => x - y)[0];
+		const first = () => [...document.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__dst:not([hidden])')].map((n) => Number(n.dataset.dst)).sort((x, y) => x - y)[0];
 		const was = first(), top = sc.scrollTop, left = sc.scrollLeft;
 		let made = 0;
 		const mo = new MutationObserver((recs) => recs.forEach((r) => { made += r.addedNodes.length + r.removedNodes.length; }));
 		mo.observe(grid, { childList: true, subtree: true });
-		const r = document.querySelector('.sode-gridpanel__corner > .sode-gridpanel__dst:not([hidden])').getBoundingClientRect();
+		const r = [...document.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__dst:not([hidden])')].map((n) => n.getBoundingClientRect()).sort((p, q) => p.top - q.top)[0];
 		sc.dispatchEvent(new WheelEvent('wheel', { deltaY: 600, clientX: r.right + 200, clientY: r.top + 10, bubbles: true, cancelable: true }));
 		for (let k = 0; k < 20 && first() === was; k++) await new Promise((res) => requestAnimationFrame(res));
 		mo.disconnect();
@@ -251,12 +287,68 @@ func TestChromeGridPanelScale(t *testing.T) {
 	if !ok || band["now"] == band["was"] || band["still"] != true || band["made"].(float64) != 0 || band["bar"] != true {
 		t.Errorf("a wheel over the Destination band: %v, want the band moved, the grid still, no node made and the band's bar shown", band)
 	}
+	// Each band scrolled one pin per wheel step, end to end and back. Nodes are moved, never made, and the grid's
+	// scroll stays. The step times and the work are reported, not asserted.
+	b.call("Performance.enable", nil)
+	for _, kind := range []string{"dsts", "srcs"} {
+		b0 := b.metrics()
+		bs, ok := b.eval(strings.ReplaceAll(bandSweep, "KIND", kind)).(map[string]any)
+		b1 := b.metrics()
+		if !ok {
+			t.Fatalf("the %s band sweep returned nothing", kind)
+		}
+		ms := func(k string) float64 { return (b1[k] - b0[k]) * 1000 }
+		t.Logf("%s band sweep, %v steps: median step %.1f ms, worst %.1f ms; style %.0f ms, layout %.0f ms, script %.0f ms, tasks %.0f ms",
+			kind, bs["steps"], bs["median"], bs["worst"], ms("RecalcStyleDuration"), ms("LayoutDuration"), ms("ScriptDuration"), ms("TaskDuration"))
+		if bs["added"].(float64) != 0 || bs["removed"].(float64) != 0 || bs["still"] != true || bs["steps"].(float64) < 10 || bs["moved"] != true {
+			t.Errorf("the %s band sweep: %v, want the band moved, nodes moved and none made, and the grid still", kind, bs)
+		}
+	}
+	// A wheel of a few px moves the band by those px, as it moves the grid. The band does not wait for a whole pin.
+	smooth, ok := b.eval(`(async () => {
+		const sc = document.querySelector('.sode-gridpanel__scroll');
+		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;
+		const pins = () => [...document.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__dst:not([hidden])')];
+		const r = pins().map((n) => n.getBoundingClientRect()).sort((p, q) => p.top - q.top)[0];
+		const d = Math.min(...pins().map((n) => Number(n.dataset.dst))) + 1;
+		const topOf = () => document.querySelector('.sode-gridpanel__corner .sode-gridpanel__dst[data-dst="' + d + '"]:not([hidden])').getBoundingClientRect().top;
+		const step = Math.round(xp / 9), moves = [];
+		for (let k = 0; k < 6; k++) {
+			const was = topOf();
+			sc.dispatchEvent(new WheelEvent('wheel', { clientX: r.right + 200, clientY: r.bottom - 2, deltaY: step, bubbles: true, cancelable: true }));
+			await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+			moves.push(Math.round((was - topOf()) * 10) / 10);
+		}
+		return { step, moves };
+	})()`).(map[string]any)
+	if !ok {
+		t.Fatal("the small wheel steps returned nothing")
+	}
+	for _, m := range smooth["moves"].([]any) {
+		if d := m.(float64) - smooth["step"].(float64); d > 1 || d < -1 {
+			t.Errorf("wheel steps of %v px over the Destination band moved it %v px, want each step's px", smooth["step"], smooth["moves"])
+			break
+		}
+	}
+	// A key move in the body leaves the band where the wheel put it, part of a pin and all.
+	mid := b.eval(`(() => { const r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect(); return [r.left + r.width * 0.7, r.top + r.height * 0.7].join(); })()`).(string)
+	var mx, my float64
+	fmt.Sscanf(mid, "%f,%f", &mx, &my)
+	b.call("Input.dispatchMouseEvent", map[string]any{"type": "mouseMoved", "x": mx, "y": my})
+	bandTop := `[...document.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__dst:not([hidden])')].map((n) => n.getBoundingClientRect().top).sort((p, q) => p - q).join()`
+	before := b.eval(bandTop)
+	gridKey(b, "l")
+	gridKey(b, "j")
+	b.eval(`new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)))`)
+	if after := b.eval(bandTop); after != before {
+		t.Errorf("a key move in the body moved the Destination band: pins at %v, then %v", before, after)
+	}
 	// The 40th pin is past the Source band's slots, so Find moves the band to it and the grid stays where it is.
 	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; window.__left = sc.scrollLeft; return true; })()`)
 	b.eval(`(() => { const i = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input'); i.focus(); document.execCommand('insertText', false, 'src 140'); return true; })()`)
 	b.waitFor("Find brings the 40th pinned source into view", `(() => {
 		const n = document.querySelector('.sode-gridpanel__src[data-src="139"]:not([hidden])'), r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect();
-		return !!n && n.parentNode.classList.contains('sode-gridpanel__corner') && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right &&
+		return !!n && !!n.closest('.sode-gridpanel__corner') && n.getBoundingClientRect().left >= r.left && n.getBoundingClientRect().right <= r.right &&
 			document.querySelector('.sode-gridpanel__scroll').scrollLeft === window.__left;
 	})()`)
 	b.shot("scale-pins")
