@@ -61,6 +61,9 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
   list.id = `ed-${key}-list`;
   list.tabIndex = 0;
   list.setAttribute('aria-label', `${Whats} on the panel, ${side}`);
+  // A grid, not a listbox: each row holds buttons, which an option may not. Rows carry aria-selected, and the
+  // keyboard cursor is the active descendant, as editorrouterlist.js does for its listbox.
+  list.setAttribute('role', 'grid');
   list.setAttribute('aria-multiselectable', 'true');
   const empty = el(
     'div',
@@ -203,8 +206,11 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
   function markRow(li) {
     const n = Number(li.dataset.id);
     li.toggleAttribute('data-selected', many().has(n));
+    li.setAttribute('aria-selected', String(many().has(n)));
     li.toggleAttribute('data-dragged', !!dragged?.has(n));
     li.classList.toggle('is-cur', n === cur);
+    if (n === cur) list.setAttribute('aria-activedescendant', li.id);
+    else if (list.getAttribute('aria-activedescendant') === li.id) list.removeAttribute('aria-activedescendant');
   }
 
   // Every Panel tab keystroke repaints the sidebar, and an edge can hold thousands of rows, so a repaint with the
@@ -302,11 +308,17 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
       ],
     });
     li.querySelector('[data-act="pin"]').setAttribute('aria-pressed', String(r.pinned));
+    li.id = `ed-${key}-row-${r.n}`;
+    li.setAttribute('role', 'row');
+    // The rows are windowed, so each says where it is in the whole list.
+    li.setAttribute('aria-rowindex', String(i + 1));
+    for (const c of li.children) if (!c.hasAttribute('aria-hidden')) c.setAttribute('role', 'gridcell');
     markRow(li);
     return li;
   }
   function drawRows() {
     const n = shown.length;
+    list.setAttribute('aria-rowcount', String(n));
     // A hidden list has no height to measure, so it draws the first rows until it shows.
     if (!pitch && n && list.firstElementChild?.offsetHeight) {
       pitch = list.firstElementChild.offsetHeight + (parseFloat(getComputedStyle(list).rowGap) || 0);
@@ -330,6 +342,8 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
       rowsIn[rowsIn.length - 1].style.marginBottom = `${(n - next.hi) * pitch}px`;
     }
     list.replaceChildren(...rowsIn);
+    const active = list.getAttribute('aria-activedescendant');
+    if (active && !document.getElementById(active)) list.removeAttribute('aria-activedescendant');
     if (back && !list.contains(document.activeElement)) list.querySelector(`li[data-id="${back.id}"] [data-act="${back.act}"]`)?.focus();
   }
 

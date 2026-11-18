@@ -457,8 +457,9 @@ export async function runEditor() {
   // A key without the panels scope, or a failed read, leaves the defaults as they were.
   async function loadDefaults() {
     const r = await sessionFetch('api/v1/default-artwork').catch(() => null);
-    if (!r?.ok) return;
-    defaults = defaultsBy((await r.json()).defaults);
+    const got = r?.ok ? await r.json().catch(() => null) : null;
+    if (!got) return;
+    defaults = defaultsBy(got.defaults);
     refresh();
   }
 
@@ -566,7 +567,10 @@ export async function runEditor() {
     fieldsChanged();
   }
 
+  // Only the newest open counts: a slow answer for a panel picked earlier must not replace a later pick.
+  let opening = 0;
   async function openPanel(id, push) {
+    const mine = ++opening;
     if (!id) {
       if (push) history.pushState(null, '', 'panels/editor?new');
       return show(null);
@@ -575,11 +579,13 @@ export async function runEditor() {
     try {
       panel = await edCall('The panel could not be opened', '')(`api/v1/panels/${id}`);
     } catch (e) {
+      if (mine !== opening) return;
       if (e.status === undefined) throw e;
       say('ed-status', openFailNote(e));
       drawPicker();
       return;
     }
+    if (mine !== opening) return;
     if (push) history.pushState(null, '', `panels/editor?panel=${id}`);
     show(panel);
   }
@@ -609,10 +615,22 @@ export async function runEditor() {
     if (!readOnly() && dirty()) e.preventDefault();
   });
 
-  async function save() {
+  // One save at a time: a second Save, Ctrl+S or Test it live while one is in flight gets the same answer, so a new
+  // panel is never made twice.
+  let saving = null;
+  function save() {
+    saving ??= saveNow().finally(() => {
+      saving = null;
+    });
+    return saving;
+  }
+
+  async function saveNow() {
     $('ed-save').disabled = true;
     say('ed-status', 'Saving.');
-    const body = JSON.stringify(saveBody(loaded || newPanel(), nameBox.value, firstGrid(), edits, livePages()));
+    const sentEdits = edits;
+    const sentName = nameBox.value;
+    const body = JSON.stringify(saveBody(loaded || newPanel(), sentName, firstGrid(), edits, livePages()));
     const at = { focus: fi(), open: open.map((id) => pages.findIndex((p) => p.id === id)), ids: pages.map((p) => p.id) };
     let stored;
     try {
@@ -641,9 +659,10 @@ export async function runEditor() {
     );
     open = at.open.map((i) => pages[i]?.id).filter((id) => id !== undefined);
     if (!open.includes(focus)) open = [focus];
-    edits = {};
+    // A field changed while the save was in flight is a newer edit: it stays, and the editor says Unsaved changes.
+    edits = Object.fromEntries(Object.entries(edits).filter(([k, v]) => v !== sentEdits[k]));
     if (made) history.replaceState(null, '', `panels/editor?panel=${loaded.id}`);
-    nameBox.value = loaded.name;
+    if (nameBox.value === sentName) nameBox.value = loaded.name;
     say('ed-status', 'Saved.');
     await loadList().catch(() => {});
     refresh();
@@ -666,8 +685,9 @@ export async function runEditor() {
   // edits are saved first. Open panels follow a save by themselves.
   $('ed-live').addEventListener('click', async () => {
     if (live.on()) return live.stop();
-    if (!readOnly() && dirty()) await save();
-    if (loaded && !dirty()) live.start(loaded.id, focus, isGridPanel(loaded));
+    // A second click while the save runs waits for the same save.
+    if (!readOnly() && (saving || dirty())) await save();
+    if (loaded && !dirty() && !live.on()) live.start(loaded.id, focus, isGridPanel(loaded));
   });
 
   $('ed-copylink').addEventListener('click', async () => {
