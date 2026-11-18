@@ -229,6 +229,16 @@ func (b *tab) event(method string, params json.RawMessage) {
 
 func (b *tab) call(method string, params any) json.RawMessage {
 	b.t.Helper()
+	r, err := b.send(method, params)
+	if err != "" {
+		b.t.Fatalf("%s: %s", method, err)
+	}
+	return r
+}
+
+// send reports a CDP error as a string instead of failing the test.
+func (b *tab) send(method string, params any) (json.RawMessage, string) {
+	b.t.Helper()
 	b.mu.Lock()
 	b.next++
 	id := b.next
@@ -244,13 +254,13 @@ func (b *tab) call(method string, params any) json.RawMessage {
 	select {
 	case r := <-ch:
 		if r.Error != nil {
-			b.t.Fatalf("%s: %s", method, r.Error.Message)
+			return nil, r.Error.Message
 		}
-		return r.Result
+		return r.Result, ""
 	case <-ctx.Done():
 		b.t.Fatalf("%s: no answer", method)
 	}
-	return nil
+	return nil, ""
 }
 
 func (b *tab) open(url string) {
@@ -268,10 +278,14 @@ func (b *tab) eval(expr string) any {
 	return v
 }
 
-// evalTry reports a page exception as a string instead of failing the test.
+// evalTry reports a page exception or a CDP error as a string instead of failing the test. Page.navigate answers
+// before the old document goes, so an evaluate right after it can get "Inspected target navigated or closed".
 func (b *tab) evalTry(expr string) (any, string) {
 	b.t.Helper()
-	raw := b.call("Runtime.evaluate", map[string]any{"expression": expr, "returnByValue": true, "awaitPromise": true})
+	raw, err := b.send("Runtime.evaluate", map[string]any{"expression": expr, "returnByValue": true, "awaitPromise": true})
+	if err != "" {
+		return nil, err
+	}
 	var r struct {
 		Result           struct{ Value any }
 		ExceptionDetails *struct{ Text string }
@@ -289,7 +303,7 @@ func (b *tab) waitFor(what, expr string) {
 	b.t.Helper()
 	var last string
 	for deadline := time.Now().Add(15 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
-		// A poll that lands mid-reload throws because the page has no DOM yet; keep polling.
+		// A poll that lands mid-navigation throws or gets a CDP error; keep polling.
 		v, exc := b.evalTry(expr)
 		if exc != "" {
 			last = exc
