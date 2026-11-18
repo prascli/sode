@@ -28,7 +28,8 @@ import { initName } from './panelname.js';
 
 const POLL_MS = 2000;
 const NAMES_MS = 30000;
-// While the WebSocket is up, its frames carry the tally and a full poll runs only this often, as a check.
+// While the WebSocket is up, its frames carry the tally, and the tally is read only this often, as a check. The 2 s
+// poll of the small reads stays: it finds a revoked key or a lost Sode API, which the socket does not show.
 const CHECK_MS = 60000;
 // Frames that come close together (a Group or a Preset) are drawn as one.
 const FRAME_MS = 30;
@@ -458,7 +459,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   if (run.early) run.show(run.early);
   // Results and errors fade on their own clocks, so the body is redrawn every second.
   timers.push(
-    setInterval(() => (!live || !trusted || !ready || Date.now() - checkedAt >= CHECK_MS) && poll(), POLL_MS),
+    setInterval(poll, POLL_MS),
     setInterval(() => body.render(), 1000),
   );
   poll();
