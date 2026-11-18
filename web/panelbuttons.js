@@ -67,6 +67,8 @@ export function buttonsBody(ctx, first) {
   };
   notePage();
   let env = { levels: [], tally: new Map(), protectedDsts: new Set() };
+  // What env was built from. withEtag gives the same reply objects on a 304, so an unchanged poll keeps env.
+  let envOf = [];
   let names = namesFrom({});
   let presets = {};
   // The take this instance's Undo cell would undo (GET /panels/<id>/undo), asked for only while a Page has the cell.
@@ -197,7 +199,9 @@ export function buttonsBody(ctx, first) {
         presets = pr;
       }
       const was = env;
-      env = envFrom(tally, prot, presets, panel.rights);
+      const from = [tally, prot, presets, panel.rights];
+      if (from.some((x, i) => x !== envOf[i])) env = envFrom(...from);
+      envOf = from;
       st = applyTally(st, env);
       // Each ask walks History, so none runs on a timer; it is possible that History moved while Sode was out of reach.
       if (undoMoved(was, env, undoNext) || first) askUndo();
