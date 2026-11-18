@@ -143,6 +143,8 @@ func TestChromeEditorFixedDests(t *testing.T) {
 	}
 	b.waitFor("the panel is drawn", `!!document.querySelector('.sode-panel__cell--source')`)
 	take := `document.querySelector('.sode-panel__take')`
+	// A press before the first poll answers is dropped; the router's name comes with that poll.
+	b.waitFor("the first poll answered", `document.querySelector('.sode-panel__cell--source .sode-panel__text')?.textContent === 'Zoom 1'`)
 
 	b.eval(`document.querySelector('.sode-panel__cell--source').click()`)
 	b.waitFor("Take armed for the Source", `!`+take+`.disabled`)

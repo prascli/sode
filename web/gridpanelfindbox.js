@@ -75,7 +75,7 @@ export function findBoxes(host, { onText, onMode, onStep }) {
   mode.dataset.pbTip = 'On: the bars show only the matches. Off: Find marks the matches. Ctrl+/';
   // On a phone a focused box opens the keyboard, so a mode change leaves focus where it is.
   mode.addEventListener('click', () => document.documentElement.dataset.layout !== 'phone' && boxes[last].input.focus());
-  // The phone shows the mode as two named choices with what each does, in place of the switch (gridpanelphone.css).
+  // The phone shows the mode as two named choices in place of the switch (gridpanelphone.css).
   const choice = segmented(
     'panel-find-mode',
     'Search mode',
@@ -86,12 +86,7 @@ export function findBoxes(host, { onText, onMode, onStep }) {
     (v) => v !== now && onMode(),
   );
   choice.set(now);
-  const choiceRow = el(
-    'div',
-    'sode-gridpanel__find-choice',
-    choice.node,
-    el('span', 'sode-gridpanel__find-says', 'Find marks the matches. Filter shows only the matches.'),
-  );
+  const choiceRow = el('div', 'sode-gridpanel__find-choice', choice.node);
   host.prepend(choiceRow, boxes.srcs.wrap, boxes.dsts.wrap, mode);
   return {
     input: (kind) => boxes[kind].input,

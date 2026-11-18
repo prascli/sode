@@ -4,8 +4,9 @@
 import { el } from './core.js';
 import { btn } from './formbits.js';
 
-// tab() is the Cell tab, { node, openPicker } (editorside.js), or null before the sidebar is made.
-export function createLiveArt(tab) {
+// tab() is the Cell tab, { node, openPicker } (editorside.js), or null before the sidebar is made. onClose runs after
+// each close.
+export function createLiveArt(tab, onClose = () => {}) {
   const body = el('div', 'sode-live__art-body');
   const done = btn('pb-btn--outline pb-btn--sm', 'Done', () => api.close());
   done.id = 'ed-live-art-done';
@@ -49,8 +50,10 @@ export function createLiveArt(tab) {
       moved.home.append(...moved.kids);
       moved = null;
       node.hidden = true;
-      if (back?.isConnected && !back.closest('[inert]')) back.focus({ preventScroll: true });
+      const to = back;
       back = null;
+      onClose();
+      if (to?.isConnected && !to.closest('[inert]')) to.focus({ preventScroll: true });
     },
   };
   return api;

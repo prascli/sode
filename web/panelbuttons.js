@@ -85,6 +85,8 @@ export function buttonsBody(ctx, first) {
   };
   const build = () => buildGrid(ui.grid, panel, cells, onPress, { down: holdDown, cancel: holdCancel }, art);
   let grid = build();
+  // Painted now, not at the first poll: an unpainted Take cell is enabled and the cells have no text.
+  render();
 
   // A poll and a finished take can both ask; only the newest ask's answer counts, since an older one can come back last.
   let undoAsk = 0;
