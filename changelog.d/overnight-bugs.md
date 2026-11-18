@@ -1,0 +1,3 @@
+- On shutdown, Sode waits up to 6 seconds for takes and settings saves already running, with the router link still up. This way, their History entries and replies are not lost. Takes and saves sent meanwhile are refused.
+- If a panel file fails to load or the panels folder cannot be read, the panel now keeps its API client and keys at startup.
+- A damaged keys.json, keys-ended.json or tokens.json is set aside as `<name>.damaged-<UTC time>` instead of being overwritten, so its keys can be recovered.

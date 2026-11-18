@@ -11,8 +11,8 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// Templates in the panel editor: a layout saved to Me comes back through REST without cell contents, applying it
-// leaves the cells unassigned and the panel unsaved, and Everyone asks a user who is not Trusted for the PIN.
+// Templates in the panel editor: a layout saved to Me comes back through REST without cell contents. Applying it
+// leaves the cells unassigned and the panel unsaved. Everyone asks a user who is not Trusted for the PIN.
 func TestChromeEditorTemplates(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -23,7 +23,7 @@ func TestChromeEditorTemplates(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 
 	ana := userKey(t, a, "Ana")
 	id := makePanel(t, a, ana, `{"name":"Show panel","rows":2,"cols":2,"cells":[
@@ -68,8 +68,8 @@ func TestChromeEditorTemplates(t *testing.T) {
 	}
 }
 
-// A template stored with Sources keeps the Sources and leaves the Destinations unassigned when applied to another panel,
-// storing with both brings both back, and the toolbar counts empty squares with the unassigned cells. The Panel tab's theme
+// A template stored with Sources keeps the Sources and leaves the Destinations unassigned when applied to another panel.
+// A template stored with both brings both back. The toolbar counts empty squares with the unassigned cells. The Panel tab's theme
 // reaches the editor's preview and the stored settings.
 func TestChromeEditorTemplateContentsAndTheme(t *testing.T) {
 	b, a, ana, id := editorTab(t, `{"name":"Full","rows":2,"cols":3,"cells":[
@@ -80,7 +80,7 @@ func TestChromeEditorTemplateContentsAndTheme(t *testing.T) {
 	b.eval(`const s = document.getElementById('ed-set-theme'); s.value = 'dark'; s.dispatchEvent(new Event('change', { bubbles: true }))`)
 	b.waitFor("preview follows the theme", `document.getElementById('ed-grid').style.colorScheme === 'dark'`)
 	b.eval(`document.getElementById('ed-save').click()`)
-	b.waitFor("saved", `document.getElementById('ed-state').textContent === 'Saved'`)
+	b.waitSaved("saved")
 	if body := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil).Body.String(); !strings.Contains(body, `"theme":"dark"`) {
 		t.Fatalf("theme not stored: %s", body)
 	}
@@ -118,7 +118,7 @@ func TestChromeEditorTemplateContentsAndTheme(t *testing.T) {
 	b.waitFor("settings applied with the contents", `document.getElementById('ed-set-theme').value === 'dark' && document.getElementById('ed-grid').style.colorScheme === 'dark'`)
 
 	b.eval(`document.getElementById('ed-save').click()`)
-	b.waitFor("blank panel saved", `document.getElementById('ed-state').textContent === 'Saved'`)
+	b.waitSaved("blank panel saved")
 
 	// Applying it back onto the first panel after a cell was removed restores the cell.
 	b.eval(`location.href = location.origin + '/panels/editor?panel=` + id + `'`)
@@ -128,7 +128,7 @@ func TestChromeEditorTemplateContentsAndTheme(t *testing.T) {
 	b.waitFor("Sources and Destinations restored", `document.querySelector('.sode-ed__sq[data-r="1"][data-c="1"]').textContent.includes('Cam one') && document.querySelector('.sode-ed__sq[data-r="1"][data-c="2"]').textContent.includes('Mon two')`)
 
 	b.eval(`document.getElementById('ed-save').click()`)
-	b.waitFor("saved", `document.getElementById('ed-state').textContent === 'Saved'`)
+	b.waitSaved("saved")
 	// The panel page sets data-theme from the stored panel, with no device settings code to undo it.
 	b.eval(`location.href = location.origin + '/panels/` + id + `'`)
 	b.waitFor("panel page runs in the stored theme", `document.documentElement.dataset.theme === 'dark' && !!document.querySelector('#panel-grid > *')`)

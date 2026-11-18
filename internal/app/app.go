@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/netip"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -49,18 +50,22 @@ func (r *runtime) probe() []byte {
 
 // App is all server state. A router change (applyConfig with reconnect) RESETS what
 // describes the old router:
-// router (*routerState: names, tally, protect, seenAt, pending broadcasts, name refresh
-// buffers); ext (*extTracker: burst, own, causes, leaders, late*; the pointer is the
-// router's generation); waiters and checks (cutRoutes fails them with "the router changed";
-// each keeps the extTracker it started on); status (Router/Addr/Err set to "connecting").
-// KEPT: sw, hist, sent, txq, evq, txLost, up, cfgPath, rt, pin, userPin, tokens, cfgMu,
-// gapHook, xffWarn, fireMu, fire, lateQ (plumbing, config, PINs); clients (get a fresh
-// hello); pendSent; nameReqAt, nameRxAt, namesDirt, dumpAt (polling clock, not cleared;
-// onRouterUp re-asks).
+//   - router (*routerState: names, tally, protect, seenAt, pending broadcasts, name refresh buffers).
+//   - ext (*extTracker: burst, own, causes, leaders, late*). The pointer is the router's generation.
+//   - waiters and checks. cutRoutes fails them with "the router changed"; each keeps the
+//     extTracker it started on.
+//   - status (Router/Addr/Err set to "connecting").
+//
+// KEPT:
+//   - sw, hist, sent, txq, evq, txLost, up, cfgPath, rt, pin, userPin, tokens, cfgMu,
+//     gapHook, xffWarn, fireMu, fire, lateQ (plumbing, config, PINs).
+//   - clients (get a fresh hello) and pendSent.
+//   - nameReqAt, nameRxAt, namesDirt, dumpAt (polling clock, not cleared; onRouterUp re-asks).
+//
 // Fields from mu down to dumpAt are guarded by mu.
 type App struct {
 	// profMemo: marshalled profile per user for one config snapshot, so an apply marshals
-	// once. Guarded by mu.
+	// one time. Guarded by mu.
 	profMemoRT *runtime
 	profMemo   map[string]string
 
@@ -91,6 +96,10 @@ type App struct {
 
 	// Take timers; only tests shorten them (shortTimers).
 	checkTimeout, routeTimeout, routeGrace, queueMax time.Duration
+
+	// Writes from browser messages; Run waits up to drainLimit for them (shutdown.go).
+	writes     inflight
+	drainLimit time.Duration
 
 	// Idle sweep (idle.go): the clock and the sweep period; tests change both (lock_idle_test.go).
 	now       func() time.Time
@@ -126,6 +135,9 @@ type App struct {
 	apiS apiState // REST throttles (apiauth.go)
 
 	streams map[*apiStream]struct{} // attached API streams (apistream.go), guarded by mu
+
+	tallyCache tallyBody // apireads.go, guarded by mu
+	namesCache namesBody // apireads.go, guarded by mu
 }
 
 // routerState is replaced as a whole on a router change. Guarded by App.mu.
@@ -135,6 +147,8 @@ type routerState struct {
 	tally    map[int]map[int]int // dst → UI level → src (-1 = nothing routed)
 	protect  map[int]map[int]int
 	seenAt   map[[2]int]time.Time // dst, UI level → when the router last reported its route
+	tallyGen int                  // bumped on every tally change; keys App.tallyCache
+	namesGen int                  // bumped on every change to the names or namesAt; keys App.namesCache
 	pend     []routeChange
 	pendProt []routeChange
 
@@ -193,6 +207,7 @@ func New(cfg config.Config, cfgPath string, hist *History, sent *SentLog, debug 
 		routeTimeout: defaultRouteTimeout,
 		routeGrace:   defaultRouteGrace,
 		queueMax:     defaultQueueMax,
+		drainLimit:   defaultDrainLimit,
 		now:          time.Now,
 		idleEvery:    defaultIdleEvery,
 		status:       statusMsg{T: "status", Router: string(swp08.StateConnecting), Addr: cfg.Router},
@@ -233,23 +248,38 @@ var background = map[swp08.Reason]bool{swp08.ReasonResync: true, swp08.ReasonNam
 
 func (a *App) r() *runtime { return a.rt.Load() }
 
+// Run ends when ctx does, after the writes in flight finish (up to drainLimit). The router
+// link, logSent and uptime run on their own context so those writes keep them meanwhile.
 func (a *App) Run(ctx context.Context) {
 	start := event(kindServer, "", "", "start")
 	start.Err = a.r().cfg.UnknownKeysProblem() // Err files it under Problems
 	a.logEvent(start)
-	go a.sw.Run(ctx)
+	link, cut := context.WithCancel(context.WithoutCancel(ctx))
+	go a.sw.Run(link)
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); a.logSent(ctx) }()
-	go func() { defer wg.Done(); a.up.Run(ctx) }()
-	defer func() { wg.Wait(); a.up.Stop() }()
+	go func() { defer wg.Done(); a.logSent(link) }()
+	go func() { defer wg.Done(); a.up.Run(link) }()
+	defer func() { cut(); wg.Wait(); a.up.Stop() }()
 	a.lateQ = make(chan lateJob, 64)
-	go a.lateWorker(ctx)
+	go a.lateWorker(link)
 	t := time.NewTicker(100 * time.Millisecond)
 	defer t.Stop()
+	stopping := ctx.Done()
+	var drained <-chan struct{}
+	var limit <-chan time.Time
 	for {
 		select {
-		case <-ctx.Done():
+		case <-stopping:
+			stopping = nil
+			drained = a.writes.close()
+			lt := time.NewTimer(a.drainLimit)
+			defer lt.Stop()
+			limit = lt.C
+		case <-drained:
+			return
+		case <-limit:
+			log.Printf("shutdown: stopped after %v with writes still running: %s", a.drainLimit, a.writes.left())
 			return
 		case <-t.C:
 			a.flush()
@@ -349,7 +379,7 @@ func (a *App) onRouterState(s swp08.State, err error) {
 	a.broadcast(a.status)
 }
 
-// logLink logs up/down once each, not every retry unless the error changes. Caller holds mu.
+// logLink logs up/down one time each, not every retry unless the error changes. Caller holds mu.
 func (a *App) logLink(s swp08.State, err error) {
 	why := ""
 	if err != nil {
@@ -410,6 +440,7 @@ func (a *App) applyTally(r *runtime, xp swp08.Crosspoint) {
 	}
 	if old, known := t[l.UI]; !known || old != xp.Src {
 		t[l.UI] = xp.Src
+		a.router.tallyGen++
 		a.router.pend = append(a.router.pend, routeChange{xp.Dst, l.UI, xp.Src})
 		// A changed route not announced shows up in a dump or interrogate: noted too,
 		// unless ours.
@@ -482,6 +513,7 @@ func (a *App) applyNames(nb *swp08.NameBlock) {
 	for i, n := range nb.Names {
 		m[nb.First+i] = n
 	}
+	a.router.namesGen++
 	a.nameRxAt = time.Now()
 	if a.router.newSrc == nil {
 		a.namesDirt = true
@@ -489,7 +521,7 @@ func (a *App) applyNames(nb *swp08.NameBlock) {
 }
 
 const (
-	namesQuiet   = 300 * time.Millisecond // refresh is done once names stop for this long
+	namesQuiet   = 300 * time.Millisecond // refresh is done when names stop for this long
 	namesTimeout = 10 * time.Second
 )
 
@@ -524,6 +556,7 @@ func (a *App) flush() {
 			if got {
 				a.router.namesAt = time.Now()
 			}
+			a.router.namesGen++
 			if changed {
 				log.Printf("names: %d sources, %d destinations", len(a.router.srcNames), len(a.router.dstNames))
 				a.namesDirt = true
@@ -575,14 +608,26 @@ func sorted(m map[int]string) [][2]any {
 	return out
 }
 
-func routeChanges(m map[int]map[int]int) []routeChange {
-	out := []routeChange{}
+// routeTriples is m as [[dst, level, value], ...]. A hello on a 2500 by 750 router holds 12750
+// of them. One marshal call for each cost more than the rest of the hello.
+func routeTriples(m map[int]map[int]int) json.RawMessage {
+	b := make([]byte, 0, 2+16*len(m))
+	b = append(b, '[')
 	for d, t := range m {
 		for l, v := range t {
-			out = append(out, routeChange{d, l, v})
+			if len(b) > 1 {
+				b = append(b, ',')
+			}
+			b = append(b, '[')
+			b = strconv.AppendInt(b, int64(d), 10)
+			b = append(b, ',')
+			b = strconv.AppendInt(b, int64(l), 10)
+			b = append(b, ',')
+			b = strconv.AppendInt(b, int64(v), 10)
+			b = append(b, ']')
 		}
 	}
-	return out
+	return append(b, ']')
 }
 
 type helloPage struct {
@@ -608,7 +653,7 @@ func (a *App) hello(p helloPage) []byte {
 	cfg.Users = nil
 	m := helloMsg{
 		T: "hello", Srcs: n.Srcs, Dsts: n.Dsts, At: n.At,
-		Tally: routeChanges(a.router.tally), Protect: routeChanges(a.router.protect),
+		Tally: routeTriples(a.router.tally), Protect: routeTriples(a.router.protect),
 		Status: a.status, Recent: p.recent, More: p.more,
 		Levels: r.levels, LevelDefaults: config.DefaultLevelColors, Cfg: cfg,
 		PinSet: r.cfg.SettingsPin != "", ConfigPath: a.cfgPath, Version: BuildLabel(),
@@ -634,7 +679,7 @@ func (a *App) broadcast(v any) {
 	a.streamFan(v)
 }
 
-// deliver drops b if the browser can't keep up. Caller holds mu.
+// deliver drops b if the browser cannot keep up. Caller holds mu.
 func (a *App) deliver(c *client, b []byte) {
 	if c.api != nil && c.api.sink != nil {
 		c.api.sink(b)

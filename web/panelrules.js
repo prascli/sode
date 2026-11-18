@@ -6,7 +6,22 @@
 import { pageCells } from './panelpages.js';
 import { fullKey } from './panellink.js';
 
-export const KINDS = ['source', 'destination', 'take', 'preset', 'clear', 'current', 'panelName', 'instanceName', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
+export const KINDS = [
+  'source',
+  'destination',
+  'take',
+  'preset',
+  'clear',
+  'undo',
+  'current',
+  'panelName',
+  'instanceName',
+  'pageName',
+  'info',
+  'goToPage',
+  'nextPage',
+  'previousPage',
+];
 // Kinds that only show something and are never pressed.
 export const SHOW_KINDS = ['current', 'panelName', 'instanceName', 'pageName', 'info'];
 const NEEDS_NUMBER = ['source', 'destination'];
@@ -82,6 +97,7 @@ export function namesFrom(reply) {
   const destination = (n) => dst.get(n) || `Destination ${n + off}`;
   const plain = {
     clear: 'Clear',
+    undo: 'Undo',
     current: 'Currently',
     panelName: 'Panel Name',
     instanceName: 'Instance Name',
@@ -105,7 +121,7 @@ export function namesFrom(reply) {
 }
 
 // The cells that are whole, known and inside the grid. Where two overlap the first one stays. A stored panel gives
-// Page i's (pageCells).
+// the cells of Page i (pageCells).
 export function cellsIn(panel, i = 0) {
   const used = new Set();
   const out = [];
@@ -145,6 +161,8 @@ export const drawnCells = (panel, i = 0) => {
 
 export function errorText(err, names) {
   switch (err?.code) {
+    case 'nothing-to-undo':
+      return 'Nothing to undo';
     case 'no-destination':
       return 'Pick a destination first';
     case 'protected':
@@ -168,7 +186,23 @@ export function errorText(err, names) {
   }
 }
 
-// Offline is what the page shows over a blurred grid. Sode not answering wins: with no answer the router link is unknown.
+// Whether a destination the Undo cell would restore moved between two envs. It is possible that History's own
+// Undo or another tab of the instance changed the target. next is GET /panels/<id>/undo's `undo`.
+export function undoMoved(was, env, next) {
+  const row = (e, dst) => JSON.stringify([...(e.tally.get(dst) || [])].sort((x, y) => x[0] - y[0]));
+  return !!next?.routes.some((r) => row(was, r.dst) !== row(env, r.dst));
+}
+
+// The Undo cell's last press (panelmodel.js undoneOf), '' for none.
+export function undoneText(u, names) {
+  if (!u) return '';
+  if (u.failed.length) return `Undo failed on ${[...new Set(u.failed)].map(names.destination).join(', ')}`;
+  const dsts = [...new Set(u.routes.map((r) => r.dst))];
+  const back = u.routes.length === 1 ? ` back to ${names.source(u.routes[0].src)}` : '';
+  return `Undone: ${dsts.map(names.destination).join(', ')}${back}`;
+}
+
+// Offline is what the page shows over a blurred grid. No answer from Sode wins: with no answer the router link is unknown.
 export function offlineOf({ failed, routerUp }) {
   if (failed) return { title: 'Offline', detail: 'This page lost contact with Sode. Nothing you press will reach the router until it is back.' };
   if (!routerUp) return { title: 'Offline', detail: 'Sode lost contact with the router. Nothing you press will reach it until it is back.' };
@@ -176,7 +210,7 @@ export function offlineOf({ failed, routerUp }) {
 }
 
 // What a Panel Name or Instance Name cell shows: the name, with the caption as a line above it. A page with no
-// instance yet (still naming itself, or Test it live) shows the kind's own words.
+// instance yet (still naming itself, or the Live Editor) shows the kind's own words.
 export function nameCellText(cell, { panelName = '', instance = '' } = {}) {
   const value = cell.kind === 'panelName' ? panelName || 'Panel Name' : instance || 'Instance Name';
   return { caption: cell.caption || '', value };

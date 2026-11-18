@@ -8,20 +8,21 @@ import { fmtClock, pref } from './device.js';
 import { failureGroups } from './history.js';
 import { resolvePreset } from './presetstore.js';
 import { showResult, setResult } from './banner.js';
+import { writeJSON, writeStr } from './store.js';
 export { showResult, resultNode } from './banner.js';
 
 let takeSeq = 0;
 const takes = new Map();
 
 // Plan: { verb, items: [{ dst, groups: [{src, levels}], skipped, undo, retry }] }, one item per
-// destination; undo/retry are the entries an item undoes or retries. Protection isn't kept
-// here: planBlocked returns it. May carry title and warnings (shown as is).
+// destination; undo/retry are the entries an item undoes or retries. Protection is not kept
+// here: planBlocked returns it. A plan can carry title and warnings (shown as is).
 
-export const routeItem = (dst, groups, retry = null) => ({ dst, groups, skipped: [], untouched: [], undo: null, retry });
+const routeItem = (dst, groups, retry = null) => ({ dst, groups, skipped: [], untouched: [], undo: null, retry });
 
 // Failed-take levels the router answered for were not changed by the take (old route, or
-// someone else's): undo leaves them alone. Levels with no answer stay in (they may have
-// switched). Late levels did change with the take, whatever `now` says.
+// someone else's): undo leaves them alone. Levels with no answer stay in (it is possible
+// that they switched). Late levels did change with the take, whatever `now` says.
 const untouchedLevels = (e) => new Set(e.ok ? [] : (e.now || []).map(([u]) => u).filter((u) => !e.late?.includes(u)));
 
 function undoItem(e) {
@@ -67,7 +68,7 @@ export const patchPlan = (src, dsts, levels) => ({
 // The patch the boxes hold, as preset saving wants it: null until Source and a destination are set.
 export const boxPatch = (src, dsts, lvl) => (src && dsts.length ? { src, dsts, levels: lvl.empty() ? [] : lvl.levels() || [] } : null);
 
-// What the router doesn't have is left out and listed in warnings. Validated at save
+// What the router does not have is left out and listed in warnings. Validated at save
 // (presetProblem), not here.
 export function presetPlan(preset, defaults) {
   const r = resolvePreset(
@@ -99,7 +100,7 @@ export function presetPlan(preset, defaults) {
 }
 // Follows are left out of an undo unless extra.on (shared by copies of the plan). A destination
 // followed more than once goes back to before the oldest follow: one undo each, not several
-// racing.
+// that race.
 function withFollows(plan, follows) {
   const oldest = new Map();
   for (const f of follows) if (!oldest.has(f.dst) || f.id < oldest.get(f.dst).id) oldest.set(f.dst, f);
@@ -112,22 +113,23 @@ export const groupUndoPlan = (f) =>
     { verb: 'undo', items: f.entries.map(undoItem) },
     f.entries.flatMap((e) => e.follows || []),
   );
-// A folder with failed takes retries just those; otherwise it redoes every redoable take. Empty
-// items = nothing to offer.
+// A group with failed takes retries only those; otherwise it redoes every redoable take. Empty
+// items = nothing to offer. ofUndo marks a redo of an undo row, which leaves Last alone.
 export function againPlan(row) {
   const es = row.f ? row.f.entries : [row.e];
   const failed = es.filter((e) => !e.ok);
   const use = (failed.length ? failed : es).filter(canRedo);
-  return { verb: failed.length ? 'retry' : 'redo', items: use.map(againItem) };
+  const plan = { verb: failed.length ? 'retry' : 'redo', items: use.map(againItem) };
+  return use.some((e) => e.undo) ? { ...plan, ofUndo: true } : plan;
 }
 export const rowUndoPlan = (row) => (row.f ? groupUndoPlan(row.f) : undoPlan(row.e));
 
-// The one table of verb wording. busy: banner while sending; resets: whether sending clears the
+// The one table of verb wording. busy: banner while it sends; resets: whether a send clears the
 // patch boxes (only a new patch does).
 export const VERBS = {
   patch: { word: 'take', ask: 'take', busy: 'Taking…', resets: true },
   undo: { word: 'undo', ask: 'undo', busy: 'Undoing…', resets: false },
-  retry: { word: 'retry', ask: 'retry taking', busy: 'Retrying…', resets: false },
+  retry: { word: 'retry', ask: 'retry the take of', busy: 'Retrying…', resets: false },
   redo: { word: 'redo', ask: 'redo the take of', busy: 'Redoing…', resets: false },
   preset: { word: 'take', ask: 'take', busy: 'Taking…', resets: false },
 };
@@ -162,7 +164,7 @@ function takeResult(m) {
     showResult('ok', title, capped(b.results.map((r) => routeText(r, r.already))));
     return;
   }
-  // The banner follows the failed takes' entries, so it shrinks as they're confirmed late or
+  // The banner follows the failed takes' entries, so it shrinks as they are confirmed late or
   // retried (refreshResult).
   const track = { verb: b.verb, total: b.results.length, items: failed.map((r) => ({ entry: r.entry, dst: r.dst, err: r.err })) };
   const banner = failureBanner(track);
@@ -182,7 +184,7 @@ function outcomeText(e, err) {
   return t.length > 90 ? `${t.slice(0, 87)}…` : t;
 }
 
-// One line per distinct outcome. A take is resolved once its entry is ok (confirmed late) or a
+// One line per distinct outcome. A take is resolved after its entry is ok (confirmed late) or a
 // retry went through; with none left the banner turns into a confirmation.
 export function failureBanner(t, hist = S.hist) {
   const byId = new Map(hist.map((e) => [e.id, e]));
@@ -306,7 +308,7 @@ function planQuestion(plan) {
 }
 
 // Levels an undo would overwrite besides the take's own: those restored where dst no longer has
-// the take's source. Levels the take never confirmed can't tell, so only the rest are checked;
+// the take's source. Levels the take never confirmed cannot tell, so only the rest are checked;
 // an entry without recorded failures checks none.
 export function changedSince(item) {
   const e = item.undo;
@@ -349,7 +351,7 @@ function itemSummary(item, boxed, prot, since) {
       ? el(
           'div',
           'sode__hist-note',
-          `Level${item.untouched.length === 1 ? '' : 's'} ${levelText(item.untouched)}: the take didn't change ${item.untouched.length === 1 ? 'it' : 'them'}, left as is.`,
+          `Level${item.untouched.length === 1 ? '' : 's'} ${levelText(item.untouched)}: the take did not change ${item.untouched.length === 1 ? 'it' : 'them'}, left as is.`,
         )
       : null,
     item.skipped.length
@@ -417,19 +419,62 @@ function extraBox(plan, spaceHint) {
 }
 
 // This browser's last patch as numbers, so names stay current. Null until it makes one: History
-// holds other people's takes and must not fill a box.
+// holds other people's takes and must not fill a box. Stored per browser (every tab and user
+// shares it); memory answers only when storage is blocked or this tab's last write did not land.
+const LAST_KEY = 'sode-last-take';
 let lastPatch = null;
+let lastWriteFailed = false;
+
+// Another tab's take: its Last (and the Next built on it) shows here too.
+globalThis.addEventListener?.('storage', (e) => {
+  if (e.key === LAST_KEY || e.key === null) emit('last');
+});
+
+const isNum = (v) => Number.isInteger(v) && v >= 0;
+const isPair = (v) => Array.isArray(v) && isNum(v[0]) && typeof v[1] === 'string';
+const validLast = (t) =>
+  !!t && isPair(t.src) && Array.isArray(t.dsts) && t.dsts.length > 0 && t.dsts.every(isPair) && Array.isArray(t.levels) && t.levels.every(isNum);
+
+// A redo counts when all its routes share one source and one set of levels; Retry, Preset and
+// undo never set Last. Null means leave Last as it is.
+export function lastFromPlan(p) {
+  if ((p.verb !== 'patch' && p.verb !== 'redo') || p.ofUndo) return null;
+  const gs = p.items.flatMap((i) => i.groups.map((g) => ({ dst: i.dst, g })));
+  if (!gs.length) return null;
+  const { src, levels } = gs[0].g;
+  const sorted = (l) => [...l].sort((x, y) => x - y);
+  const lv = sorted(levels);
+  if (p.verb === 'redo' && !gs.every(({ g }) => g.src.n === src.n && sameList(sorted(g.levels), lv))) return null;
+  return { src: [src.n, src.name], dsts: gs.map(({ dst }) => [dst.n, dst.name]), levels: lv };
+}
+
+// A stored value that fails to parse is no Last, not a cue to fall back to memory.
+function readLast() {
+  let raw;
+  try {
+    raw = localStorage.getItem(LAST_KEY);
+  } catch {
+    return lastPatch;
+  }
+  if (raw == null) return lastWriteFailed ? lastPatch : null;
+  try {
+    const t = JSON.parse(raw);
+    return validLast(t) ? t : null;
+  } catch {
+    return null;
+  }
+}
 
 export function lastTake() {
-  const t = lastPatch;
-  if (!t) return null;
+  const t = readLast();
+  if (!t || !S.srcBy.has(t.src[0]) || !t.dsts.every(([n]) => S.dstBy.has(n))) return null;
   return { src: srcItem(...t.src), dsts: t.dsts.map((d) => dstItem(...d)), levels: t.levels.filter((u) => S.levelBy.has(u)) };
 }
 
 // Last take with source and every destination one number higher (Cam 1 → Rec 1 + Rec 5 then Cam
 // 2 → Rec 2 + Rec 6). A side is null/empty when any number would run past the router's list.
-// Levels aren't carried. Repeating: while a box still holds what the last Next fill put there
-// (run), the next step starts from that; a take, Clear or hand pick ends the run by itself.
+// Levels are not carried. Repeats: while a box still holds what the last Next fill put there
+// (run), the next step starts from that. A take, Clear or hand pick ends the run by itself.
 let run = { src: null, dsts: null };
 
 export function nextTake(state) {
@@ -479,7 +524,7 @@ function nextOf(it, by) {
 
 const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
-// false when the box already has it. For levels, also false when they're the default.
+// false when the box already has it. For levels, also false when they are the default.
 export function lastChip(t, state) {
   if (!t) return { src: false, dst: false, lvl: false };
   return {
@@ -505,13 +550,20 @@ export function sendTakes(p) {
   const out = { t: 'batch', items };
   if (p.verb === 'preset' && p.preset) out.preset = p.preset;
   if (!wsSend(out)) {
-    showResult('error', 'Not sent', 'The patch was NOT sent: the connection to the Sode server was lost. It is reconnecting; try again in a moment.');
+    showResult(
+      'error',
+      'Not sent',
+      'The patch was NOT sent: the connection to the Sode server was lost. The page reconnects by itself; try again in a moment.',
+    );
     return false;
   }
   for (const id of take.byId.keys()) takes.set(id, take);
-  if (p.verb === 'patch') {
-    const g = p.items[0].groups[0];
-    lastPatch = { src: [g.src.n, g.src.name], dsts: p.items.map((i) => [i.dst.n, i.dst.name]), levels: g.levels };
+  const last = lastFromPlan(p);
+  if (last) {
+    lastPatch = last;
+    // A full storage keeps the older value, which would outrank memory.
+    lastWriteFailed = !writeJSON(LAST_KEY, last);
+    if (lastWriteFailed) writeStr(LAST_KEY, null);
   }
   const list = [...take.byId.values()];
   const dsts = new Set(list.map((t) => t.dst.n)).size;
@@ -537,5 +589,5 @@ onMsg('takeResult', takeResult);
 on('wsclose', () => {
   if (!takes.size) return;
   takes.clear();
-  showResult('warn', 'Connection lost', 'The take was sent but its result is unknown. Check History once reconnected.');
+  showResult('warn', 'Connection lost', 'The take was sent but its result is unknown. Check History after the page reconnects.');
 });

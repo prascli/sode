@@ -1,5 +1,5 @@
 // Presets: { name, items: [{ src, dsts: [n], levels: [ui] }] }. Global ones live in cfg.presets
-// (settings PIN), this browser's own in localStorage. Stored as numbers only (internal numbers,
+// (Advanced Settings PIN), this browser's own in localStorage. Stored as numbers only (internal numbers,
 // UI levels, [] = default levels), never names: names are re-polled from the router.
 
 import { S, on, onMsg, emit, off, search } from './core.js';
@@ -9,18 +9,18 @@ import { profileProblem } from './profilesrules.js';
 
 // Limits the server enforces too (internal/config/presets.go); test/preset_cases.json keeps the
 // two from drifting.
-export const MAX_PRESETS = 30;
-export const MAX_ITEMS = 100;
-export const MAX_DSTS = 100;
-export const MAX_TOTAL = 200;
-export const MAX_NUM = 0xfffe;
-export const MAX_LEVEL = 64;
+const MAX_PRESETS = 30;
+const MAX_ITEMS = 100;
+const MAX_DSTS = 100;
+const MAX_TOTAL = 200;
+const MAX_NUM = 0xfffe;
+const MAX_LEVEL = 64;
 export const MAX_BYTES = 48 * 1024;
 const KEY = 'sode-presets';
 const ORDER = 'sode-preset-order';
 const PINS = 'sode-preset-pins';
 
-// Old salvo keys: move what a browser holds to the new keys once (a new key already there wins).
+// Old salvo keys: move what a browser holds to the new keys one time (a new key already there wins).
 export function migrateLegacyKeys() {
   for (const [from, to] of [
     ['sode-salvos', KEY],
@@ -34,13 +34,13 @@ export function migrateLegacyKeys() {
 }
 migrateLegacyKeys();
 
-// Out-of-range values stay so presetProblem can name them rather than quietly changing the preset.
+// Out-of-range values stay so presetProblem can name them rather than quietly change the preset.
 const ints = (a) =>
   []
     .concat(a ?? [])
     .map(Number)
     .filter((n) => Number.isInteger(n));
-export const normItem = (it) => ({
+const normItem = (it) => ({
   src: Number.isInteger(+it?.src) ? +it.src : -1,
   dsts: [...new Set(ints(it?.dsts))],
   levels: [...new Set(ints(it?.levels))].sort((a, b) => a - b),
@@ -82,7 +82,7 @@ export function presetProblem(s) {
     if (l != null) return `Level ${l} must be 1-${MAX_LEVEL}.`;
     total += it.dsts.length;
   }
-  if (total > MAX_TOTAL) return `A preset can take at most ${MAX_TOTAL} destinations in total.`;
+  if (total > MAX_TOTAL) return `A preset can hold at most ${MAX_TOTAL} destinations in total.`;
   return presetConflict(s);
 }
 
@@ -94,7 +94,7 @@ export function presetsProblem(list) {
 
 // Different sources to one destination on overlapping levels (blank = default, overlaps
 // everything) would race. The same source twice merges, so is fine.
-export function presetConflict(s) {
+function presetConflict(s) {
   const clash = (a, b) => !a.length || !b.length || a.some((l) => b.includes(l));
   for (let i = 0; i < s.items.length; i++) {
     for (const b of s.items.slice(i + 1)) {
@@ -102,7 +102,7 @@ export function presetConflict(s) {
       if (a.src === b.src || !clash(a.levels, b.levels)) continue;
       const d = a.dsts.find((x) => b.dsts.includes(x));
       if (d != null) {
-        return `Destination ${d + off()} is taken from both source ${a.src + off()} and source ${b.src + off()} on the same levels.`;
+        return `Destination ${d + off()} gets both source ${a.src + off()} and source ${b.src + off()} on the same levels.`;
       }
     }
   }
@@ -134,7 +134,7 @@ export function deleteLocalPreset(name) {
   emit('presets');
 }
 
-// ---- pinning: a preset carries its own flag; a browser may override it for everyone's presets, by name.
+// ---- pinning: a preset carries its own flag; a browser can override it for everyone's presets, by name.
 
 const pinKey = (name) => String(name).toLowerCase();
 // Names it still has only; an unknown name or a non-boolean value is ignored.
@@ -312,8 +312,8 @@ export function resolvePreset(preset, has, defaults) {
 }
 
 // What Shift-click fills: the first take that still exists, built on resolvePreset so the rules
-// match firing. { fill, partial, many, missing }: levels [] = default; partial: something of
-// that take is gone; many: more takes than the boxes hold; missing: what the router lacks,
+// match a fire. { fill, partial, many, missing }: levels [] = default. partial: something of
+// that take is gone. many: more takes than the boxes hold. missing: what the router lacks,
 // listed when no take fits.
 export function fillFrom(preset, has, defaults) {
   const missing = [];

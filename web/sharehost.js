@@ -1,10 +1,10 @@
 // Links and QR codes made on a page opened as localhost are useless on a phone. This swaps in the address other
-// devices use, typed once and kept in this browser (`sode-share-host`). The rules are in sharehostrules.js.
+// devices use, typed one time and kept in this browser (`sode-share-host`). The rules are in sharehostrules.js.
 import { el } from './core.js';
 import { isLoopback, parseShareHost, shareBase } from './sharehostrules.js';
 
 const KEY = 'sode-share-host';
-export function storedShareHost() {
+function storedShareHost() {
   try {
     return localStorage.getItem(KEY) || '';
   } catch {
@@ -49,7 +49,11 @@ export function shareHostField(onChange) {
     'div',
     'sode__field',
     Object.assign(el('label', null, 'Address for other devices'), { htmlFor: 'share-host' }),
-    el('span', 'sode__hint', 'This page is open on localhost, which a phone cannot reach. Type the address it uses, with the port. It is kept in this browser.'),
+    el(
+      'span',
+      'sode__hint',
+      'This page is open on localhost, which a phone cannot reach. Type the address it uses, with the port. It is kept in this browser.',
+    ),
     input,
     note,
   );

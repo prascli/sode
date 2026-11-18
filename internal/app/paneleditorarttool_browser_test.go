@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// The smart menu's Artwork tool over a 2x3 block with one empty square: Esc after a preview changes nothing, Icon A
-// goes on every cell, Icon B runs on in the fill order, and a save stores both, read back over REST.
+// The smart menu's Artwork tool over a 2x3 block with one empty square. Esc after a preview changes nothing. Icon A
+// goes on every cell, and Icon B runs on in the fill order. A save stores both, read back over REST.
 func TestChromeEditorArtTool(t *testing.T) {
 	b, a, ana, id := editorTab(t, `{"name":"Art tool","rows":2,"cols":3,"cells":[
 		{"r":1,"c":1,"kind":"take"},{"r":1,"c":2,"kind":"clear"},{"r":1,"c":3,"kind":"source"},
@@ -48,7 +48,7 @@ func TestChromeEditorArtTool(t *testing.T) {
 	b.waitFor("a focused icon previews on the five cells", `document.querySelectorAll('.sode-ed__sq.is-preview').length === 5 && /Sets Icon A on 5 cells\. 1 empty square skipped\./.test(tool().querySelector('.sode-find__note').textContent)`)
 	b.eval(`key(document.activeElement, 'Escape'); true`)
 	b.waitFor("Esc backs out to the grid and drops the preview", `document.activeElement === document.getElementById('ed-grid') && !document.querySelector('.sode-ed__sq.is-preview')`)
-	b.waitFor("Esc changed nothing", `document.getElementById('ed-save').disabled`)
+	b.waitSaved("Esc changed nothing")
 
 	// Icon A by Enter on a chosen icon, then Icon B from 15 across: 15, 16 and the rest left without.
 	b.eval(`toolItem().click(); true`)
@@ -64,8 +64,7 @@ func TestChromeEditorArtTool(t *testing.T) {
 	b.shot("arttool")
 
 	b.eval(`document.getElementById('ed-save').click()`)
-	// Save disables the button at once, before the PUT; only the state slot says Saved once the reply is in.
-	b.waitFor("saved", `document.getElementById('ed-state').textContent === 'Saved'`)
+	b.waitSaved("saved")
 	got := stored()
 	want := "1,1=icon:camera/15 1,2=icon:camera/16 1,3=icon:camera/<nil> 2,1=icon:camera/<nil> 2,3=icon:camera/<nil>"
 	if got != want {

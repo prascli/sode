@@ -7,14 +7,19 @@ const root = document.documentElement;
 const narrowTouch = matchMedia('(max-width: 700px) and (pointer: coarse)');
 const listeners = [];
 
-export const layoutPref = () => pref('layout');
+const layoutPref = () => pref('layout');
 
 export const layout = () => root.dataset.layout;
+// Returns a function that removes fn.
 export const onLayout = (fn) => {
   listeners.push(fn);
+  return () => {
+    const i = listeners.indexOf(fn);
+    if (i >= 0) listeners.splice(i, 1);
+  };
 };
 
-export function applyLayout() {
+function applyLayout() {
   const p = layoutPref();
   const next = p === 'auto' ? (narrowTouch.matches ? 'phone' : 'desktop') : p;
   if (root.dataset.layout === next) return;

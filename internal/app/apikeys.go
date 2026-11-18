@@ -27,7 +27,7 @@ const keyWriteEvery = time.Minute
 
 func newKeySecret() string { return newSecret(32) }
 
-// newShortSecret is 128 bits, for a panel's link key: the key is throttled, revocable and one panel's
+// newShortSecret is 128 bits, for a panel's link key. The key is throttled, revocable and one panel's
 // own, and every character of it is in the link.
 // Its body never starts with the prefix, so the page can tell a link that left the prefix off from one that kept it.
 func newShortSecret() string {
@@ -90,7 +90,7 @@ func (o keyOwner) is(p keyOwner) bool { return o.Kind == p.Kind && strings.Equal
 type apiKey struct {
 	ID       string    `json:"id"`
 	Owner    keyOwner  `json:"owner"`
-	Name     string    `json:"name"` // the key name, e.g. "Panel 21"
+	Name     string    `json:"name"` // the key name, for example "Panel 21"
 	Created  time.Time `json:"created"`
 	LastUsed time.Time `json:"lastUsed,omitzero"`
 	Count    int       `json:"count"`
@@ -104,7 +104,7 @@ func (k *apiKey) subject() string { return "key:" + k.ID }
 type keyRec struct {
 	apiKey
 	Hash string `json:"hash"`
-	// PinFP fingerprints the owner's PIN hash at creation, for user keys only, so a PIN
+	// PinFP fingerprints the owner's PIN hash at creation, for user keys only. Then a PIN
 	// edited in config.yaml while Sode was down still ends the key. Empty in a keys.json
 	// from before it existed; reconcile stamps those.
 	PinFP string `json:"pinFp,omitempty"`
@@ -152,7 +152,18 @@ type keyStore struct {
 	endWrote uint64 // last endSeq written (under fileMu)
 }
 
-// loadKeys: once, from New. A damaged file is forgotten, as tokens are.
+// setAsideDamaged: so the next write cannot overwrite the file and an administrator can repair
+// it. No colons in the time: not every filesystem allows them.
+func setAsideDamaged(path, prefix, what string, perr error) {
+	aside := path + ".damaged-" + time.Now().UTC().Format("20060102T150405Z")
+	if err := os.Rename(path, aside); err != nil {
+		log.Printf("%s: %s is damaged, %s forgotten, and setting it aside failed: %v (%v)", prefix, path, what, err, perr)
+		return
+	}
+	log.Printf("%s: %s is damaged, %s forgotten; the file is kept as %s: %v", prefix, path, what, aside, perr)
+}
+
+// loadKeys: one time, from New. A damaged file is set aside and the store starts empty, as for tokens.
 func loadKeys(cfgPath string) *keyStore {
 	s := &keyStore{}
 	if cfgPath == "" {
@@ -161,14 +172,14 @@ func loadKeys(cfgPath string) *keyStore {
 	s.path = filepath.Join(filepath.Dir(cfgPath), "keys.json")
 	if b, err := os.ReadFile(s.path); err == nil {
 		if err := json.Unmarshal(b, &s.recs); err != nil {
-			log.Printf("api: %s is damaged, keys forgotten: %v", s.path, err)
+			setAsideDamaged(s.path, "api", "keys", err)
 			s.recs = nil
 		}
 	}
 	var ended []endedKey
 	if b, err := os.ReadFile(s.endedPath()); err == nil {
 		if err := json.Unmarshal(b, &ended); err != nil {
-			log.Printf("api: %s is damaged, ended keys forgotten: %v", s.endedPath(), err)
+			setAsideDamaged(s.endedPath(), "api", "ended keys", err)
 			ended = nil
 		}
 	}
@@ -268,7 +279,7 @@ func (s *keyStore) createCapped(o keyOwner, name string, expires time.Time, max 
 // again must not end another tab's key; past the bound the oldest ends.
 const sessionKeyMax = 16
 
-// create is createCapped for a key that may ride a session (sess set), which gets the session shape.
+// create is createCapped for a key that rides a session when sess is set; such a key gets the session shape.
 func (s *keyStore) create(o keyOwner, name string, expires time.Time, max int, fp, sess string) (string, apiKey, error) {
 	secret := newKeySecret()
 	if sess != "" {
@@ -419,7 +430,7 @@ func (s *keyStore) dropWhere(gone func(keyRec) bool) []apiKey {
 	return out
 }
 
-// reconcile runs once at startup against the loaded config and returns the keys it ended:
+// reconcile runs one time at startup against the loaded config. It returns the keys it ended:
 // owner gone, or a user whose PIN hash no longer matches the stamp. A key with no stamp
 // (older keys.json) is kept and stamped now; a PIN edited while down before this version
 // ran cannot be told.
@@ -452,16 +463,6 @@ func (s *keyStore) reconcile(cfg config.Config) []apiKey {
 		s.save()
 	}
 	return out
-}
-
-func (s *keyStore) revoke(id string) bool {
-	return len(s.dropWhere(func(r keyRec) bool { return r.ID == id })) > 0
-}
-
-// dropOwner ends every key of owner: a user's on PIN change, rename or removal (ADR 0003), a
-// client's on removal. Returns how many went.
-func (s *keyStore) dropOwner(o keyOwner) int {
-	return len(s.dropWhere(func(r keyRec) bool { return r.Owner.is(o) }))
 }
 
 // expire removes keys past their expiry and returns them, so the caller can log each.

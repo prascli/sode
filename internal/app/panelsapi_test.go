@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -14,6 +15,13 @@ import (
 )
 
 // REST seam for /api/v1/panels: real Handler, recorder, users Ana and Bo, and Cy (Trusted).
+
+// problems lists the panel files the store skipped; production only logs them.
+func (s *panelStore) problems() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.probs)
+}
 
 func panelsApp(t *testing.T) *App {
 	t.Helper()
@@ -144,7 +152,7 @@ func TestPanelOwnershipAndUseOnlySharing(t *testing.T) {
 	wantErr(t, apiDo(a, "GET", "/api/v1/panels/"+id, bo, nil), 404, "not_found")
 	wantErr(t, apiSend(a, "PUT", "/api/v1/panels/"+id, bo, `{"name":"mine now"}`), 404, "not_found")
 
-	// Named: Bo may read, never change.
+	// Named: Bo can read, never change.
 	apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"Ana's","share":{"mode":"named","users":["bo"]}}`)
 	p := apiBody(t, apiDo(a, "GET", "/api/v1/panels/"+id, bo, nil))
 	if p["canEdit"] != false || p["name"] != "Ana's" {

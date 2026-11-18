@@ -12,9 +12,7 @@ import { initTemplates } from './editortemplates.js';
 import { initSidebar } from './editorside.js';
 import { initNameEdit } from './editorname.js';
 import { initGrip } from './editorgrip.js';
-
-// 4x8 maps one to one onto a hardware key deck (docs/panels-design.md).
-export const DEFAULT_GRID = { panelRows: 4, panelCols: 8 };
+import { bigScrollAll } from './bigscroll.js';
 
 const id = panelIdFrom(location.pathname);
 
@@ -24,14 +22,16 @@ on('brand', ({ text }) => {
   if (!id) document.title = title.textContent;
 });
 
+// The run page leaves its scrolling to the Grid's own code.
+if (!id) bigScrollAll();
+
 if (id) runPanel(id);
 else if (document.getElementById('ed-grid'))
   runEditor().then((editor) => {
     initArtTool(editor, initFind(editor));
-    initNameEdit();
     initTemplates(editor);
     initGrip(editor);
-    initSidebar(editor);
+    initNameEdit(initSidebar(editor).renameField);
   });
 else runPanelsList();
 

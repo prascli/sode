@@ -8,15 +8,15 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
-	"testing"
 	"strings"
+	"testing" // on purpose: testing.Testing() keeps UseTestCosts out of production
 	"unicode/utf8"
 )
 
 var pinIter = 600_000
 
-// UseTestCosts cuts PBKDF2 to 1000 rounds and skips fsync (F_FULLFSYNC on macOS costs tens of ms
-// a write) for tests that hash PINs and save files in bulk. A stored hash keeps its own round count.
+// UseTestCosts cuts PBKDF2 to 1000 rounds and skips fsync for tests that hash PINs and save files
+// in bulk. F_FULLFSYNC on macOS costs tens of ms a write. A stored hash keeps its own round count.
 func UseTestCosts() {
 	if !testing.Testing() {
 		panic("config.UseTestCosts outside a test")
@@ -26,6 +26,7 @@ func UseTestCosts() {
 
 func CheckPinRules(pin string) error {
 	if n := utf8.RuneCountInString(pin); n < 4 || n > 64 {
+		//lint:ignore ST1005 Settings shows this as is
 		return fmt.Errorf("Advanced Settings PIN must be 4-64 characters")
 	}
 	return nil

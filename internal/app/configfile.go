@@ -16,18 +16,18 @@ import (
 )
 
 // Server config export/import (Settings > Access). The file is a plain config.yaml built
-// here, since PIN hashes and profiles aren't in the browser's JSON; a private backup is
+// here, since PIN hashes and profiles are not in the browser's JSON. A private backup is
 // marked only by a top comment and the file name, so any export is a drop-in config.yaml.
 // All three messages need the Advanced Settings PIN (needAdmin): the file holds everything it
 // guards, and with PINs, the hashes.
 
-// maxConfigFile: a full config is ~300 KiB; leaves room for profiles. Only the read after
-// configImportBegin may be this large.
+// maxConfigFile: a full config is about 300 KiB; leaves room for profiles. Only the read after
+// configImportBegin can be this large.
 const maxConfigFile = 2 << 20
 
 const importSlack = 64 << 10
 
-var errImportTooBig = fmt.Errorf("the file is over %d MiB; this isn't a Sode configuration", maxConfigFile>>20)
+var errImportTooBig = fmt.Errorf("the file is over %d MiB; this is not a Sode configuration", maxConfigFile>>20)
 
 // importReadLimit: twice the size plus slack (JSON escaping), capped by maxConfigFile. ok
 // is false for an impossible size.
@@ -103,15 +103,11 @@ func (a *App) ExportConfig(c *client, pins bool) (site, text string, err error) 
 	return exportName(cfg), head + string(b), nil
 }
 
-// ImportConfig replaces the whole config (no KeepOwned: everything comes from the file
-// except PIN hashes it omits). Writes the same `api` rows as the saves it stands in for. Refused without the Advanced Settings PIN or for a file that doesn't
-// parse or validate. Router changes reconnect via applyConfig.
-func (a *App) ImportConfig(c *client, text string) error {
-	_, err := a.importConfig(c, text)
-	return err
-}
-
-// importConfig also returns the keys this release doesn't know, which the file keeps.
+// importConfig replaces the whole config (no KeepOwned: everything comes from the file
+// except PIN hashes it omits). It writes the same `api` rows as the saves it stands in for.
+// It is refused without the Advanced Settings PIN, or for a file that does not parse or validate.
+// Router changes reconnect through applyConfig. unknown lists keys this release does not know; the file
+// keeps them.
 func (a *App) importConfig(c *client, text string) (unknown []string, err error) {
 	if len(text) > maxConfigFile {
 		return nil, errImportTooBig
@@ -199,6 +195,7 @@ func (a *App) serveConfigExport(c *client, m *inMsg) {
 
 func (a *App) serveConfigImport(c *client, m *inMsg) {
 	go func(text string, id int) {
+		defer m.finish()
 		kept, err := a.importConfig(c, text)
 		note := fmt.Sprintf("%d bytes", len(text))
 		res := opResultFor("configImport", &id, err)

@@ -22,10 +22,6 @@
   gap: var(--pb-space-2);
   position: relative;
 }
-.pb-input.sode__input {
-  font-size: var(--pb-text-xl);
-  height: calc(var(--pb-control-h-lg) * 1.6);
-}
 .sode__entry {
   display: flex;
   gap: var(--pb-space-2);
@@ -77,19 +73,6 @@
 .sode__chips[hidden] {
   display: none;
 }
-/* The colour edge is a background strip, so the border and focus ring run unbroken. */
-.sode__box--src .sode__input,
-.sode__box--dst .sode__input {
-  background-repeat: no-repeat;
-  background-size: var(--sode-side-w) 100%;
-  padding-left: calc(var(--pb-space-3) + var(--sode-side-w) - var(--pb-border-w));
-}
-.sode__box--src .sode__input {
-  background-image: linear-gradient(var(--pb-source), var(--pb-source));
-}
-.sode__box--dst .sode__input {
-  background-image: linear-gradient(var(--pb-dest), var(--pb-dest));
-}
 /* The count sits under what scrolls, so a very long list still shows it. */
 .sode__menu-pop {
   left: 0;
@@ -132,12 +115,29 @@
 .sode__menu-count[hidden] {
   display: none;
 }
+/* Room for the Show all button: its xs line, its padding and the gap above it. */
+.sode__box {
+  --sode-all-h: calc(var(--pb-text-xs) * 1.5 + var(--pb-space-1) * 3);
+}
 .sode__menu-all {
   display: flex;
   padding-top: var(--pb-space-1);
 }
 .sode__menu-all[hidden] {
   display: none;
+}
+/* Destination's hangs off the input row, so its place never depends on the chips. The chips start below its row. */
+.sode__entry > .sode__menu-all {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: var(--pb-z-dropdown, 10);
+}
+/* Chips add nothing to the box's width (width 0, then fill), so the button's right edge stays put. */
+.sode__entry ~ .sode__chips:not([hidden]) {
+  min-width: 100%;
+  width: 0;
+  margin-top: calc(var(--sode-all-h) - var(--pb-space-2));
 }
 .sode__menu-all .pb-btn {
   color: var(--pb-text-muted);
@@ -228,7 +228,6 @@
 .sode__down-arrow--up::before {
   content: "↑";
 }
-/* Visible scrollbar (styled, so macOS doesn't overlay and hide it). */
 .sode__scroll {
   display: flex;
   flex-direction: column;
@@ -237,29 +236,16 @@
   overflow-y: scroll;
   padding-right: var(--pb-space-2);
 }
-.sode__scroll::-webkit-scrollbar,
-.sode__sets-run::-webkit-scrollbar,
-.sode__bar::-webkit-scrollbar,
-.sode__box--levels .sode__levels::-webkit-scrollbar {
+/* The levels bar keeps a styled native bar; the other scrollers here get big ones (bigscroll.js). */
+.sode__bar::-webkit-scrollbar {
   height: var(--pb-space-2);
   width: var(--pb-space-2);
 }
-.sode__scroll::-webkit-scrollbar-track,
-.sode__menu::-webkit-scrollbar-track,
-.sode__sets-run::-webkit-scrollbar-track,
-.sode__bar::-webkit-scrollbar-track,
-.sode__box--levels .sode__levels::-webkit-scrollbar-track {
+.sode__bar::-webkit-scrollbar-track {
   background: var(--pb-edge-soft);
 }
-.sode__scroll::-webkit-scrollbar-thumb,
-.sode__menu::-webkit-scrollbar-thumb,
-.sode__sets-run::-webkit-scrollbar-thumb,
-.sode__bar::-webkit-scrollbar-thumb,
-.sode__box--levels .sode__levels::-webkit-scrollbar-thumb {
+.sode__bar::-webkit-scrollbar-thumb {
   background: var(--pb-text-muted);
-}
-.sode__menu::-webkit-scrollbar {
-  width: calc(var(--pb-space-2) * 2);
 }
 .sode__feed {
   display: flex;
@@ -287,4 +273,101 @@
   position: fixed;
   width: auto;
   z-index: var(--pb-z-sticky);
+}
+
+/* Compact view (pref compact, html[data-compact]): desktop only, and the usual page again while a preset picks takes from
+   History (historypick.js sets data-sode-pick=""). Keep in step with historyShown() in desktophistory.js. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view > .sode__history {
+  display: none;
+}
+/* The block sits in the middle of the viewport. The match lists are already out of flow; #result hangs below Presets
+   out of flow too, so a failed take doesn't move the boxes. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) .sode {
+  display: grid;
+  grid-template-columns: minmax(0, 75rem);
+  min-height: 100dvh;
+  padding: calc(var(--sode-pad-bottom) + var(--sode-down-h, 0px)) var(--pb-space-8) var(--sode-pad-bottom);
+  place-content: center;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view {
+  gap: var(--pb-space-6);
+  position: relative;
+}
+/* compactcentre.js sets the nudge that puts the boxes, not the whole block, at the viewport's centre. Relative offsets,
+   not a transform, so the fixed footer inside keeps the viewport as its containing block. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) #patch-view {
+  left: var(--sode-centre-x, 0px);
+  top: var(--sode-centre-y, 0px);
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]):not([data-view="settings"]) .sode__boxes {
+  padding-left: calc(var(--sode-take-w, 0px) + var(--pb-space-6));
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view > .sode__result {
+  left: 0;
+  margin-top: var(--pb-space-4);
+  position: absolute;
+  top: 100%;
+}
+/* Label and pins sit together in the middle, under the centred boxes. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets {
+  justify-content: center;
+  margin: 0;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) #patch-view .sode__presets > .sode__label {
+  flex: none;
+  font-size: var(--pb-text-xs);
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets > .sode__sets {
+  flex: 0 1 auto;
+  gap: var(--pb-space-1);
+  justify-content: center;
+}
+/* With no pins the empty run would still take a gap and pull the group off centre. */
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets > .sode__sets:not(:has(.sode__set)) {
+  display: none;
+}
+:root[data-layout="desktop"][data-compact]:not([data-sode-pick=""]) .sode__presets .sode__set {
+  font-size: var(--pb-text-xs);
+  min-height: var(--pb-control-h-sm);
+}
+/* Chrome fades out but keeps its place, its tab stop and its name; hover or focus brings it back. The server and router
+   status hides only while both links are up (sode__conn--ok, desktop.js), so a fault always shows with its words. The
+   Lock bar fades on .sode-lock__who-bar: .sode-lock__who's own transition belongs to the lock screen, which leaves it shown (is-hand). */
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand) .sode-lock__who-bar {
+  opacity: 0;
+  transition: opacity var(--sode-motion-reveal) var(--pb-ease);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer:is(:hover, :focus-within),
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok:hover,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock])
+  .sode-lock__who:not(.is-hand):is(:hover, :focus-within)
+  .sode-lock__who-bar {
+  opacity: 1;
+}
+/* A transparent apron reaches from each faded corner item toward the middle and out to the viewport edges, so a pointer
+   anywhere near the corner brings it back. Kept short of the centred block at 1280x720; TestChromeMainCompact checks it. */
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) :is(.sode__footer, .sode__conn--ok)::before,
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand)::before {
+  --sode-apron: 6rem;
+  content: "";
+  inset: calc(var(--sode-apron) * -1);
+  position: absolute;
+  z-index: -1;
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__footer::before {
+  bottom: calc(var(--pb-space-4) * -1);
+  left: calc(var(--pb-space-5) * -1);
+  right: calc(var(--sode-apron) * -2);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"]) .sode__conn--ok::before {
+  left: calc(var(--sode-apron) * -2);
+  right: calc(var(--pb-space-5) * -1);
+  top: calc(var(--pb-space-4) * -1);
+}
+:root[data-layout="desktop"][data-compact]:not([data-view="settings"], [data-sode-lock]) .sode-lock__who:not(.is-hand)::before {
+  left: calc(var(--pb-space-5) * -1);
+  right: calc(var(--sode-apron) * -2);
+  top: calc(var(--pb-space-4) * -1 - var(--sode-down-h, 0px));
 }

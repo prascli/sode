@@ -1,15 +1,31 @@
-// Find in the panel editor, pure: what can be searched, which of it the signed-in user's Rights allow,
-// how results rank, and how a chosen result fills the selection. The page side is editorfind.js.
+// Find in the panel editor, pure. It holds what can be searched and which of it the signed-in user's Rights
+// allow. It also holds how results rank and how a chosen result fills the selection. The page side is editorfind.js.
 import { allowed } from './rightsrules.js';
 import { fillPlan, applyFill, setCell, rectOf, select, isUnassigned, cellAt } from './gridmodel.js';
 
-export const CATEGORIES = ['source', 'destination', 'preset', 'take', 'clear', 'current', 'panelName', 'instanceName', 'page', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
+export const CATEGORIES = [
+  'source',
+  'destination',
+  'preset',
+  'take',
+  'clear',
+  'undo',
+  'current',
+  'panelName',
+  'instanceName',
+  'page',
+  'pageName',
+  'info',
+  'goToPage',
+  'nextPage',
+  'previousPage',
+];
 // One entry each, placed with nothing chosen: a Go to Page cell gets its Page in the Cell tab.
-const NUMBERLESS = ['take', 'clear', 'current', 'panelName', 'instanceName', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
+const NUMBERLESS = ['take', 'clear', 'undo', 'current', 'panelName', 'instanceName', 'pageName', 'info', 'goToPage', 'nextPage', 'previousPage'];
 // The kinds with a list behind them get a chip; the others are one entry each and show under All.
 export const CHIP_CATEGORIES = ['source', 'destination', 'preset', 'page'];
 // What each chip narrows to: Pages also holds every kind that is about Pages, one entry each.
-export const CHIP_KINDS = { page: ['page', 'pageName', 'goToPage', 'nextPage', 'previousPage'] };
+const CHIP_KINDS = { page: ['page', 'pageName', 'goToPage', 'nextPage', 'previousPage'] };
 export const chipKinds = (chip) => (chip ? CHIP_KINDS[chip] || [chip] : []);
 export const CATEGORY_LABEL = {
   source: 'Sources',
@@ -17,6 +33,7 @@ export const CATEGORY_LABEL = {
   preset: 'Presets',
   take: 'Take',
   clear: 'Clear',
+  undo: 'Undo',
   current: 'Current Source',
   panelName: 'Panel Name',
   instanceName: 'Instance Name',
@@ -34,6 +51,7 @@ export const CATEGORY_ICON = {
   preset: 'bookmark',
   take: 'zap',
   clear: 'eraser',
+  undo: 'undo-2',
   current: 'eye',
   panelName: 'panels-top-left',
   instanceName: 'tablet-smartphone',
@@ -83,7 +101,16 @@ export function findEntries(namesReply, presetsReply, rights, { fixed = false } 
 // The panel's Pages as entries. Choosing one places Go to Page cells, so Rights do not apply.
 // alias lets "page 3" match a named Page.
 export const pageEntries = (pages) =>
-  (pages || []).map((p, i) => ({ category: 'page', key: `page:${p.id}`, id: p.id, n: i, label: p.name?.trim() || `Page ${i + 1}`, num: i + 1, alias: `page ${i + 1}`, off: false }));
+  (pages || []).map((p, i) => ({
+    category: 'page',
+    key: `page:${p.id}`,
+    id: p.id,
+    n: i,
+    label: p.name?.trim() || `Page ${i + 1}`,
+    num: i + 1,
+    alias: `page ${i + 1}`,
+    off: false,
+  }));
 
 const OFF_TAG = { rights: 'Outside rights', fixed: 'Fixed destination is on' };
 // Why an entry cannot be placed, '' when it can.
@@ -100,8 +127,8 @@ export function findScope(cells) {
   return cells.every((c) => c.kind === kind && isUnassigned({ r: 1, c: 1, rs: 1, cs: 1, ...c })) ? kind : '';
 }
 
-// The entries a choice places, in order. With picks (a set chosen in the list) those, of the first pick's
-// category; otherwise start and every later one of its category in the order findEntries gave. Entries the
+// The entries a choice places, in order. With picks (a set chosen in the list), it is those of the first
+// pick's category. Otherwise it is start and every later one of its category, in the order findEntries gave. Entries the
 // Rights grey out are never placed: a cell for one could not be used.
 export function fillRun(entries, start, picks) {
   if (!start || start.off) return [];
@@ -120,8 +147,8 @@ export function findPlan(g, run, order = 'across') {
   return { ...plan, slots: plan.slots.map((s) => ({ r: s.r, c: s.c, replace: s.replace, entry: run[s.n] })) };
 }
 
-// Two units in the selection, a unit being a cell (merged ones included) or an empty square: side by side they take
-// Previous Page then Next Page, left to right; one above the other, Previous on top. Chosen with either kind. null for
+// Two units in the selection, a unit being a cell (merged ones included) or an empty square. Side by side, they get
+// Previous Page then Next Page, left to right. One above the other, Previous is on top. Chosen with either kind. null for
 // any other selection.
 export function pairPlan(g, start, all) {
   if (!start || start.off || !['nextPage', 'previousPage'].includes(start.category)) return null;

@@ -13,6 +13,8 @@ import {
   armed,
   resultShown,
   guardWaiting,
+  undoReady,
+  undoState,
   GUARD_HOLD_MS,
   GUARD_DOUBLE_MS,
 } from './panelmodel.js';
@@ -20,10 +22,10 @@ import { NAV_KINDS, navTarget, navText } from './panelnav.js';
 
 const RESULT_ICON = { connected: 'check', already: 'equal', failed: 'x' };
 
-// A cell's artwork is built once with the grid and never touched by the paint functions (fill keeps it): a <use>
+// A cell's artwork is built one time with the grid and never touched by the paint functions (fill keeps it). A <use>
 // that is detached and re-attached re-resolves its sprite and blinks (TestChromePanelArtHolds). The row holds
 // Icon A (sprite icon or image) and then Icon B (a glyph); null when the cell has neither. Beside a sprite icon the
-// two share the row 40 to 60 (panels.css); an image fills the row and Icon B is a corner badge (artBBadge), so any
+// two share the row 40 to 60 (panels.css). An image fills the row and Icon B is a corner badge (artBBadge), so any
 // Icon A drawn as an image gets the badge here. A two-character glyph is marked so its font fits.
 export function artNode(cell, art) {
   const a = artOf(cell);
@@ -44,8 +46,8 @@ export function artNode(cell, art) {
 }
 
 // An uploaded image from createArt, hidden until it loads. An Icon library SVG becomes a mask in the text colour, as a
-// sprite icon is drawn, so it changes with the theme and a multi-colour file draws in one; a mask, like an <img>, never runs
-// the file's script. Anything else is an <img> in its own colours. The swap needs the node in place by then, which a
+// sprite icon is drawn. So it changes with the theme, and a multi-colour file draws in one colour. A mask, like an
+// <img>, never runs the file's script. Anything else is an <img> in its own colours. The swap needs the node in place by then, which a
 // resolved promise's later turn gives.
 export function artImage(cls, art, id, lib) {
   const img = el('img', cls);
@@ -65,8 +67,8 @@ export function artImage(cls, art, id, lib) {
   return img;
 }
 
-// Replaces a cell's children apart from its artwork, and only when they differ from the last paint, so an idle cell
-// is not touched by the one-second redraw.
+// Replaces a cell's children apart from its artwork, and only when they differ from the last paint. So the one-second
+// redraw does not touch an idle cell.
 function fill(b, ...kids) {
   const now = [...b.childNodes].filter((n) => n !== b._art);
   if (now.length === kids.length && now.every((n, i) => n.isEqualNode(kids[i]))) return;
@@ -74,7 +76,7 @@ function fill(b, ...kids) {
   b.append(...kids);
 }
 
-// hold is { down(cell), cancel() } for a Take cell with a hold guard: pointer or Enter and Space start it, leaving ends it.
+// hold is { down(cell), cancel() } for a Take cell with a hold guard: pointer or Enter and Space start it, and a leave ends it.
 // art is createArt's answer, for cells with uploaded artwork.
 export function buildGrid(host, panel, cells, onPress, hold, art) {
   host.replaceChildren();
@@ -150,7 +152,7 @@ function paintCurrent(b, cell, { st, env, names }) {
   fill(b, el('small', 'sode-panel__text', label), el('span', 'sode-panel__text', src >= 0 ? names.source(src) : ''));
 }
 
-// Not pressable: the panel's own name, or the name of the instance showing it.
+// Not pressable: the panel's own name, or the name of the instance that shows it.
 function paintName(b, cell, ctx) {
   const t = nameCellText(cell, ctx);
   fill(b, ...(t.caption ? [el('small', 'sode-panel__text', t.caption)] : []), el('span', 'sode-panel__text', t.value));
@@ -169,10 +171,16 @@ function paintNav(b, cell, { st, pages = [], wrap = true }) {
   fill(b, el('span', 'sode-panel__text', navText(cell, pages)));
 }
 
+function paintUndo(b, cell, { st, names, undo }) {
+  b.disabled = !undoReady(st, undo);
+  b.dataset.s = undoState(st);
+  fill(b, el('span', 'sode-panel__text', names.of(cell)));
+}
+
 function takeLabel(st, cell, now) {
   if (cell.caption) return cell.caption;
   if (st.mode === 'instant') return 'Take';
-  if (st.holdAt) return 'Keep holding';
+  if (st.holdAt) return 'Continue to hold';
   if (guardWaiting(st, now)) return 'Press again';
   return st.guard === 'hold' ? 'Hold to take' : 'Take';
 }
@@ -188,6 +196,7 @@ export function paintGrid(grid, ctx) {
     else if (cell.kind === 'panelName' || cell.kind === 'instanceName') paintName(b, cell, ctx);
     else if (PAGE_KINDS.includes(cell.kind)) paintPageCell(b, cell, ctx);
     else if (cell.kind === 'clear') fill(b, el('span', 'sode-panel__text', ctx.names.of(cell)));
+    else if (cell.kind === 'undo') paintUndo(b, cell, ctx);
     else if (NAV_KINDS.includes(cell.kind)) paintNav(b, cell, ctx);
     else {
       fill(b, el('span', 'sode-panel__text', takeLabel(ctx.st, cell, ctx.now)));

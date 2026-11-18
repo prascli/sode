@@ -21,7 +21,14 @@ test('a changed revision never applies on the spot: the banner counts down first
 
 test('staged routes are never dropped by the countdown alone: the banner waits for a take or Clear', () => {
   const u = noticeRev(createUpdate(3), 4, 1000);
-  assert.deepEqual(updateStep(u, staging, 1000 + COUNT_MS), { step: 'banner', leftMs: 0, totalMs: COUNT_MS, deadline: 1000 + COUNT_MS, wait: 'staged', drops: false });
+  assert.deepEqual(updateStep(u, staging, 1000 + COUNT_MS), {
+    step: 'banner',
+    leftMs: 0,
+    totalMs: COUNT_MS,
+    deadline: 1000 + COUNT_MS,
+    wait: 'staged',
+    drops: false,
+  });
   assert.equal(updateStep(u, staging, 99000).wait, 'staged');
   assert.equal(updateStep(u, idle, 99000).step, 'apply');
 });
@@ -95,7 +102,7 @@ test('a panel with no revision yet (an older server) never updates', () => {
 
 test('the banner line says what the refresh waits for, and when staged routes go with it', () => {
   assert.equal(bannerLine({ leftMs: 2100, wait: '', drops: false }), 'Refreshing in 3 s.');
-  assert.equal(bannerLine({ leftMs: 42000, wait: '', drops: true }), 'Refreshing in 42 s, dropping the staged routes.');
+  assert.equal(bannerLine({ leftMs: 42000, wait: '', drops: true }), 'Refreshing in 42 s. It drops the staged routes.');
   assert.match(bannerLine({ leftMs: 0, wait: 'busy' }), /after the take/);
   assert.match(bannerLine({ leftMs: 0, wait: 'staged' }), /take or clear/);
 });

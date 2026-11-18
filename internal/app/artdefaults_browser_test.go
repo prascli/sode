@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// Default artwork end to end: the editor's Cell tab sets a cell's artwork as its Source's default and another cell
-// of that Source draws it; a default set under another router name warns; on the panel page a changed and then a
-// cleared default arrive through the update banner with no panel save.
+// Default artwork end to end. The editor's Cell tab sets a cell's artwork as its Source's default, and another
+// cell of that Source draws it. A default set under another router name warns. On the panel page, a changed and
+// then a cleared default arrive through the update banner with no panel save.
 func TestChromeArtDefaultEditorAndLiveUpdate(t *testing.T) {
 	const moved = 11
 	b, a, ana, id := editorTabPrep(t, fmt.Sprintf(`{"name":"Wall","rows":2,"cols":4,"cells":[
@@ -52,6 +52,8 @@ func TestChromeArtDefaultEditorAndLiveUpdate(t *testing.T) {
 		b.eval(`document.querySelector('.sode-lock__key[data-key="enter"]').click()`)
 	}
 	cell := `document.querySelectorAll('.sode-panel__cell--source')[1]`
+	// The page repaints its cells when its first poll brings the router's names; read after that, not across it.
+	b.waitFor("the page's first poll answered", cell+`?.querySelector('.sode-panel__text')?.textContent === 'Zoom 1'`)
 	b.waitFor("the page draws the default", cell+`?.querySelector('.sode-panel__art use')?.getAttribute('href') === '#pb-i-camera'`)
 
 	if rec := apiSend(a, "PUT", "/api/v1/default-artwork", ana, fmt.Sprintf(`{"kind":"source","n":%d,"art":"icon:tv"}`, simSrc)); rec.Code != 200 {

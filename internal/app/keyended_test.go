@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// A key that was real and then ended answers `key_revoked` (or `key_expired`) and never counts toward
+// A key that was real and then ended answers `key_revoked` (or `key_expired`). It never counts toward
 // the per-address throttle, so a stale page cannot lock out the other pages at its address.
 
 func failCount(a *App, ip string) int {
@@ -243,4 +243,9 @@ func TestEndedKeyCodeIsDocumented(t *testing.T) {
 	if !strings.Contains(string(openAPIFile), "- key_revoked\n") {
 		t.Error("the Error.code enum lacks key_revoked")
 	}
+}
+
+// revoke stands in for the API revoke paths, which all end in dropWhere.
+func (s *keyStore) revoke(id string) bool {
+	return len(s.dropWhere(func(r keyRec) bool { return r.ID == id })) > 0
 }

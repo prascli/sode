@@ -476,3 +476,13 @@ test('byText names the user and the panel page that made a take', () => {
   assert.equal(byText({ entries: [fromPanel, { ...fromPanel, instance: 'Studio' }] }, users), 'by Ana on panel Lobby Wall');
   assert.equal(byText({ entries: [fromPanel, { client: 'Ana' }] }, users), 'by Ana');
 });
+
+test('lockoutMs falls back to 500 without a cfg and caps at the server limit', async () => {
+  const { lockoutMs, LOCKOUT_MAX_MS } = await import('../lockrules.js');
+  assert.equal(lockoutMs(undefined), 500);
+  assert.equal(lockoutMs({}), 500);
+  assert.equal(lockoutMs({ confirmLockoutMs: -1 }), 500);
+  assert.equal(lockoutMs({ confirmLockoutMs: 0 }), 0);
+  assert.equal(lockoutMs({ confirmLockoutMs: 750 }), 750);
+  assert.equal(lockoutMs({ confirmLockoutMs: 1e9 }), LOCKOUT_MAX_MS);
+});
