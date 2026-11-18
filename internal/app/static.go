@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-// staticFiles serves the embedded web files with an ETag and a gzip copy, both made once per
-// file on its first request (not in Handler, which tests call many times). The files cannot
-// change while Sode runs, so "no-cache" plus the ETag lets a new build show at once and an
-// unchanged file cost one 304.
+// staticFiles serves the embedded web files with an ETag and a gzip copy. Each is made once, on
+// the file's first request, not in Handler, which tests call many times. The files cannot
+// change while Sode runs. With "no-cache" and the ETag, a new build shows at once, and an
+// unchanged file costs one 304.
 type staticFiles struct {
 	fsys  fs.FS
 	files sync.Map // name -> *staticFile

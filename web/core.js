@@ -65,8 +65,14 @@ export function keepSearch(read) {
 }
 
 const listeners = {};
+// Returns a function that removes fn, for a module that can stop (a panel run).
 export const on = (ev, fn) => {
   (listeners[ev] ||= []).push(fn);
+  return () => {
+    const l = listeners[ev];
+    const i = l.indexOf(fn);
+    if (i >= 0) l.splice(i, 1);
+  };
 };
 // Runs before earlier listeners: for a module that must refresh its memo before views read it.
 export const onFirst = (ev, fn) => {
@@ -205,10 +211,12 @@ function handle(m) {
       break;
     case 'tally':
       applyTally(m.u);
+      emit('tallyRows', m.u);
       emit('tally');
       break;
     case 'protect':
       applyProtect(m.u);
+      emit('protectedRows');
       emit('tally');
       break;
     case 'configResult':

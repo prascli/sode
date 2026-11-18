@@ -3,7 +3,7 @@
 // session key or, for a panel that acts as its API client, the key in the URL fragment. The third kind is a Public
 // panel's short-lived key (panelpublic.go). The editor's live test passes its own ui and call, and is not an instance of the panel: no
 // keepalive, no device name.
-import { emit } from './core.js';
+import { emit, on, S } from './core.js';
 import { sessionFetch, jsonCall, startSession, signInAgain, onSessionKey, nameSessionKey } from './sessionkey.js';
 import { pageUi } from './panelmount.js';
 import { startKeepalive, announceKeyless } from './panelkeepalive.js';
@@ -20,6 +20,7 @@ import { createArt } from './panelart.js';
 import { createWake, enterFullscreen, featureNotes, wantsFullscreen } from './panelfeel.js';
 import { watchPanel } from './panellive.js';
 import { withEtag } from './etagfetch.js';
+import { withRoutes, framesApply, sameRoutes } from './paneltally.js';
 import { instanceFrom } from './panellink.js';
 import { isPublic } from './panelsrules.js';
 import { initChrome } from './panelfull.js';
@@ -27,6 +28,10 @@ import { initName } from './panelname.js';
 
 const POLL_MS = 2000;
 const NAMES_MS = 30000;
+// While the WebSocket is up, its frames carry the tally and a full poll runs only this often, as a check.
+const CHECK_MS = 60000;
+// Frames that come close together (a Group or a Preset) are drawn as one.
+const FRAME_MS = 30;
 const ID_BYTES = 8;
 
 const say = (n, text) => {
@@ -56,6 +61,7 @@ export function runPanel(seg, opts = {}) {
 async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page = '' } = {}, run) {
   const timers = [];
   let stopWatch = () => {};
+  let offFrames = () => {};
   let ended = false; // the key is gone or refused, or an embedded run was stopped: only a new link or start helps
   let art = null;
   let body = null; // panelbuttons.js or gridpanelrun.js, by the panel's type
@@ -70,6 +76,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     ended = true;
     timers.forEach(clearInterval);
     stopWatch();
+    offFrames();
     body?.stop();
     art?.revoke();
     unannounce();
@@ -256,6 +263,20 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   let polling = false;
   // A take's answer asks for a poll; one already in flight can carry the tally from before the take.
   let again = false;
+  // live: the WebSocket sent a hello since it last closed, so its tally frames hold every change since then. A check
+  // that finds the kept tally wrong stops trusting frames until the next hello.
+  let live = S.wsState === 'up' && !!S.cfg;
+  let trusted = true;
+  let rights = panel.rights;
+  let shown = null; // the tally the body has: the last read, with every frame since put in.
+  let stale = false; // after a hello, frames from before it can have gaps, so the next poll reads the tally.
+  let helloCount = 0;
+  let late = null; // frames that came while a tally read was in flight, put into its answer
+  let rows = []; // frames waiting for their draw
+  let rowsTimer = 0;
+  let prot = null;
+  let link = null;
+  let checkedAt = 0;
   async function poll() {
     if (ended) return;
     if (polling) {
@@ -264,11 +285,15 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     }
     polling = true;
     again = false;
+    const check = Date.now() - checkedAt >= CHECK_MS;
+    const readTally = !live || !trusted || !shown || stale || check || !framesApply(rights);
+    late = readTally ? [] : null;
+    const hellos = helloCount;
     try {
       const wantNames = Date.now() - namesAt > NAMES_MS;
       // A key without the presets scope gets 403: its Preset cells then show as unavailable.
-      const [tally, prot, nm, pr, link] = await Promise.all([
-        callJSON('api/v1/tally'),
+      const [tally, p, nm, pr, l] = await Promise.all([
+        readTally ? callJSON('api/v1/tally') : null,
         callJSON('api/v1/protected'),
         wantNames ? callJSON('api/v1/names') : null,
         wantNames ? callJSON('api/v1/presets').catch(() => ({})) : null,
@@ -279,9 +304,19 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
         }),
       ]);
       if (nm) namesAt = Date.now();
+      [prot, link] = [p, l];
+      if (tally) {
+        const read = late.length ? withRoutes(tally, late) : tally;
+        // Frames still waiting for their draw are part of what the page holds.
+        const kept = shown && rows.length ? withRoutes(shown, rows) : shown;
+        if (live && kept && !stale && trusted && !sameRoutes(kept, read)) trusted = false;
+        shown = read;
+        checkedAt = Date.now();
+        if (hellos === helloCount) stale = false;
+      }
       const off = offlineOf({ failed: false, routerUp: link ? link.routerUp : true });
       showOffline(off);
-      body.data({ tally, prot, nm, pr, link, first: !ready && !off });
+      body.data({ tally: shown, prot, nm, pr, link, first: !ready && !off });
       ready = !off;
       say(ui.note, '');
     } catch (e) {
@@ -300,6 +335,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
         // Nothing is allowed to call Sode again: not the polls, the update check or the keepalive.
         timers.forEach(clearInterval);
         stopWatch();
+        offFrames();
         body.stop();
         keep?.stop();
         // Only the keyless announcement, which carries no key.
@@ -307,9 +343,64 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
       }
     }
     polling = false;
+    late = null;
     body.render();
     if (again) poll();
   }
+
+  // A tally read under Hidden leaves routes out, so frames on it after the Rights widen would never bring them back.
+  const setRights = (r) => {
+    if (framesApply(r) !== framesApply(rights)) stale = true;
+    rights = r;
+  };
+  const putRows = () => {
+    rowsTimer = 0;
+    const u = rows;
+    rows = [];
+    if (ended || !shown || !u.length) return;
+    shown = withRoutes(shown, u);
+    body.data({ tally: shown, prot, nm: null, pr: null, link, first: false });
+    body.render();
+  };
+  const offs = [
+    on('tallyRows', (u) => {
+      if (ended) return;
+      late?.push(...u);
+      if (!framesApply(rights)) return poll();
+      if (!live || !trusted) return;
+      if (!shown) return late || poll();
+      rows.push(...u);
+      rowsTimer ||= setTimeout(putRows, FRAME_MS);
+    }),
+    // A hello after a (re)connect: frames from now on are whole only from a full read made after it.
+    on('hello', () => {
+      live = true;
+      trusted = true;
+      stale = true;
+      helloCount++;
+      poll();
+    }),
+    on('wsclose', () => {
+      live = false;
+    }),
+    on('protectedRows', () => poll()),
+    on('names', () => {
+      namesAt = 0;
+      poll();
+    }),
+  ];
+  let router = S.router;
+  offs.push(
+    on('conn', () => {
+      if (S.router === router) return;
+      router = S.router;
+      if (live) poll();
+    }),
+  );
+  offFrames = () => {
+    offs.forEach((off) => off());
+    clearTimeout(rowsTimer);
+  };
 
   let keep = null;
   if (!embedded) {
@@ -344,12 +435,14 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     // routes must not hold back.
     get: async (path) => {
       const p = await callJSON(path);
+      if (p) setRights(p.rights);
       if (p) body.read?.(p);
       return p;
     },
     state: () => body.pending(),
     apply(p) {
       panel = p;
+      setRights(p.rights);
       tellLock(isPublic(p));
       look = applyLook(p);
       body.apply(p);
@@ -365,7 +458,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   if (run.early) run.show(run.early);
   // Results and errors fade on their own clocks, so the body is redrawn every second.
   timers.push(
-    setInterval(poll, POLL_MS),
+    setInterval(() => (!live || !trusted || !ready || Date.now() - checkedAt >= CHECK_MS) && poll(), POLL_MS),
     setInterval(() => body.render(), 1000),
   );
   poll();
