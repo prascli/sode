@@ -137,6 +137,7 @@ type App struct {
 	streams map[*apiStream]struct{} // attached API streams (apistream.go), guarded by mu
 
 	tallyCache tallyBody // apireads.go, guarded by mu
+	namesCache namesBody // apireads.go, guarded by mu
 }
 
 // routerState is replaced as a whole on a router change. Guarded by App.mu.
@@ -147,6 +148,7 @@ type routerState struct {
 	protect  map[int]map[int]int
 	seenAt   map[[2]int]time.Time // dst, UI level → when the router last reported its route
 	tallyGen int                  // bumped on every tally change; keys App.tallyCache
+	namesGen int                  // bumped on every change to the names or namesAt; keys App.namesCache
 	pend     []routeChange
 	pendProt []routeChange
 
@@ -511,6 +513,7 @@ func (a *App) applyNames(nb *swp08.NameBlock) {
 	for i, n := range nb.Names {
 		m[nb.First+i] = n
 	}
+	a.router.namesGen++
 	a.nameRxAt = time.Now()
 	if a.router.newSrc == nil {
 		a.namesDirt = true
@@ -553,6 +556,7 @@ func (a *App) flush() {
 			if got {
 				a.router.namesAt = time.Now()
 			}
+			a.router.namesGen++
 			if changed {
 				log.Printf("names: %d sources, %d destinations", len(a.router.srcNames), len(a.router.dstNames))
 				a.namesDirt = true

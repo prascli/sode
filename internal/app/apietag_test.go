@@ -125,6 +125,57 @@ func TestPanelReadCarriesTheConfirmSettings(t *testing.T) {
 
 // The tally body is built once per change for every caller that is not hidden. A route, a level setting and a
 // router change each move the tag, and a hidden caller still gets its own filtered body.
+// The names read is built once per change for callers that are not hidden, so each input must move the tag.
+func TestNamesETagMovesWithNamesOffsetAndRouter(t *testing.T) {
+	a := etagApp(t)
+	bot := botKey(t, a)
+	const path = "/api/v1/names"
+	_, tag := ifNone(a, path, bot, "")
+	if code, again := ifNone(a, path, bot, tag); code != 304 || again != tag {
+		t.Fatalf("unchanged: %d, ETag %q was %q", code, again, tag)
+	}
+
+	a.mu.Lock()
+	a.applyNames(&swp08.NameBlock{Dest: true, First: 4, Names: []string{"MON NEW"}})
+	a.mu.Unlock()
+	code, named := ifNone(a, path, bot, tag)
+	if code != 200 || named == tag {
+		t.Fatalf("after a name: %d, ETag %q was %q", code, named, tag)
+	}
+	if !strings.Contains(apiDo(a, "GET", path, bot, nil).Body.String(), `{"n":4,"name":"MON NEW"}`) {
+		t.Fatal("the new name is not in the body")
+	}
+
+	cfg := a.r().cfg
+	cfg.NumberOffset = 1 - cfg.NumberOffset
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	code, offset := ifNone(a, path, bot, named)
+	if code != 200 || offset == named {
+		t.Fatalf("after a number offset: %d, ETag %q was %q", code, offset, named)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{Visibility: config.VisHidden, Dsts: &[]int{1}}
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if body := apiDo(a, "GET", path, bot, nil).Body.String(); strings.Contains(body, "MON NEW") {
+		t.Fatalf("a hidden caller got a destination outside its Rights: %s", body)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{}
+	cfg.Router = "192.0.2.1:8910"
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if code, moved := ifNone(a, path, bot, offset); code != 200 || moved == offset {
+		t.Fatalf("after a router change: %d, ETag %q was %q", code, moved, offset)
+	}
+}
+
 func TestTallyETagMovesWithRouteLevelsAndRouter(t *testing.T) {
 	a := etagApp(t)
 	bot := botKey(t, a)

@@ -55,11 +55,47 @@ func (a *App) namesSnapshot(v apiView) apiNames {
 	}
 }
 
+// namesBody is the names read as every caller that is not hidden sees it, built once per change,
+// as tallyBody is. A panel page asks every 30 s; on a 2500 by 750 router a build is about 455 KB
+// of garbage. Guarded by App.mu.
+type namesBody struct {
+	rs   *routerState // a router change replaces it
+	rt   *runtime     // numberOffset
+	gen  int
+	body []byte
+	tag  string
+}
+
 func (a *App) apiNames(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
+	v := cl.view()
+	if v.Hidden() {
+		a.mu.Lock()
+		res := a.namesSnapshot(v)
+		a.mu.Unlock()
+		apiJSONTagged(w, r, res)
+		return
+	}
 	a.mu.Lock()
-	res := a.namesSnapshot(cl.view())
+	key := namesBody{rs: a.router, rt: a.r(), gen: a.router.namesGen}
+	if c := a.namesCache; c.rs == key.rs && c.rt == key.rt && c.gen == key.gen && c.body != nil {
+		a.mu.Unlock()
+		apiWriteTagged(w, r, c.body, c.tag)
+		return
+	}
+	res := a.namesSnapshot(v)
 	a.mu.Unlock()
-	apiJSONTagged(w, r, res)
+	body, err := json.Marshal(res)
+	if err != nil {
+		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+		return
+	}
+	key.body, key.tag = body, etagOf(body)
+	a.mu.Lock()
+	if a.router == key.rs && a.r() == key.rt && a.router.namesGen == key.gen {
+		a.namesCache = key
+	}
+	a.mu.Unlock()
+	apiWriteTagged(w, r, key.body, key.tag)
 }
 
 type apiRouteRow struct {

@@ -88,6 +88,7 @@ func TestChromeEditorNamesLive(t *testing.T) {
 	rename := func(name string) {
 		a.mu.Lock()
 		a.router.srcNames[5] = name
+		a.router.namesGen++
 		a.broadcast(a.namesMsg())
 		a.mu.Unlock()
 	}
