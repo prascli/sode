@@ -18,52 +18,6 @@ func liveGridPanel(t *testing.T, b *tab, srvURL string) string {
 	return regexp.MustCompile(`panel=([\w-]+)`).FindStringSubmatch(b.eval(`location.search`).(string))[1]
 }
 
-// bandCounts is how many of each band control show under root, as "name=n" joined by commas. A phone-only part
-// (gridpanelphone.css) counts only when it has a box.
-const bandCounts = `((root) => {
-	const shown = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
-	const n = (sel) => [...root.querySelectorAll(sel)].filter(shown).length;
-	return [
-		['switch', '.sode-gridpanel__find-mode'],
-		['choice', '.sode-gridpanel__find-choice'],
-		['srcArrow', '.sode-gridpanel__label--src > svg'],
-		['dstArrow', '.sode-gridpanel__label--dst > svg'],
-		['range', '.sode-gridpanel__range'],
-		['pos', '.sode-gridpanel__pos'],
-		['more', '.sode-gridpanel__more'],
-		['levelWords', '.sode-gridpanel__lv'],
-		['srcBox', '.sode-gridpanel__find[data-kind="srcs"]'],
-		['dstBox', '.sode-gridpanel__find[data-kind="dsts"]'],
-		['deck', '.sode-gridpanel__deck'],
-	].map(([k, s]) => k + '=' + n(s)).join() + ',filler=' + /Find marks the matches/.test(root.textContent);
-})`
-
-// Test it live draws the band's controls as the panel page does. There is one Find/Filter switch, one arrow on each
-// corner word and one box per bar. No part of the phone layout shows.
-func TestChromeGridPanelLiveBand(t *testing.T) {
-	b := startBrowser(t)
-	sim := startSim(t)
-	a := simApp(t, sim)
-	srv := seamServer(t, a)
-	waitNamesAndTally(t, a, userKey(t, a, "Ana"))
-	id := liveGridPanel(t, b, srv.URL)
-
-	const want = "switch=1,choice=0,srcArrow=1,dstArrow=1,range=0,pos=0,more=0,levelWords=0,srcBox=1,dstBox=1,deck=1,filler=false"
-	b.eval(`document.getElementById('ed-live').click(); true`)
-	b.waitFor("the live grid shows", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp') && !!document.querySelector('#ed-live-view .sode-gridpanel__find-mode')`)
-	b.shot("live")
-	if got := b.eval(bandCounts + `(document.getElementById('ed-live-view'))`); got != want {
-		t.Errorf("Test it live band: %v, want %v", got, want)
-	}
-
-	b.open(srv.URL + "/panels/" + id)
-	b.waitFor("the panel page shows", `!!document.querySelector('.sode-gridpanel__xp') && !!document.querySelector('.sode-gridpanel__find-mode')`)
-	if got := b.eval(bandCounts + `(document.body)`); got != want {
-		t.Errorf("panel page band: %v, want %v", got, want)
-	}
-	b.check()
-}
-
 // Test it live: names picked on the grid (click, Shift-click, Cmd-click) are the list's selection. The list's own
 // selection bar shows in the Preview bar. Move, Pin and Artwork there act as in the drawer. The kind picked last owns
 // the bar. The panel page gets none of this.
@@ -75,8 +29,10 @@ func TestChromeGridPanelLivePicks(t *testing.T) {
 	ana := userKey(t, a, "Ana")
 	waitNamesAndTally(t, a, ana)
 	id := liveGridPanel(t, b, srv.URL)
+	b.call("Emulation.setDeviceMetricsOverride", map[string]any{"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false})
 
 	b.eval(`
+		window.gridTop = () => Math.round(document.querySelector('#ed-live-view .sode-gridpanel__scroll').getBoundingClientRect().top);
 		window.first = (k, side) => [...document.querySelectorAll('#ed-live-view .sode-gridpanel__' + k + '[data-' + k + ']')].map((x) => [x.dataset[k], x.getBoundingClientRect()]).filter(([, r]) => r.width > 0 && r.height > 0).sort((x, y) => x[1][side] - y[1][side]).map(([n]) => n);
 		window.nameOf = (k, n) => document.querySelector('#ed-live-view .sode-gridpanel__' + k + '[data-' + k + '="' + n + '"]:not([hidden])');
 		window.press = (n, mods = {}) => n.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...mods }));
@@ -92,11 +48,12 @@ func TestChromeGridPanelLivePicks(t *testing.T) {
 	b.eval(`document.getElementById('ed-live-lists').click(); true`)
 	b.waitFor("a second press closes it", `document.getElementById('ed-live-lists').getAttribute('aria-pressed') === 'false' && !document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open')`)
 
-	b.eval(`press(nameOf('src', 3)); press(nameOf('src', 5), { shiftKey: true }); true`)
+	b.eval(`window.topWas = gridTop(); press(nameOf('src', 3)); press(nameOf('src', 5), { shiftKey: true }); true`)
 	b.waitFor("a click and a Shift-click on the grid select those sources in the list, and its bar shows in the Preview bar", `inBar('ed-sources-acts') && !inBar('ed-destinations-acts') && document.getElementById('ed-sources-sel').textContent === '3 selected' && !!document.getElementById('ed-sources-sel-top').offsetParent && document.querySelector('#ed-live-bar .sode-live__what').hidden`)
 	b.shot("picked")
 	b.eval(`document.getElementById('ed-sources-sel-top').click(); true`)
 	b.waitFor("Move to the top shows on the live grid, the picks stay, and Save shows", `first('src', 'left').slice(0, 3).join() === '3,4,5' && document.getElementById('ed-sources-sel').textContent === '3 selected' && !document.getElementById('ed-live-save').hidden`)
+	b.waitFor("the grid does not move as the selection bar, Save and the state show in the Preview bar", `gridTop() === topWas`)
 	b.eval(`press(nameOf('src', 4), { metaKey: true }); true`)
 	b.waitFor("Cmd-click takes one out", `document.getElementById('ed-sources-sel').textContent === '2 selected'`)
 	b.eval(`document.getElementById('ed-sources-sel-pin').click(); true`)

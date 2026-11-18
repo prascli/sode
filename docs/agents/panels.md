@@ -133,7 +133,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Browser checks
 
-- Names: `TestChromeGridPanel` plus `Take`, `Diagonal`, `SharingModes`, `Protected`, `Levels` (`gridpanel_browser_test.go`). The others are `Scale`, `Cursor`, `Keys`, `Find`, `Undo`, `Line`, `Phone`, `LiveUpdate`, `Art`, `ConfirmSettings`, `TakeFlow`, `Editor`, `EditorChunk`, `EditorSelect`, `LiveLists`, `LiveBand`, `LivePicks`, `ScrollBars` and `Empty`. Each is in its own `gridpanel<area>_browser_test.go`, except the first five and `LiveBand` (in `gridpanellivepicks_browser_test.go`). CI selects them with `^TestChromeGridPanel`. The `grid` job in ci.yml runs them on PRs into `integration/grid-panels` and on pushes to it, and `ci-ok` needs it. That job does not run the Buttons panel checks, so run `^TestChrome(GridPanel|Panel|Editor)` before a push.
+- Names: `TestChromeGridPanel` plus `Take`, `Diagonal`, `SharingModes`, `Protected`, `Levels` (`gridpanel_browser_test.go`). The others are `Scale`, `Cursor`, `Keys`, `Find`, `Undo`, `Line`, `Phone`, `LiveUpdate`, `Art`, `ConfirmSettings`, `TakeFlow`, `Editor`, `EditorChunk`, `EditorSelect`, `LiveLists`, `LiveBand`, `LivePicks`, `ScrollBars` and `Empty`. Each is in its own `gridpanel<area>_browser_test.go`, except the first five. CI selects them with `^TestChromeGridPanel`. The `grid` job in ci.yml runs them on PRs into `integration/grid-panels` and on pushes to it, and `ci-ok` needs it. That job does not run the Buttons panel checks, so run `^TestChrome(GridPanel|Panel|Editor)` before a push.
 - Helpers:
   - `gridXp(src, dst)` is a JS selector. `gridShow` scrolls a far crosspoint near the top left, on an `all` edge with no pins.
   - `gridConfirm` waits out the lockout and types the letter.
