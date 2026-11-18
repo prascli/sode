@@ -4,7 +4,9 @@ Details that the README leaves out. The README has the quickstart.
 
 ## Deployment
 
-The page is themed with [patchbay](https://github.com/sethdotfm/patchbay), which is vendored and embedded, so the page fetches nothing from outside.
+The page is themed with [patchbay](https://github.com/sethdotfm/patchbay). The patchbay files and the IBM Plex fonts (`web/vendor/fonts`, SIL Open Font License) are vendored and embedded. So the page fetches nothing from outside and draws with no internet connection.
+
+Each web file has an `ETag` and `Cache-Control: no-cache`. A browser keeps its copy and asks again on each load: an unchanged file costs one `304`, and a new build shows at once. Text files (HTML, JS, CSS, SVG) go gzip-compressed to a browser that accepts gzip. Sode compresses each file once, at its first request.
 
 ### Behind a proxy
 

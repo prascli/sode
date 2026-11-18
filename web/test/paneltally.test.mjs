@@ -37,8 +37,29 @@ test('only a Hidden caller reads again in place of a frame', () => {
 });
 
 test('the slow check compares routes in any order', () => {
-  const a = { routes: [{ dst: 1, level: 1, src: 2 }, { dst: 0, level: 1, src: 3 }] };
-  assert.equal(sameRoutes(a, { routes: [{ dst: 0, level: 1, src: 3 }, { dst: 1, level: 1, src: 2 }] }), true);
-  assert.equal(sameRoutes(a, { routes: [{ dst: 0, level: 1, src: 3 }, { dst: 1, level: 1, src: 4 }] }), false);
+  const a = {
+    routes: [
+      { dst: 1, level: 1, src: 2 },
+      { dst: 0, level: 1, src: 3 },
+    ],
+  };
+  assert.equal(
+    sameRoutes(a, {
+      routes: [
+        { dst: 0, level: 1, src: 3 },
+        { dst: 1, level: 1, src: 2 },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    sameRoutes(a, {
+      routes: [
+        { dst: 0, level: 1, src: 3 },
+        { dst: 1, level: 1, src: 4 },
+      ],
+    }),
+    false,
+  );
   assert.equal(sameRoutes(a, { routes: [{ dst: 0, level: 1, src: 3 }] }), false);
 });
