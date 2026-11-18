@@ -221,8 +221,9 @@ const resultsOf = (st, reply, now) => {
 
 // Connected and Already routes leave the plan; a Failed one stays staged.
 export function finishTake(st, reply, now) {
-  const gone = new Set((reply.results || []).filter((r) => r.result !== 'failed').map((r) => r.dst));
-  return { ...st, busy: false, results: resultsOf(st, reply, now), staged: st.staged.filter((x) => !gone.has(x.dst)) };
+  // By destination and source: a press while the POST was out staged a new route to a destination the take sent.
+  const gone = new Set((reply.results || []).filter((r) => r.result !== 'failed').map((r) => `${r.dst}:${r.src}`));
+  return { ...st, busy: false, results: resultsOf(st, reply, now), staged: st.staged.filter((x) => !gone.has(`${x.dst}:${x.src}`)) };
 }
 
 // A refused or unanswered undo leaves no plan behind: it is possible that its id is stale, and another Undo press asks afresh.
