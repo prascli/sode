@@ -2,7 +2,8 @@
 // the editor's own session. It is not an instance of the panel, so it sends no keepalive.
 // A Grid panel gets a bar over it that marks it as a preview. Its drawer holds the editor's own Sources and
 // Destinations lists (editorgridlist.js), moved in for the run and back after it. A list's Artwork button shows the
-// Cell tab's artwork over it (editorliveart.js). Their edits show at once.
+// Cell tab's artwork over it (editorliveart.js). Their edits show at once. Names picked on the grid are that list's
+// selection, and its selection bar moves into the bar while the drawer is closed.
 import { el, icon } from './core.js';
 import { sessionFetch } from './sessionkey.js';
 import { runPanel } from './panelrun.js';
@@ -12,8 +13,8 @@ import { btn } from './formbits.js';
 import { createLiveArt } from './editorliveart.js';
 
 // host holds the live panel, body is the editor it replaces, button is the toolbar's Test it live. ed is
-// { save, dirty, readOnly, edges, lists, cellTab }. edges() is { sources, destinations, rev } as the editor has them.
-// lists() gives the two list columns, and cellTab() the sidebar's Cell tab.
+// { save, dirty, readOnly, edges, lists, cellTab, edgeLists }. edges() is { sources, destinations, rev } as the editor
+// has them. lists() gives the two list columns, cellTab() the sidebar's Cell tab and edgeLists() the lists' own apis.
 export function createLive(host, body, button, ed) {
   const label = button.textContent;
   let run = null;
@@ -66,17 +67,23 @@ function gridParts(ed) {
     paint(err);
   });
   save.id = 'ed-live-save';
+  // A toggle: pressed while the drawer is open (setOpen). Back to editing goes to its left (panelmount.js).
   const open = btn('pb-btn--lg', '', () => setOpen(!opened));
   open.id = 'ed-live-lists';
-  open.append(icon('panel-right-open'), el('span', null, 'Edit lists'));
-  open.dataset.pbTip = 'Change the order of the sources and destinations, pin, add and remove them';
+  let openIcon = icon('panel-right-open');
+  open.append(openIcon, el('span', null, 'Edit lists'));
   open.setAttribute('aria-controls', 'ed-live-drawer');
   open.hidden = ro;
+  const what = el('span', 'sode-live__what', 'A take here changes the router. List changes show at once.');
+  // The selection bar of the list whose names are picked on the grid.
+  const picked = el('div', 'sode-live__picked');
+  picked.id = 'ed-live-picked';
   const bar = el(
     'div',
     'pb-banner pb-banner--info sode-live__bar',
     el('span', 'pb-badge pb-badge--info', 'Preview'),
-    el('span', 'sode-live__what', 'A take here changes the router. List changes show at once.'),
+    what,
+    picked,
     el('span', 'sode-panels__spacer'),
     state,
     save,
@@ -105,7 +112,13 @@ function gridParts(ed) {
     'pb-drawer pb-drawer--right pb-drawer--wide sode-live__drawer',
     el('div', 'pb-drawer__body', el('div', 'sode-live__drawer-head', el('h2', 'sode-live__drawer-h', 'Edit lists'), close), tabs.node, ...panes),
   );
-  const art = createLiveArt(ed.cellTab);
+  // Artwork from the bar opens the drawer for the Artwork panel alone, and its close closes the drawer again.
+  let artOnly = false;
+  const art = createLiveArt(ed.cellTab, () => {
+    if (!artOnly) return;
+    artOnly = false;
+    setOpen(false);
+  });
   aside.append(art.node);
   aside.id = 'ed-live-drawer';
   aside.setAttribute('aria-label', 'Sources and destinations');
@@ -125,6 +138,46 @@ function gridParts(ed) {
     // A closed drawer is zero wide, but its controls could still take focus.
     aside.inert = !on;
     open.setAttribute('aria-expanded', String(on));
+    open.setAttribute('aria-pressed', String(on));
+    const next = icon(on ? 'panel-right-close' : 'panel-right-open');
+    openIcon.replaceWith(next);
+    openIcon = next;
+    open.dataset.pbTip = on ? 'Close the lists' : 'Change the order of the sources and destinations, pin, add and remove them';
+    placeActs();
+  }
+
+  // Grid picks to list selection. The Cell tab edits one list at a time (editorside.js), so the kind picked last wins.
+  const lists = ro ? null : ed.edgeLists();
+  const KINDS = ['srcs', 'dsts'];
+  let had = { srcs: [], dsts: [] };
+  let kind = null; // the kind whose grid picks the list holds
+  const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+  function onPicks(p) {
+    if (!lists) return;
+    const changed = KINDS.filter((k) => !same(p[k], had[k]));
+    had = { srcs: p.srcs, dsts: p.dsts };
+    if (!changed.length) return;
+    const next = changed.filter((k) => p[k].length).pop() ?? KINDS.find((k) => p[k].length) ?? null;
+    if (next) lists[next].select(p[next]);
+    else if (kind) lists[kind].clearPicks();
+    kind = next;
+    placeActs();
+  }
+  // The list's own bar, so Move, Pin and Artwork are the drawer's buttons. It goes back into the list on a drawer open.
+  const actsHome = new Map();
+  function placeActs() {
+    if (!lists) return;
+    const show = kind && (!opened || artOnly) ? lists[kind].acts : null;
+    for (const k of KINDS) {
+      const a = lists[k].acts;
+      if (a === show || !picked.contains(a)) continue;
+      actsHome.get(a).prepend(a);
+    }
+    if (show && !picked.contains(show)) {
+      actsHome.set(show, show.parentNode);
+      picked.append(show);
+    }
+    what.hidden = !!show;
   }
   setOpen(false);
 
@@ -139,7 +192,9 @@ function gridParts(ed) {
 
   return {
     bar,
+    open,
     aside,
+    onPicks,
     started(r) {
       run = r;
     },
@@ -152,9 +207,23 @@ function gridParts(ed) {
       // A rev goes with the lists only after a save, so the run marks that copy as seen and shows no banner for it.
       run?.show({ sources: now.sources, destinations: now.destinations, ...(saved ? { rev: now.rev } : {}) });
     },
-    openArt: () => opened && art.open(),
+    openArt() {
+      if (!opened) {
+        if (!kind) return false;
+        artOnly = true;
+        setOpen(true);
+      }
+      if (art.open()) return true;
+      if (artOnly) {
+        artOnly = false;
+        setOpen(false);
+      }
+      return false;
+    },
     stop() {
       art.close();
+      kind = null;
+      placeActs();
       home.append(srcs, dsts);
     },
   };

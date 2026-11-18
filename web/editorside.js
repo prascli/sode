@@ -37,6 +37,7 @@ export function initSidebar(ed) {
   const srcs = createEdgeList(ed, { key: 'sources', rights: 'sources', what: 'source', side: 'left to right on the top edge', onPick, onArt });
   const dsts = createEdgeList(ed, { key: 'destinations', rights: 'dsts', what: 'destination', side: 'top to bottom on the left edge', onPick, onArt });
   $('ed-lists').append(srcs.node, dsts.node);
+  ed.useEdgeLists({ srcs, dsts });
 
   const cell = createCellTab(ed, { picked });
   const panel = createPanelTab(ed);
