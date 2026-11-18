@@ -1,7 +1,7 @@
 // Grid panel keys to actions. Pure apart from keys.js. The run does the action and marks the key handled when this
 // returns one. Keys are exact chord(e) names, so h/j/k/l are physical keys and a chord with an extra modifier is not
 // the grid's. ctx is { staged, picks, inControl, inField, bar, finding, line }. staged counts staged routes and picks
-// counts picked names. inControl is true when focus is on a header button or a field, inField only for a field. bar
+// counts picked names. inControl is true when focus is on a header button or a field, inField only for the Levels box. bar
 // is barOf(cursor) in gridpanelcursor.js. finding is true while a box has text. line is true while a Drawn line
 // shows. A move action is a name in gridpanelcursor.js MOVES. 'range:<move>' is a Shift move along a bar or across
 // the crosspoints, which extends the pick.

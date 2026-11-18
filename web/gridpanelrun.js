@@ -747,7 +747,8 @@ export function gridBody(ctx, first) {
       return findBox(box, boxAct);
     }
     const finding = stepBox(find) !== null;
-    const inField = !!document.activeElement?.matches('input, textarea');
+    // Only the Levels box: other fields (the instance name, the editor's) keep their own Esc.
+    const inField = !!document.activeElement && document.activeElement.id === 'panel-lvl';
     const act = gridKeyAction(e, {
       staged: st.staged.length,
       picks: pickCount(picks),
