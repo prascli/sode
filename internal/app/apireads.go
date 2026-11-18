@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
 	"sort"
 	"time"
@@ -113,11 +114,47 @@ func (a *App) tallySnapshot(v apiView) map[string]any {
 	}
 }
 
+// tallyBody is the tally as every caller that is not hidden sees it, built once per change. Each
+// panel page polls it every 2 s, and on a 2500 by 750 router a build is about 400 KB of JSON.
+// Guarded by App.mu.
+type tallyBody struct {
+	rs   *routerState // a router change replaces it
+	rt   *runtime     // levels and level numbering
+	gen  int
+	body []byte
+	tag  string
+}
+
 func (a *App) apiTally(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
+	v := cl.view()
+	if v.Hidden() {
+		a.mu.Lock()
+		res := a.tallySnapshot(v)
+		a.mu.Unlock()
+		apiJSONTagged(w, r, res)
+		return
+	}
 	a.mu.Lock()
-	res := a.tallySnapshot(cl.view())
+	key := tallyBody{rs: a.router, rt: a.r(), gen: a.router.tallyGen}
+	if c := a.tallyCache; c.rs == key.rs && c.rt == key.rt && c.gen == key.gen && c.body != nil {
+		a.mu.Unlock()
+		apiWriteTagged(w, r, c.body, c.tag)
+		return
+	}
+	res := a.tallySnapshot(v)
 	a.mu.Unlock()
-	apiJSONTagged(w, r, res)
+	body, err := json.Marshal(res)
+	if err != nil {
+		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+		return
+	}
+	key.body, key.tag = body, etagOf(body)
+	a.mu.Lock()
+	if a.router == key.rs && a.r() == key.rt && a.router.tallyGen == key.gen {
+		a.tallyCache = key
+	}
+	a.mu.Unlock()
+	apiWriteTagged(w, r, key.body, key.tag)
 }
 
 func (a *App) apiProtected(w http.ResponseWriter, r *http.Request, cl *apiCtx) {

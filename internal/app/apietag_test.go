@@ -1,10 +1,12 @@
 package app
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/sethdotfm/sode/internal/config"
+	"github.com/sethdotfm/sode/internal/swp08"
 )
 
 // ifNone reads path with If-None-Match set when tag is not empty. A 304 that carries a body gives -1.
@@ -118,5 +120,58 @@ func TestPanelReadCarriesTheConfirmSettings(t *testing.T) {
 	got, _ := readPanel(t, a, botKey(t, a), id)["confirm"].(map[string]any)
 	if got["lockoutMs"] != 1500.0 || got["enter"] != true {
 		t.Fatalf("confirm %v, want lockoutMs 1500 and enter true", got)
+	}
+}
+
+// The tally body is built once per change for every caller that is not hidden. A route, a level setting and a
+// router change each move the tag, and a hidden caller still gets its own filtered body.
+func TestTallyETagMovesWithRouteLevelsAndRouter(t *testing.T) {
+	a := etagApp(t)
+	bot := botKey(t, a)
+	const path = "/api/v1/tally"
+	_, tag := ifNone(a, path, bot, "")
+	if code, again := ifNone(a, path, bot, tag); code != 304 || again != tag {
+		t.Fatalf("unchanged: %d, ETag %q was %q", code, again, tag)
+	}
+
+	r := a.r()
+	a.mu.Lock()
+	a.applyTally(r, swp08.Crosspoint{Matrix: r.cfg.Matrix, Level: r.levels[0].Wire, Dst: 4, Src: 9, Cmd: swp08.CmdExtConnected})
+	a.mu.Unlock()
+	code, routed := ifNone(a, path, bot, tag)
+	if code != 200 || routed == tag {
+		t.Fatalf("after a route: %d, ETag %q was %q", code, routed, tag)
+	}
+	if !strings.Contains(apiDo(a, "GET", path, bot, nil).Body.String(), `{"dst":4,"level":1,"src":9}`) {
+		t.Fatal("the new route is not in the body")
+	}
+
+	cfg := a.r().cfg
+	cfg.LevelNumbering = "0"
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	code, numbered := ifNone(a, path, bot, routed)
+	if code != 200 || numbered == routed {
+		t.Fatalf("after a level setting: %d, ETag %q was %q", code, numbered, routed)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{Visibility: config.VisHidden, Dsts: &[]int{1}}
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if body := apiDo(a, "GET", path, bot, nil).Body.String(); strings.Contains(body, `"dst":4`) {
+		t.Fatalf("a hidden caller got a destination outside its Rights: %s", body)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{}
+	cfg.Router = "192.0.2.1:8910"
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if code, moved := ifNone(a, path, bot, numbered); code != 200 || moved == numbered {
+		t.Fatalf("after a router change: %d, ETag %q was %q", code, moved, numbered)
 	}
 }

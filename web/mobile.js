@@ -810,13 +810,17 @@ on('hello', () => {
   setStep(M.step, false);
   renderHistory();
 });
+// The thread and History are hidden on the other layouts, and a tally or History message on a busy router
+// rebuilt them on every take. onLayout draws them when the phone layout comes back.
+const phone = () => layout() === 'phone';
 on('names', () => {
   matches.refresh();
-  renderThread();
+  if (phone()) renderThread();
 });
-on('tally', renderThread);
+on('tally', () => phone() && renderThread());
 on('conn', renderConn);
 on('history', () => {
+  if (!phone()) return;
   renderHistory();
   renderLast();
 });
@@ -836,6 +840,7 @@ onLayout((l) => {
   else {
     renderThread();
     renderHistory();
+    renderLast();
   }
 });
 

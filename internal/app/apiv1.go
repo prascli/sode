@@ -114,8 +114,16 @@ func apiJSONTaggedBy(w http.ResponseWriter, r *http.Request, v, tagOf any) {
 			return
 		}
 	}
-	sum := sha256.Sum256(tagged)
-	tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+	apiWriteTagged(w, r, body, etagOf(tagged))
+}
+
+func etagOf(b []byte) string {
+	sum := sha256.Sum256(b)
+	return `"` + hex.EncodeToString(sum[:16]) + `"`
+}
+
+// apiWriteTagged writes a body already built and tagged, or 304 when the caller has it.
+func apiWriteTagged(w http.ResponseWriter, r *http.Request, body []byte, tag string) {
 	w.Header().Set("ETag", tag)
 	w.Header().Set("Cache-Control", "no-store")
 	if tagMatches(r.Header.Get("If-None-Match"), tag) {
@@ -123,7 +131,8 @@ func apiJSONTaggedBy(w http.ResponseWriter, r *http.Request, v, tagOf any) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(append(body, '\n'))
+	w.Write(body)
+	w.Write([]byte{'\n'})
 }
 
 // tagMatches: a weak tag compares equal to its strong form, as RFC 9110 says for If-None-Match.

@@ -17,6 +17,7 @@ func fillRouterDerived(a *App) {
 	a.router.srcNames[7] = "CAM 7"
 	a.router.dstNames[5] = "MON 5"
 	a.router.tally[5] = map[int]int{1: 7}
+	a.router.tallyGen = 1
 	a.router.protect[5] = map[int]int{1: 9}
 	a.router.seenAt[[2]int{5, 1}] = time.Now()
 	a.router.pend = []routeChange{{5, 1, 7}}

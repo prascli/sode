@@ -67,3 +67,20 @@ test('a caller that sets If-None-Match itself keeps the raw 304', async () => {
   const call = withEtag(fetcher);
   assert.equal((await call('x', { headers: { 'If-None-Match': '"a"' } })).status, 304);
 });
+
+test('a shared path gives the same parsed object until the tag moves', async () => {
+  const s = { tag: '"a"', body: { routes: [1] } };
+  const { fetcher } = server(s);
+  const call = withEtag(fetcher, (p) => p === 'api/v1/tally');
+  const first = await (await call('api/v1/tally')).json();
+  assert.equal(await (await call('api/v1/tally')).json(), first);
+  Object.assign(s, { tag: '"b"', body: { routes: [2] } });
+  const moved = await (await call('api/v1/tally')).json();
+  assert.notEqual(moved, first);
+  assert.deepEqual(moved, { routes: [2] });
+  await call('x');
+  const x1 = await (await call('x')).json();
+  const x2 = await (await call('x')).json();
+  assert.notEqual(x1, x2);
+  assert.deepEqual(x1, x2);
+});
