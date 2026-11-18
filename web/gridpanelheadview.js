@@ -1,7 +1,7 @@
 // A Grid panel's header parts, laid out as on the main page. The Lock chip, the title and the icon buttons are on the
 // left. The Server and Router status (connview.js) is top right. On the panel page they share one band, the deck, with the Levels box and the search boxes (gridpanel.css lays
 // it out). Results, refusals and the "This panel was changed" banner show in the gap between the search boxes and
-// Clear. The editor's Test it live (ui.back) keeps its status slot beside the status block. The run (gridpanelrun.js)
+// Clear. The Live Editor (ui.back) keeps its status slot beside the status block. The run (gridpanelrun.js)
 // makes them, and its stop puts the page back.
 import { el, icon, on, S } from './core.js';
 import { connBox, paintConn } from './connview.js';
@@ -71,7 +71,7 @@ export function gridHead(ui, count, { onCopy } = {}) {
   const box = ui.levels;
   const finds = el('div', 'sode-gridpanel__finds');
   const deck = el('div', 'sode-gridpanel__deck');
-  // Test it live's status slot is outside the header, since the Title bar setting hides the header. Its height is
+  // The Live Editor's status slot is outside the header, since the Title bar setting hides the header. Its height is
   // fixed (gridpanel.css), so a line or the banner that shows or goes never moves the grid.
   const slot = page ? null : el('div', 'sode-gridpanel__slot');
   // The panel page's message box, in the gap before Clear and Take. Its size is the gap's (gridpanel.css), so what it
@@ -112,7 +112,7 @@ export function gridHead(ui, count, { onCopy } = {}) {
     if (lvText.data !== t) lvText.data = t;
   };
   box?.prepend(more, lv);
-  // The desktop layout moves the banner into the deck, and in Test it live the status line too. On the panel page it
+  // The desktop layout moves the banner into the deck, and in the Live Editor the status line too. On the panel page it
   // moves the buttons into the header row, so they show with the Title bar setting off. The phone keeps them in place.
   const moved = (page ? [ui.update] : [ui.status, ui.update]).filter(Boolean).map((n) => [n, n.parentNode, n.nextSibling]);
   const toolsHome = [tools.parentNode, tools.nextSibling];
@@ -187,7 +187,7 @@ export function gridHead(ui, count, { onCopy } = {}) {
     finds,
     // The run calls this on each render and on each Levels box change.
     paintLevels,
-    // msg is { text, kind ('ok' or 'error'), key, held, behind }. It gives false on the phone and in Test it live, which have
+    // msg is { text, kind ('ok' or 'error'), key, held, behind }. It gives false on the phone and in the Live Editor, which have
     // no banner here, so the run shows its status line.
     say,
     // p is the panel as read; mayOwn is true when a signed-in user runs the page, since only a user owns a panel.

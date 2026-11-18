@@ -28,7 +28,7 @@ export function initSidebar(ed) {
     if (any) tabs.select('ed-cell');
     cell.update();
   };
-  // A list's Artwork button: Test it live shows the Cell tab in its drawer (editorlive.js), else the Cell tab opens here.
+  // A list's Artwork button: the Live Editor shows the Cell tab in its drawer (editorlive.js), else the Cell tab opens here.
   const onArt = () => {
     if (ed.openArt()) return;
     tabs.select('ed-cell');

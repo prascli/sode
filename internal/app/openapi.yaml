@@ -2386,7 +2386,7 @@ components:
         settings:
           type: object
           additionalProperties: true
-          description: Free-form settings for the panel page and editor. Sode checks only `fixedDests` and `askInstanceName`.
+          description: Free-form settings for the panel page and editor. Sode checks only `fixedDests`, `askInstanceName` and `mode` (`take`, `takeOnly` or `instant`).
           properties:
             askInstanceName:
               type: boolean

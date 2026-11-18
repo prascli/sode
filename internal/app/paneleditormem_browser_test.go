@@ -73,7 +73,7 @@ func (b *tab) measure() leakSample {
 }
 
 // The editor must not grow while it sits open or is used. The rounds repeat selecting, the menu, Find, the modals, Save
-// and Test it live. Each round ends with the same intervals, listeners, nodes and object URLs as the round before.
+// and the Live Editor. Each round ends with the same intervals, listeners, nodes and object URLs as the round before.
 func TestChromeEditorHoldsNoMemory(t *testing.T) {
 	var art string
 	b, _, _, _ := editorTabPrep(t, fmt.Sprintf(`{"name":"Wall","rows":4,"cols":8,"cells":[
@@ -149,7 +149,7 @@ func TestChromeEditorHoldsNoMemory(t *testing.T) {
 		b.eval(`document.getElementById('ed-save').click()`)
 		b.waitSaved("saved")
 		step("save")
-		// Test it live, a poll and some ticks, Back to editing.
+		// The Live Editor, a poll and some ticks, Back to editing.
 		b.eval(`document.getElementById('ed-live').click()`)
 		b.waitFor("live cells", `document.querySelectorAll('#ed-live-view .sode-panel__cell').length === 3`)
 		b.waitFor("live art shown", `!document.querySelector('#ed-live-view .sode-panel__art-a')?.hidden`)

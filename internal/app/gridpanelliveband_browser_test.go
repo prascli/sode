@@ -22,7 +22,7 @@ const bandCounts = `((root) => {
 	].map(([k, s]) => k + '=' + n(s)).join() + ',filler=' + /Find marks the matches/.test(root.textContent);
 })`
 
-// Test it live draws the band's controls as the panel page does. There is one Find/Filter switch, one arrow on each
+// The Live Editor draws the band's controls as the panel page does. There is one Find/Filter switch, one arrow on each
 // corner word and one box per bar. No part of the phone layout shows.
 func TestChromeGridPanelLiveBand(t *testing.T) {
 	b := startBrowser(t)
@@ -37,7 +37,7 @@ func TestChromeGridPanelLiveBand(t *testing.T) {
 	b.waitFor("the live grid shows", `!!document.querySelector('#ed-live-view .sode-gridpanel__xp') && !!document.querySelector('#ed-live-view .sode-gridpanel__find-mode')`)
 	b.shot("live")
 	if got := b.eval(bandCounts + `(document.getElementById('ed-live-view'))`); got != want {
-		t.Errorf("Test it live band: %v, want %v", got, want)
+		t.Errorf("Live Editor band: %v, want %v", got, want)
 	}
 
 	b.open(srv.URL + "/panels/" + id)

@@ -47,7 +47,12 @@ const (
 
 	// panelAskNameKey is "Ask users to set an instance name"; missing means on, so old files keep asking.
 	panelAskNameKey = "askInstanceName"
+	// panelModeKey is the take flow. Keep in step with modeOptions in web/editorpanel.js.
+	panelModeKey = "mode"
 )
+
+// panelModes are the take flow values the pages know; missing or "" reads as take (web/panelmodel.js).
+var panelModes = []string{"", "take", "takeOnly", "instant"}
 
 var (
 	panelIDRe = regexp.MustCompile(`^p-[0-9a-f]{8}$`)
@@ -232,6 +237,11 @@ func cleanSettings(settings map[string]any) (map[string]any, error) {
 	if v, ok := settings[panelAskNameKey]; ok {
 		if _, isBool := v.(bool); !isBool {
 			return nil, errors.New(panelAskNameKey + " is true or false")
+		}
+	}
+	if v, ok := settings[panelModeKey]; ok && v != nil {
+		if m, isText := v.(string); !isText || !slices.Contains(panelModes, m) {
+			return nil, errors.New("the take flow (settings.mode) is take, takeOnly or instant")
 		}
 	}
 	return cleanFixedDests(settings)

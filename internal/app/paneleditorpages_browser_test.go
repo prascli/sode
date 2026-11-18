@@ -10,7 +10,7 @@ import (
 // The editor's Pages bar on a 3-Page panel. The check presses Add Page twice. Cmd-click and a Mac Ctrl-click
 // (contextmenu) open all three side by side. A copy on Page 1 pastes onto Page 2 and Page 3. Copy to over the used
 // Page 3 asks before it replaces. An undo pressed on Page 1 takes back the Copy to on Page 3. The save stores every Page, and the copied
-// Go to Page cell keeps its target. The Info cell copied to Page 3 names Page 3, and Test it live opens on Page 3.
+// Go to Page cell keeps its target. The Info cell copied to Page 3 names Page 3, and the Live Editor opens on Page 3.
 func TestChromeEditorPages(t *testing.T) {
 	b, a, ana, id := editorTab(t, `{"name":"Paged","rows":2,"cols":4,"pages":[{"id":"p1","enabled":true,"cells":[
 		{"r":1,"c":1,"rs":1,"cs":1,"kind":"source","n":1},
@@ -108,7 +108,7 @@ func TestChromeEditorPages(t *testing.T) {
 		t.Fatalf("stored Pages:\n got %q\nwant %q", got, want)
 	}
 
-	// Test it live opens on the Page being edited, and the Info cell there names that Page.
+	// The Live Editor opens on the Page being edited, and the Info cell there names that Page.
 	b.eval(`pressSq(3, 1, 4)`)
 	b.waitFor("Page 3 focused", `row(3).classList.contains('is-focus')`)
 	b.eval(`document.getElementById('ed-live').click()`)

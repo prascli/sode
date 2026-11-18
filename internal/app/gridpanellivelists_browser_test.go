@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Test it live on a Grid panel: Edit lists opens a drawer with the editor's own Sources and Destinations lists. A
+// The Live Editor on a Grid panel: Edit lists opens a drawer with the editor's own Sources and Destinations lists. A
 // move, a pin or a remove there shows on the live grid at once and makes Save show in the bar. Keys in the drawer
 // stay in the drawer. Save stores the lists and brings no "This panel was changed" banner. Back puts the lists back.
 func TestChromeGridPanelLiveLists(t *testing.T) {

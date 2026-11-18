@@ -242,8 +242,9 @@ The source that a destination has now, as the take confirm and the Current Sourc
 **Follow the router**:
 An editor setting for each edge of a Grid panel. While it is on, the edge holds every source or destination the router reports, in router order. The editor then changes only its pins and artwork. Turning it off makes the edge a list.
 
-**Test it live**:
-The editor's button that runs the saved panel in the editor, as its page does. Takes made there change the router. Unsaved edits are saved first.
+**Live Editor**:
+The editor's button and view that runs the saved panel in the editor, as its page does. Takes made there change the router. Unsaved edits are saved first.
+_Avoid_: Test it live
 
 **Public panel**:
 A panel that anyone with its URL can use, with no sign-in, PIN or key in the link. It acts as its own API client, with that client's Rights, which a Trusted user sets within their own. History names the client.
