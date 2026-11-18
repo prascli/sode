@@ -439,7 +439,7 @@ func (a *App) outcomePhase(r *runtime, w *waiter, e *Entry, missing []*routeLeve
 	if sendErr != nil {
 		e.SendErr = sendErr.Error()
 	}
-	names := maps.Clone(a.router.srcNames)
+	names := a.nowNames(e)
 	a.mu.Unlock()
 	sort.Ints(e.Already)
 	if msg := entryErr(r, names, e); msg != "" {
@@ -633,6 +633,21 @@ func (a *App) whyMissing(e *Entry, missing []*routeLevel) {
 			e.Now = append(e.Now, [2]int{l.ui, l.now})
 		}
 	}
+}
+
+// nowNames copies the names entryErr can read: the sources in e.Now. A whole copy of a large
+// router's names on every take was most of a take's garbage. Caller holds mu.
+func (a *App) nowNames(e *Entry) map[int]string {
+	if len(e.Now) == 0 {
+		return nil
+	}
+	names := make(map[int]string, len(e.Now))
+	for _, p := range e.Now {
+		if n, ok := a.router.srcNames[p[1]]; ok {
+			names[p[1]] = n
+		}
+	}
+	return names
 }
 
 // entryErr renders the level part of the error from e's fields; "" when nothing fails.
