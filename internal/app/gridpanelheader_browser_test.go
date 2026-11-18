@@ -24,11 +24,12 @@ func TestChromeGridPanelHeader(t *testing.T) {
 	b.open(srv.URL + "/panels/" + bens + "?instance=Desk")
 	signInOnPad(b)
 	b.waitFor("the lock screen goes", `!document.querySelector('.sode-lock.is-on') && !!`+gridXp(3, 3))
-	b.waitFor("with no title bar, Settings, the Panels link and Copy show, and not Edit", `(() => {
+	b.waitFor("with no title bar, Settings, the Panels link and Copy show clear of the Lock chip, and not Edit", `(() => {
 		const tools = document.querySelector('.sode-gridpanel__tools');
 		const ids = [...tools.querySelectorAll('a, button')].filter((n) => n.getClientRects().length).map((n) => n.id || n.getAttribute('aria-label'));
 		return document.querySelector('.sode-panels__head').hidden && !document.getElementById('panel-title').getClientRects().length &&
-			ids.join() === 'Settings,Panels,Save a copy,panel-screen';
+			ids.join() === 'Settings,Panels,Save a copy,panel-screen' &&
+			[...tools.querySelectorAll('a, button')].filter((n) => n.getClientRects().length).every((n) => { const r = n.getBoundingClientRect(); return n.contains(document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2)); });
 	})()`)
 	b.shot("header-copy")
 	b.eval(`document.querySelector('.sode-gridpanel__copy').click(); true`)

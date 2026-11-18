@@ -645,6 +645,13 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     }
     draw();
   };
+  // Moves a band to show pin k, with to (bandFor or bandCentre) picking the start. An item past the pins keeps the
+  // band where the wheel put it, with the part of a pin. So does a pin that a reveal finds whole.
+  const showPin = (kind, k, to) => {
+    const b = band[kind];
+    if (k < 0 || k >= b.pins || (to === bandFor && k > b.at && k < b.at + b.slots)) return;
+    setBand(kind, to(k, b));
+  };
   scroll.addEventListener('scroll', onScroll, { passive: true });
   // A new window or layout size changes how many items show, and a font size change changes px.
   const ro = new ResizeObserver(() => {
@@ -827,11 +834,11 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // A pin its band does not show moves the band instead (gridpanelwindow.js bandFor).
     reveal({ i, j }) {
       if (j >= 0) {
-        setBand('srcs', bandFor(j, band.srcs));
+        showPin('srcs', j, bandFor);
         scroll.scrollLeft = scrollFor(slotOf(j, band.srcs), axis(true, read()));
       }
       if (i >= 0) {
-        setBand('dsts', bandFor(i, band.dsts));
+        showPin('dsts', i, bandFor);
         scroll.scrollTop = scrollFor(slotOf(i, band.dsts), axis(false, read()));
       }
     },
@@ -839,7 +846,7 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     // name.
     glide(kind, k) {
       const cols = kind === 'srcs';
-      setBand(kind, bandCentre(k, band[kind]));
+      showPin(kind, k, bandCentre);
       const to = centreFor(slotOf(k, band[kind]), axis(cols, read()));
       goTo({ [cols ? 'left' : 'top']: to }, { srcs: cols ? ax.srcs[k] : null, dsts: cols ? null : ax.dsts[k] });
     },
@@ -848,8 +855,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
     jump({ i, j }) {
       const m = read();
       const to = {};
-      if (j >= 0) setBand('srcs', bandCentre(j, band.srcs));
-      if (i >= 0) setBand('dsts', bandCentre(i, band.dsts));
+      if (j >= 0) showPin('srcs', j, bandCentre);
+      if (i >= 0) showPin('dsts', i, bandCentre);
       if (j >= 0) to.left = centreFor(slotOf(j, band.srcs), axis(true, m));
       if (i >= 0) to.top = centreFor(slotOf(i, band.dsts), axis(false, m));
       goTo(to, { srcs: j >= 0 ? ax.srcs[j] : null, dsts: i >= 0 ? ax.dsts[i] : null });

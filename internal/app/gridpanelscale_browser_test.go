@@ -330,6 +330,19 @@ func TestChromeGridPanelScale(t *testing.T) {
 			break
 		}
 	}
+	// A key move in the body leaves the band where the wheel put it, part of a pin and all.
+	mid := b.eval(`(() => { const r = document.querySelector('.sode-gridpanel__scroll').getBoundingClientRect(); return [r.left + r.width * 0.7, r.top + r.height * 0.7].join(); })()`).(string)
+	var mx, my float64
+	fmt.Sscanf(mid, "%f,%f", &mx, &my)
+	b.call("Input.dispatchMouseEvent", map[string]any{"type": "mouseMoved", "x": mx, "y": my})
+	bandTop := `[...document.querySelectorAll('.sode-gridpanel__corner .sode-gridpanel__dst:not([hidden])')].map((n) => n.getBoundingClientRect().top).sort((p, q) => p - q).join()`
+	before := b.eval(bandTop)
+	gridKey(b, "l")
+	gridKey(b, "j")
+	b.eval(`new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)))`)
+	if after := b.eval(bandTop); after != before {
+		t.Errorf("a key move in the body moved the Destination band: pins at %v, then %v", before, after)
+	}
 	// The 40th pin is past the Source band's slots, so Find moves the band to it and the grid stays where it is.
 	b.eval(`(() => { const sc = document.querySelector('.sode-gridpanel__scroll'); sc.scrollLeft = sc.scrollWidth; window.__left = sc.scrollLeft; return true; })()`)
 	b.eval(`(() => { const i = document.querySelector('.sode-gridpanel__find[data-kind="srcs"] input'); i.focus(); document.execCommand('insertText', false, 'src 140'); return true; })()`)
