@@ -13,6 +13,7 @@ import { uptimeBars } from './uptimebars.js';
 import './brand.js';
 import './lock.js';
 import { bigScrollAll } from './bigscroll.js';
+import { pullToLoad } from './widgets.js';
 
 on('brand', ({ text }) => {
   document.querySelector('.sode-log__title').textContent = `${text} Communication Log`;
@@ -225,7 +226,7 @@ on('sentPage', (m) => {
 on('sentAdd', (m) => {
   if (!pager.started) return;
   showCounts(m);
-  const fresh = pager.live(m);
+  const { fresh, dropped } = pager.live(m);
   if (!fresh.length) return;
   const pass = fresh.filter(passes);
   if (newestFirst()) {
@@ -234,8 +235,20 @@ on('sentAdd', (m) => {
   } else {
     for (const e of pass) insertRow(e);
   }
+  dropRows(dropped);
   renderMore();
 });
+
+// shown and tbody's rows stay in step, so an entry's row sits at its index in shown.
+function dropRows(es) {
+  if (!es.length) return;
+  const gone = new Set(es.map((e) => e.seq));
+  for (let i = shown.length - 1; i >= 0; i--) {
+    if (!gone.has(shown[i].seq)) continue;
+    tbody.children[i].remove();
+    shown.splice(i, 1);
+  }
+}
 
 function showCounts(m) {
   const n = m.lost || 0;
@@ -495,9 +508,10 @@ $('log-csv').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-$('log-older').addEventListener('click', () => {
-  send(pager.older(pager.list.filter(passes).length));
-});
+const loadOlder = () => send(pager.older(pager.list.filter(passes).length));
+$('log-older').addEventListener('click', loadOlder);
+// The home page's auto-expand: a wheel or touch pull past the end presses Load older.
+pullToLoad(window, $('log-older').parentElement, { hasMore: () => !$('log-older').hidden && !pager.loading, more: loadOlder }, () => true);
 
 const fmtDay = (t) => {
   const d = new Date(t);
