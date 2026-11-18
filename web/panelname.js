@@ -6,7 +6,7 @@ export function initName(box, rename) {
   const draw = (name, editable) => {
     box.hidden = false;
     if (!editable) return box.replaceChildren(el('span', 'sode-panels__device', name));
-    const b = el('button', 'pb-btn pb-btn--ghost pb-btn--sm sode-panels__device', name, icon('pencil'));
+    const b = el('button', 'pb-btn pb-btn--ghost pb-btn--sm sode-panels__device', name, icon('text-cursor-input'));
     b.type = 'button';
     b.dataset.pbTip = 'Rename this instance';
     b.setAttribute('aria-label', `Instance name ${name}. Rename`);

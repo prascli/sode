@@ -97,7 +97,7 @@ export function createPageBar(host, act) {
       body: [head, renaming === i ? nameField(p, i) : null],
       actions: [
         {
-          icon: 'pencil',
+          icon: 'text-cursor-input',
           tip: 'Rename',
           act: 'rename',
           run: () => {

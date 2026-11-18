@@ -44,7 +44,7 @@ const gridSweep = `(async () => {
 	return { added, removed, most, missing, median: times[times.length >> 1], worst: times[times.length - 1] };
 })()`
 
-// bandSweep wheels the KIND band ('dsts' or 'srcs') one pin per step to its end and back, two frames a step. It
+// bandSweep wheels the KIND band ('dsts' or 'srcs') one pin per step to its end and back, each step until it shows. It
 // counts the elements added and removed and the steps, and gives the median and worst step time.
 const bandSweep = `(async () => {
 	const grid = document.getElementById('panel-grid');
@@ -68,7 +68,8 @@ const bandSweep = `(async () => {
 			const before = first();
 			const t0 = performance.now();
 			sc.dispatchEvent(new WheelEvent('wheel', { ...at, deltaY: y ? dir * xp : 0, deltaX: y ? 0 : dir * xp, bubbles: true, cancelable: true }));
-			await frame();
+			// A step of one pin glides (gridpanelpins.js), so it waits for the band to reach the next pin.
+			for (let f = 0; f < 15 && first() === before; f++) await frame();
 			if (first() === before) break;
 			moved = true;
 			times.push(performance.now() - t0);

@@ -9,7 +9,8 @@ import (
 
 // The Grid page's header buttons and kiosk mode at 1280 by 800. Ana can use Ben's panel but not change it. Its Title bar
 // setting is off, but Settings, the Panels link and Copy show. Settings hides only in kiosk mode. Copy makes Ana's own copy and opens it in the editor. In kiosk mode on her own panel the header row goes, so
-// the grid moves up, and a take's banner never moves it.
+// the grid moves up, and a take's banner never moves it. Rules follow the Lock chip, the instance name and the Find box,
+// and the banner is as tall as the Find box.
 func TestChromeGridPanelHeader(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -41,6 +42,16 @@ func TestChromeGridPanelHeader(t *testing.T) {
 
 	b.open(srv.URL + "/panels/" + own + "?instance=Desk")
 	b.waitFor("Ana's panel", `!!`+gridXp(3, 3)+` && !document.querySelector('.sode-gridpanel__edit').hidden && document.querySelector('.sode-gridpanel__copy').hidden`)
+	b.waitFor("rules: after the Lock chip, after the instance name and after the Find box; the message box is as tall as the Find box", `(() => {
+		const r = (s) => document.querySelector(s).getBoundingClientRect();
+		const who = r('.sode-lock__who-name'), wr = r('.sode-gridpanel__whorule'), title = r('#panel-title');
+		const inst = r('#panel-instance'), nr = r('.sode-gridpanel__namerule'), tools = r('.sode-gridpanel__tools');
+		const mode = r('.sode-gridpanel__deck .sode-gridpanel__find-mode'), r3 = r('.sode-gridpanel__rule--3'), msg = r('.sode-gridpanel__msg');
+		return wr.height > 0 && wr.left >= who.right && wr.right <= title.left &&
+			nr.height > 0 && nr.left >= inst.right && nr.right <= tools.left &&
+			r3.height > 0 && r3.left >= mode.right && r3.right <= msg.left &&
+			Math.abs(msg.top - mode.top) < 0.5 && Math.abs(msg.bottom - mode.bottom) < 0.5;
+	})()`)
 	// The reload ends the page's script, so the sizes before kiosk mode go in the check's words.
 	was := b.eval(`document.querySelector('.sode-gridpanel__deck').getBoundingClientRect().height + ',' + document.querySelector('.sode-gridpanel__headrow').getBoundingClientRect().height`).(string)
 	b.eval(`location.hash = 'kiosk=1'; location.reload(); true`)
@@ -56,6 +67,11 @@ func TestChromeGridPanelHeader(t *testing.T) {
 	gridKey(b, "Enter")
 	gridConfirm(b)
 	b.waitFor("in kiosk mode the take's banner shows and the grid did not move", gridMessage+`.startsWith('Taken') && window.__top() === window.__was`)
+	b.waitFor("the banner fills the message box, top to bottom", `(() => {
+		const m = document.querySelector('.sode-gridpanel__msg').getBoundingClientRect();
+		const al = document.querySelector('.sode-gridpanel__msg .sode__banner:not(.sode__banner--out) .pb-alert').getBoundingClientRect();
+		return al.top - m.top < 1 && m.bottom - al.bottom < 8;
+	})()`)
 	b.shot("header-kiosk")
 	b.check()
 }
