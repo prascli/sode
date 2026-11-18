@@ -263,8 +263,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   const label = (kind, word, arrow) => el('span', `sode-gridpanel__label sode-gridpanel__label--${kind}`, el('span', null, word), icon(arrow));
   const head = el('div', 'sode-gridpanel__head', label('src', 'Sources', 'arrow-left'), label('dst', 'Destinations', 'arrow-down'));
   corner.append(head);
-  // A pinned band's pins sit in a box that moves by the part of a pin (bandVars) inside one that clips at the band's
-  // edges (gridpanel.css), so a band scroll moves one node and restyles none of its pins. axes is 'x', 'y' or 'xy'.
+  // A pinned band's pins sit in a box that moves by the part of a pin (bandVars). It is in a box that clips at the
+  // band's edges (gridpanel.css). So a band scroll moves one node and restyles no pin. axes is 'x', 'y' or 'xy'.
   const bandBox = (host, axes) => {
     const box = el('div', 'sode-gridpanel__shift');
     host.append(el('div', `sode-gridpanel__clip sode-gridpanel__clip--${axes}`, box));
@@ -478,8 +478,8 @@ export function buildGridPanel(host, axes, { onPress, onName, onPoint, onJump })
   // Each edge's pinned band (gridpanelwindow.js itemOf): slots is how many pins draw as pinned (pinsShown), set by
   // setAxes and a resize. On the desktop layout the pins past them scroll in the band: its bar, the wheel, a key or
   // Find moves it. The phone has no band bars, so there the pins past them scroll first with the rest.
-  // f is the part of a pin the band has moved past at (0 to 1), so the band follows the wheel px by px as the grid
-  // does. While the band can move on, its pools draw one slot more, the pin that shows in part at the far end.
+  // f is the part of a pin the band has moved past at (0 to 1). Thus the band moves with the wheel px by px, as the
+  // grid does. While the band can move on, its pools draw one slot more, the pin that shows in part at the far end.
   const band = { srcs: { pins: 0, slots: 0, at: 0, f: 0 }, dsts: { pins: 0, slots: 0, at: 0, f: 0 } };
   const extra = (b) => (b.at + b.slots < b.pins ? 1 : 0);
   const bandsNow = (m = metricsNow()) => {

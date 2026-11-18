@@ -31,8 +31,9 @@ const bandFits = `(() => {
 })()`
 
 // The Grid panel page at 1440 by 900. The header, the Levels box and the search boxes are one band, the deck. Its
-// header row is laid out as the main page. The title, Settings, Full screen and the Panels link are at the left. The
-// status slot and the main page's Server and Router status are at the right. The Lock chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes and the
+// header row is laid out as the main page. At the left are the title, a rule and the instance name, on the Lock chip's
+// centre line. Then come Settings, the Panels link, Edit, a rule and Full screen. The main page's Server and Router status is
+// at the right. The Lock chip names the user as on the main page. Under it are the Levels box with Select all under it, the search boxes and the
 // Filter switch. Then come Clear and the red Take with the note over them. Nothing in the band moves as words
 // change. It checks the Sources and Destinations words in the corner, the picked row and column washes and the staged ring. The
 // cursor ring, the staged ring and Take pulse in one phase. The grid goes down to the window's bottom and Full width
@@ -61,12 +62,21 @@ func TestChromeGridPanelLook(t *testing.T) {
 			!document.querySelector('.sode-gridpanel__meta, .sode-gridpanel__stat') && t('#panel-instance') === 'Desk' &&
 			getComputedStyle(conn).position === 'static' && conn.parentNode.lastElementChild === conn && row.right - c.right < 2;
 	})()`)
-	b.waitFor("Settings, Full screen and the Panels link follow the title at the left, as the main page's buttons", `(() => {
+	b.waitFor("Settings, the Panels link, Edit, a rule and Full screen follow the title and instance name at the left", `(() => {
 		const tools = document.querySelector('.sode-gridpanel__tools'), title = document.getElementById('panel-title').getBoundingClientRect();
 		const s = tools.querySelector('a.sode-gridpanel__settings'), r = tools.getBoundingClientRect();
-		const ids = [...tools.querySelectorAll('a, button')].filter((n) => n.getClientRects().length).map((n) => n.id || n.getAttribute('aria-label'));
+		const shown = [...tools.querySelectorAll('a, button, .pb-divider')].filter((n) => n.getClientRects().length);
+		const ids = shown.map((n) => (n.classList.contains('pb-divider') ? '|' : n.id || n.getAttribute('aria-label')));
+		const edit = tools.querySelector('.sode-gridpanel__edit');
+		const name = [...document.querySelector('.sode-gridpanel__name').children].filter((n) => n.getClientRects().length).map((n) => n.id || (n.classList.contains('pb-divider') ? '|' : '?'));
 		return !!s && new URL(s.href).hash === '#settings' && new URL(s.href).pathname === '/' && s.classList.contains('pb-btn--ghost') &&
-			ids.join() === 'Settings,panel-screen,Panels' && r.left > title.right && r.right < innerWidth / 2;
+			ids.join() === 'Settings,Panels,Edit panel,|,panel-screen' && new URL(edit.href).pathname === '/panels/editor' &&
+			name.join() === 'panel-title,|,panel-instance' && r.left > title.right && r.right < innerWidth / 2;
+	})()`)
+	b.waitFor("the title, the instance name and the buttons are on the Lock chip's centre line", `(() => {
+		const mid = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+		const c = mid('.sode-lock__who');
+		return ['#panel-title', '#panel-instance', '.sode-gridpanel__settings', '#panel-screen'].every((s) => Math.abs(mid(s) - c) < 0.5);
 	})()`)
 	b.waitFor("one deck at the top holds the header, the Levels box and the search boxes, under 176 px high (the banner's two lines took 4.5 px)", `(() => {
 		const deck = document.querySelector('.sode-gridpanel__deck');
@@ -116,13 +126,13 @@ func TestChromeGridPanelLook(t *testing.T) {
 			boxes.length === 2 && boxes.every((w) => w > 100 && w <= 14 * 18 + 1) &&
 			Math.abs(r.top - top.top) < 2 && Math.abs(r.bottom - bot.bottom) < 2;
 	})()`)
-	b.waitFor("Full screen is a ghost icon, Full width and Kiosk mode are gone and the Panels link is in the header", `(() => {
+	b.waitFor("Full screen is a ghost icon, Full width and Kiosk mode are gone and the Panels link is with the header buttons", `(() => {
 		const s = document.getElementById('panel-screen');
 		return getComputedStyle(s, '::before').content === 'none' && s.getBoundingClientRect().width < 48 &&
 			s.classList.contains('pb-btn--ghost') && !s.classList.contains('pb-btn--outline') &&
 			document.getElementById('panel-kiosk').getClientRects().length === 0 &&
 			document.getElementById('panel-full').getClientRects().length === 0 &&
-			document.querySelector('.sode-panels__head').contains(document.getElementById('panel-home')) &&
+			document.querySelector('.sode-gridpanel__tools').contains(document.getElementById('panel-home')) &&
 			!!document.querySelector('#panel-home a[href="panels"]');
 	})()`)
 	b.waitFor("big scroll bars: 25 px on both axes", `(() => {

@@ -61,6 +61,10 @@ func tallyHas(t *testing.T, a *App, key string, dst, src int) {
 	}
 }
 
+// gridMessage is the Grid page's message as a JS expression, or an empty string when none shows. On the desktop layout it is the
+// banner in the gap before Clear.
+const gridMessage = `(document.querySelector('.sode-gridpanel__msg .sode__banner:not(.sode__banner--out) .pb-alert__title')?.textContent ?? '')`
+
 func signInOnPad(b *tab) {
 	b.waitFor("PIN pad", `!!document.querySelector('.sode-lock__key[data-key="1"]')?.offsetParent`)
 	for _, d := range "1234" {
@@ -375,14 +379,15 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.waitFor("another source is named on the Destination bar", dst(25)+`.querySelector('.sode-gridpanel__other')?.textContent === '`+src25+`'`)
 
 	gridShow(b, 1, 12)
-	// The status line has fixed room in the band: the grid's top stays put as a message shows and clears.
+	// The message box has fixed room in the band: the grid's top stays put as a message shows and clears.
 	b.eval(`window.__top = () => [document.querySelector('.sode-gridpanel__scroll'), document.querySelector('.sode-gridpanel__deck')].map((n) => Math.round(n.getBoundingClientRect().top) + ':' + Math.round(n.getBoundingClientRect().height)).join('|'); window.__was = window.__top(); true`)
 	b.eval(gridXp(1, 12) + `.click()`)
-	b.waitFor("a press on a protected destination says why", `document.getElementById('panel-status').textContent === 'Rec B is protected'`)
-	b.waitFor("the status shows in the header row's slot, next to the Server and Router status at the top right, and the grid did not move", `(() => {
-		const s = document.getElementById('panel-status'), r = s.getBoundingClientRect(), c = document.querySelector('.sode-gridpanel__headrow > .sode__conn').getBoundingClientRect();
-		return s.parentNode.classList.contains('sode-gridpanel__slot') && r.height > 0 && r.right <= c.left && c.left - r.right < 40 && Math.abs((r.top + r.bottom) / 2 - (c.top + c.bottom) / 2) < 4 &&
-			window.__top() === window.__was;
+	b.waitFor("a press on a protected destination says why", gridMessage+` === 'Rec B is protected'`)
+	b.waitFor("the message is a banner in the gap between the search boxes and Clear, and the grid did not move", `(() => {
+		const r = document.querySelector('.sode-gridpanel__msg .sode__banner').getBoundingClientRect();
+		const f = document.querySelector('.sode-gridpanel__deck .sode-gridpanel__find-mode').getBoundingClientRect(), c = document.querySelector('.sode-gridpanel__clear').getBoundingClientRect();
+		return r.height > 0 && r.left > f.right && r.right < c.left && r.top >= f.top - 30 && r.bottom <= c.bottom + 1 &&
+			document.querySelector('.sode-gridpanel__msg .pb-alert--error') !== null && document.getElementById('panel-status').hidden && window.__top() === window.__was;
 	})()`)
 	b.shot("rights")
 	if s := b.eval(gridXp(1, 12) + `.dataset.s || ''`); s != "" {
@@ -393,7 +398,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 	b.eval(gridXp(3, 5) + `.click()`)
 	b.eval(gridXp(4, 6) + `.click()`)
 	b.waitFor("two routes staged", gridXp(3, 5)+`.dataset.s === 'staged' && `+gridXp(4, 6)+`.dataset.s === 'staged'`)
-	b.waitFor("a press elsewhere clears the status, and the grid did not move", `document.getElementById('panel-status').textContent === '' && window.__top() === window.__was`)
+	b.waitFor("a press elsewhere clears the status, and the grid did not move", gridMessage+` === '' && window.__top() === window.__was`)
 	a.mu.Lock()
 	a.router.protect[5] = map[int]int{1: 9}
 	a.mu.Unlock()
@@ -420,7 +425,7 @@ func TestChromeGridPanelProtected(t *testing.T) {
 		t.Fatal(err)
 	}
 	b.waitFor("the destination outside the Rights goes", axes(20, 8))
-	b.waitFor("the status says why the staged route is left out", `document.getElementById('panel-status').textContent.includes("outside this panel's Rights")`)
+	b.waitFor("the status says why the staged route is left out", gridMessage+`.includes("outside this panel's Rights")`)
 	gridKey(b, "Enter")
 	b.waitFor("the confirm leaves it out", `document.getElementById('confirm-body').textContent.includes('1 left out') && document.getElementById('confirm-body').textContent.includes("outside this panel's Rights")`)
 	gridConfirm(b)

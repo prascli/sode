@@ -304,7 +304,7 @@ func TestChromeGridPanelScale(t *testing.T) {
 			t.Errorf("the %s band sweep: %v, want the band moved, nodes moved and none made, and the grid still", kind, bs)
 		}
 	}
-	// A wheel of a few px moves the band by those px, as it moves the grid: the band does not wait for a whole pin.
+	// A wheel of a few px moves the band by those px, as it moves the grid. The band does not wait for a whole pin.
 	smooth, ok := b.eval(`(async () => {
 		const sc = document.querySelector('.sode-gridpanel__scroll');
 		const xp = document.querySelector('.sode-gridpanel__probe-xp').getBoundingClientRect().width;

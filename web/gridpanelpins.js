@@ -5,8 +5,8 @@
 import { el } from './core.js';
 import { bigScroll } from './bigscroll.js';
 
-// frame holds the grid's scroller (scroll). onAt(kind, at) runs when a bar moves a band's start, in pins with the part
-// of a pin, so the band follows each px as the grid does; kind is 'srcs' or 'dsts'. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
+// frame holds the grid's scroller (scroll). onAt(kind, at) runs when a bar moves a band's start; kind is 'srcs' or
+// 'dsts'. at is in pins with the part of a pin, so the band moves with each px, as the grid does. The Destination band's bar is down the right edge of its pinned names, the Source band's across the bottom
 // of its pinned names.
 export function pinBars(frame, scroll, onAt) {
   const make = (kind) => {

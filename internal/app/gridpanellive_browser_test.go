@@ -7,8 +7,9 @@ import (
 
 // A saved change and a Default artwork change reach an open Grid panel by the usual live update. With nothing staged
 // it applies after the countdown and keeps the search, the picks and the cursor on the same items. With a route
-// staged it waits until Apply now, which drops the staged route and keeps the search. The banner shows in the header
-// row's status slot, with the main page's countdown bar, and the grid never moves.
+// staged it waits until Apply now, which drops the staged route and keeps the search. The banner shows in the gap
+// between the search boxes and Clear, with the main page's countdown bar, and the grid never moves. A take result
+// shows over it, and a new update notice takes the place of the result.
 func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -33,9 +34,10 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b.waitFor("the lock screen goes", `document.querySelector('.sode-lock').hidden`)
 	b.eval(`window.__top = () => [document.querySelector('.sode-gridpanel__scroll'), document.querySelector('.sode-gridpanel__deck')].map((n) => Math.round(n.getBoundingClientRect().top) + ':' + Math.round(n.getBoundingClientRect().height)).join('|'); window.__was = window.__top(); true`)
 	still := `window.__top() === window.__was`
-	// The banner's words and buttons show whole at 1280 by 800, the browser's size here.
-	whole := `(() => { const u = document.getElementById('panel-update'); const cut = (n) => n.scrollWidth > n.clientWidth + 1; ` +
-		`return innerWidth === 1280 && !cut(u.querySelector('.pb-alert')) && !cut(u.querySelector('.sode__banner-body')) && u.getBoundingClientRect().right <= innerWidth; })()`
+	// The banner's words and buttons show whole inside the message box at 1280 by 800, the browser's size here.
+	whole := `(() => { const u = document.getElementById('panel-update'), m = u.parentNode.getBoundingClientRect(); const cut = (n) => n.scrollWidth > n.clientWidth + 1; ` +
+		`const inside = [...u.querySelectorAll('.pb-alert, .pb-btn')].every((n) => { const r = n.getBoundingClientRect(); return r.top >= m.top - 0.5 && r.bottom <= m.bottom + 0.5 && r.left >= m.left - 0.5 && r.right <= m.right + 0.5; }); ` +
+		`return innerWidth === 1280 && inside && !cut(u.querySelector('.pb-alert')) && !cut(u.querySelector('.sode__banner-body')); })()`
 
 	// CAM 1 is source 12, the first match. Two rows down is destination 1.
 	realKey(b, "s", "KeyS", 83)
@@ -62,10 +64,11 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	save("After", `[1,2,3,4,5,6]`)
 	text := `document.getElementById('panel-update-text').textContent`
 	b.waitFor("the countdown banner", `/Refreshing in \d+ s\./.test(`+text+`)`)
-	b.waitFor("the banner is in the status slot, whole, with its countdown bar, and the grid did not move", `(() => {
-		const u = document.getElementById('panel-update'), slot = u.parentNode, r = u.getBoundingClientRect(), s = slot.getBoundingClientRect();
-		const alert = u.querySelector('.pb-alert'), bar = u.querySelector('#panel-update-bar .sode__banner-bar');
-		return slot.classList.contains('sode-gridpanel__slot') && r.top >= s.top - 0.5 && r.bottom <= s.bottom + 0.5 &&
+	b.waitFor("the banner is in the gap between the search boxes and Clear, whole, with its countdown bar, and the grid did not move", `(() => {
+		const u = document.getElementById('panel-update'), r = u.getBoundingClientRect();
+		const f = document.querySelector('.sode-gridpanel__deck .sode-gridpanel__find-mode').getBoundingClientRect(), c = document.querySelector('.sode-gridpanel__clear').getBoundingClientRect();
+		const bar = u.querySelector('#panel-update-bar .sode__banner-bar');
+		return u.parentNode.classList.contains('sode-gridpanel__msg') && r.left > f.right && r.right < c.left &&
 			!!bar && getComputedStyle(bar).animationName === 'sode-countdown' && bar.getClientRects().length > 0;
 	})() && `+whole+` && `+still)
 	b.shot("banner")
@@ -103,5 +106,15 @@ func TestChromeGridPanelLiveUpdate(t *testing.T) {
 	b.waitFor("the banner goes, and the grid did not move", `document.getElementById('panel-update').hidden && `+still)
 	b.waitFor("the Take button is off", `document.getElementById('panel-take').textContent === 'Take' && document.getElementById('panel-take').disabled`)
 	kept("Apply now", 0)
+
+	// A take's result is the main page's banner in the same box, with its countdown, and the grid does not move.
+	b.eval(gridXp(12, 2) + `.click(); true`)
+	gridKey(b, "Enter")
+	gridConfirm(b)
+	b.waitFor("the take's result shows in the box with the main page's countdown bar, and the grid did not move", gridMessage+`.startsWith('Taken') && (() => {
+		const n = document.querySelector('.sode-gridpanel__msg .sode__banner'), bar = n.querySelector('.sode__banner-bar');
+		return !!n.querySelector('.pb-alert--ok') && !!n.querySelector('.sode__banner-x') && !!bar && getComputedStyle(bar).animationName === 'sode-countdown';
+	})() && `+still)
+	b.shot("result")
 	b.check()
 }
