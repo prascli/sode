@@ -210,7 +210,7 @@ export function offlineOf({ failed, routerUp }) {
 }
 
 // What a Panel Name or Instance Name cell shows: the name, with the caption as a line above it. A page with no
-// instance yet (still naming itself, or Test it live) shows the kind's own words.
+// instance yet (still naming itself, or the Live Editor) shows the kind's own words.
 export function nameCellText(cell, { panelName = '', instance = '' } = {}) {
   const value = cell.kind === 'panelName' ? panelName || 'Panel Name' : instance || 'Instance Name';
   return { caption: cell.caption || '', value };

@@ -612,29 +612,20 @@ body {
   font-size: var(--pb-text-xs);
   padding: 0 var(--pb-space-1);
 }
-/* A Grid panel's picture has three fixed sizes. In the list a margin pads each picture to 6rem, so the names line up. */
+/* A Grid panel's picture has three sizes with one square size (--sode-ov-sq): the picture grows with its squares
+   (--sode-ov-cols). The width counts the gaps, padding and border (border-box). In the list the Large picture is 6rem
+   and a margin pads the others to it, so the names line up. */
 .sode-ov__thumb--grid {
-  max-width: 100%;
+  --sode-ov-sq: 2rem;
+  --sode-ov-gap: var(--pb-space-1);
+  --sode-ov-pad: var(--pb-space-2);
+  --sode-ov-w: calc(var(--sode-ov-cols) * var(--sode-ov-sq) + (var(--sode-ov-cols) - 1) * var(--sode-ov-gap) + 2 * var(--sode-ov-pad) + 2 * var(--pb-border-w));
+  width: var(--sode-ov-w);
 }
-.sode-ov__thumb--grid[data-size="small"] {
-  width: 12rem;
-}
-.sode-ov__thumb--grid[data-size="medium"] {
-  width: 16rem;
-}
-.sode-ov__thumb--grid[data-size="large"] {
-  width: 20rem;
-}
-.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="small"] {
-  margin-inline-end: 2rem;
-  width: 4rem;
-}
-.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="medium"] {
-  margin-inline-end: 1rem;
-  width: 5rem;
-}
-.sode-ov__thumb--sm.sode-ov__thumb--grid[data-size="large"] {
-  width: 6rem;
+.sode-ov__thumb--sm.sode-ov__thumb--grid {
+  --sode-ov-pad: var(--pb-space-1);
+  --sode-ov-sq: calc((6rem - 10 * var(--pb-space-1) - 2 * var(--pb-border-w)) / 9);
+  margin-inline-end: calc(6rem - var(--sode-ov-w));
 }
 .sode-ov__thumb .sode-ov__k-source {
   background: var(--pb-current-idle);
@@ -985,7 +976,7 @@ body {
   height: auto;
   width: 12rem;
 }
-/* Test it live: the panel runs in the editor's page, in place of the grid and sidebar (paneleditor.js, panelmount.js). */
+/* The Live Editor: the panel runs in the editor's page, in place of the grid and sidebar (paneleditor.js, panelmount.js). */
 .sode-live {
   display: flex;
   flex-direction: column;
@@ -1014,7 +1005,7 @@ body {
   gap: 0;
   min-height: 0;
 }
-/* A Grid panel's Test it live (editorlive.js): a bar over the panel says it is a preview and holds the way back.
+/* A Grid panel's Live Editor (editorlive.js): a bar over the panel says it is a preview and holds the way back.
    The list drawer opens beside the grid, under the band, and the grid narrows (panelmount.js liveUi). The drawer's
    body does not scroll, so each list scrolls inside its own share of the height, as in the editor. */
 .sode-live__row {
@@ -1037,11 +1028,24 @@ body {
   flex-wrap: wrap;
   position: static;
 }
-/* The Lock bar sits at the window's top left, so the bar clears its width as the header does above. */
+/* The Lock bar sits at the window's top left, so the bar clears its width as the header does above. The panel's own
+   header is under the bar, so its title goes back to the left corner. */
 [data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) .sode-live__bar {
   padding-inline-start: calc(var(--sode-who-w, 0px) + var(--pb-space-5));
 }
-.sode-live__what,
+[data-sode-chip]:not([data-layout="phone"], [data-sode-kiosk]) #ed-live-view .sode-panels__head {
+  padding-inline-start: 0;
+}
+.sode-live__title {
+  color: var(--pb-text-strong);
+  font-size: var(--pb-text-lg);
+  font-weight: var(--pb-weight-bold);
+  margin: 0;
+}
+/* The run's Settings link leaves the editor for the main page, so the Live Editor does not show it. */
+#ed-live-view .sode-gridpanel__settings {
+  display: none;
+}
 .sode-live__state {
   color: var(--pb-text-muted);
   font-size: var(--pb-text-sm);
@@ -1835,10 +1839,9 @@ body {
   padding-inline-start: var(--pb-space-3);
 }
 /* A count has one tile per character. The Destination bar reads from the bottom up, as the Grid page's Sources label does.
-   The text scales with the square (cqi of the picture over its columns, GRID_SQUARES + 1). A list picture's text never
-   goes below the Small one's, so the Large picture's smaller squares still read; a character may then pass its square. */
+   The text scales with the square. In the list it never goes below 0.55rem, so it still reads; a character may then
+   pass its square. --sode-ov-cols is GRID_SQUARES + 1 (panelsrules.js). */
 .sode-ov__thumb--grid {
-  container-type: inline-size;
   --sode-ov-cols: 9;
 }
 .sode-ov__thumb--grid[data-size="small"] {
@@ -1852,14 +1855,14 @@ body {
   color: var(--pb-text-strong);
   display: flex;
   font-family: var(--pb-font-num);
-  font-size: calc(60cqi / var(--sode-ov-cols));
+  font-size: calc(0.6 * var(--sode-ov-sq));
   font-style: normal;
   justify-content: center;
   line-height: 1;
   overflow: visible;
 }
 .sode-ov__thumb--sm.sode-ov__thumb--grid .sode-ov__tile {
-  font-size: max(calc(60cqi / var(--sode-ov-cols)), 0.55rem);
+  font-size: max(calc(0.6 * var(--sode-ov-sq)), 0.55rem);
 }
 .sode-ov__thumb--grid .sode-ov__tile--destination {
   rotate: -90deg;

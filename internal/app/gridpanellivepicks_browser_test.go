@@ -18,9 +18,9 @@ func liveGridPanel(t *testing.T, b *tab, srvURL string) string {
 	return regexp.MustCompile(`panel=([\w-]+)`).FindStringSubmatch(b.eval(`location.search`).(string))[1]
 }
 
-// Test it live: names picked on the grid (click, Shift-click, Cmd-click) are the list's selection. The list's own
-// selection bar shows in the Preview bar. Move, Pin and Artwork there act as in the drawer. The kind picked last owns
-// the bar. The panel page gets none of this.
+// The Live Editor: names picked on the grid (click, Shift-click, Cmd-click) are the list's selection, and the drawer's
+// Move, Pin and Artwork act on them. The Preview bar keeps its copy of those buttons hidden. The kind picked last owns
+// the selection. The panel page gets none of this.
 func TestChromeGridPanelLivePicks(t *testing.T) {
 	b := startBrowser(t)
 	sim := startSim(t)
@@ -36,7 +36,6 @@ func TestChromeGridPanelLivePicks(t *testing.T) {
 		window.first = (k, side) => [...document.querySelectorAll('#ed-live-view .sode-gridpanel__' + k + '[data-' + k + ']')].map((x) => [x.dataset[k], x.getBoundingClientRect()]).filter(([, r]) => r.width > 0 && r.height > 0).sort((x, y) => x[1][side] - y[1][side]).map(([n]) => n);
 		window.nameOf = (k, n) => document.querySelector('#ed-live-view .sode-gridpanel__' + k + '[data-' + k + '="' + n + '"]:not([hidden])');
 		window.press = (n, mods = {}) => n.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...mods }));
-		window.inBar = (id) => document.getElementById('ed-live-picked').contains(document.getElementById(id));
 		document.getElementById('ed-live').click(); true`)
 	b.waitFor("the live grid shows the saved order", `first('src', 'left')[0] === '0' && first('dst', 'top')[0] === '0'`)
 	b.waitFor("Back to editing is left of Edit lists, which is last and not pressed", `(() => {
@@ -48,34 +47,40 @@ func TestChromeGridPanelLivePicks(t *testing.T) {
 	b.eval(`document.getElementById('ed-live-lists').click(); true`)
 	b.waitFor("a second press closes it", `document.getElementById('ed-live-lists').getAttribute('aria-pressed') === 'false' && !document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open')`)
 
+	b.waitFor("the bar says Panel Live Editor, and the run has no Settings link and no take note", `document.getElementById('ed-live-title').textContent === 'Panel Live Editor' && document.getElementById('ed-live-bar').getAttribute('aria-labelledby') === 'ed-live-title'
+		&& getComputedStyle(document.querySelector('#ed-live-view .sode-gridpanel__settings')).display === 'none' && !document.querySelector('.sode-live__what')`)
+	b.waitFor("the panel title is at the left of the band, not cleared for the Lock bar", `(() => {
+		const t = document.querySelector('#ed-live-view .sode-panels__title').getBoundingClientRect(), d = document.querySelector('#ed-live-view .sode-gridpanel__deck').getBoundingClientRect();
+		return t.width > 0 && t.left - d.left < 40;
+	})()`)
 	b.eval(`window.topWas = gridTop(); press(nameOf('src', 3)); press(nameOf('src', 5), { shiftKey: true }); true`)
-	b.waitFor("a click and a Shift-click on the grid select those sources in the list, and its bar shows in the Preview bar", `inBar('ed-sources-acts') && !inBar('ed-destinations-acts') && document.getElementById('ed-sources-sel').textContent === '3 selected' && !!document.getElementById('ed-sources-sel-top').offsetParent && document.querySelector('#ed-live-bar .sode-live__what').hidden`)
+	b.waitFor("a click and a Shift-click on the grid select those sources in the list; the Preview bar keeps its edit buttons hidden", `document.getElementById('ed-sources-sel').textContent === '3 selected' && getComputedStyle(document.getElementById('ed-live-picked')).display === 'none' && !document.getElementById('ed-sources-sel-top').offsetParent`)
 	b.shot("picked")
+	b.waitFor("the grid does not move", `gridTop() === topWas`)
+	b.eval(`document.getElementById('ed-live-lists').click(); true`)
+	b.waitFor("the drawer holds the list's own bar with the picks", `document.getElementById('ed-sources-col').contains(document.getElementById('ed-sources-acts')) && !!document.getElementById('ed-sources-sel-top').offsetParent`)
 	b.eval(`document.getElementById('ed-sources-sel-top').click(); true`)
 	b.waitFor("Move to the top shows on the live grid, the picks stay, and Save shows", `first('src', 'left').slice(0, 3).join() === '3,4,5' && document.getElementById('ed-sources-sel').textContent === '3 selected' && !document.getElementById('ed-live-save').hidden`)
-	b.waitFor("the grid does not move as the selection bar, Save and the state show in the Preview bar", `gridTop() === topWas`)
 	b.eval(`press(nameOf('src', 4), { metaKey: true }); true`)
 	b.waitFor("Cmd-click takes one out", `document.getElementById('ed-sources-sel').textContent === '2 selected'`)
 	b.eval(`document.getElementById('ed-sources-sel-pin').click(); true`)
 	b.waitFor("Pin pins them", `document.querySelector('#ed-sources-list li[data-id="3"] [data-act="pin"]')?.getAttribute('aria-pressed') === 'true' && document.querySelector('#ed-sources-list li[data-id="5"] [data-act="pin"]')?.getAttribute('aria-pressed') === 'true'`)
 
 	b.eval(`press(nameOf('dst', 2), { metaKey: true }); true`)
-	b.waitFor("a destination picked after them takes the bar", `inBar('ed-destinations-acts') && !inBar('ed-sources-acts') && document.getElementById('ed-destinations-sel').textContent === '1 selected' && document.getElementById('ed-sources-sel').textContent === '0 selected'`)
+	b.waitFor("a destination picked after them takes the selection", `document.getElementById('ed-destinations-sel').textContent === '1 selected' && document.getElementById('ed-sources-sel').textContent === '0 selected'`)
 	b.eval(`{ const x = document.getElementById('ed-destinations-sel-art'); x.focus(); x.click(); } true`)
-	b.waitFor("Artwork opens the Cell tab's artwork over the drawer for that destination, and the bar stays", `(() => {
+	b.waitFor("Artwork opens the Cell tab's artwork over the drawer for that destination", `(() => {
 		const p = document.getElementById('ed-live-art');
 		return !p.hidden && document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open') && p.contains(document.getElementById('ed-cell-kind'))
-			&& document.getElementById('ed-cell-kind').textContent.startsWith('Destination 3') && inBar('ed-destinations-acts');
+			&& document.getElementById('ed-cell-kind').textContent.startsWith('Destination 3');
 	})()`)
 	b.eval(`document.querySelector('#ed-live-art .sode-side__icons[aria-label="Icon A"] [aria-label="camera"]').click(); true`)
 	b.waitFor("the live grid shows the camera on that destination", `!!nameOf('dst', 2)?.querySelector('.sode-gridpanel__art:not([hidden]) svg.sode-gridpanel__art-a:not([hidden])')`)
 	b.eval(`document.getElementById('ed-live-art-done').click(); true`)
-	b.waitFor("Done closes the drawer it opened, and focus goes back to the bar's Artwork", `!document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open') && document.getElementById('ed-live-art').hidden && document.activeElement === document.getElementById('ed-destinations-sel-art') && document.getElementById('panel-ed-cell').contains(document.getElementById('ed-cell-kind'))`)
+	b.waitFor("Done closes the artwork and puts the Cell tab back", `document.getElementById('ed-live-art').hidden && document.getElementById('panel-ed-cell').contains(document.getElementById('ed-cell-kind'))`)
 
-	b.eval(`document.getElementById('ed-live-lists').click(); true`)
-	b.waitFor("an open drawer takes the bar back into its list", `!inBar('ed-destinations-acts') && document.getElementById('ed-destinations-col').contains(document.getElementById('ed-destinations-acts'))`)
 	b.eval(`document.getElementById('ed-live-lists').click(); document.getElementById('panel-clear').click(); true`)
-	b.waitFor("Clear drops the picks, so the bar goes", `!document.getElementById('ed-live-picked').children.length && !document.querySelector('#ed-live-bar .sode-live__what').hidden && document.getElementById('ed-destinations-sel').textContent === '0 selected'`)
+	b.waitFor("Clear drops the picks", `!document.getElementById('ed-live-picked').children.length && document.getElementById('ed-destinations-sel').textContent === '0 selected'`)
 
 	b.eval(`document.getElementById('ed-live-save').click(); true`)
 	b.waitFor("saved", `document.getElementById('ed-live-save').hidden`)

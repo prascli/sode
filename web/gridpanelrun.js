@@ -232,7 +232,7 @@ export function gridBody(ctx, first) {
     }
     paintEmpty();
     clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
-    // Test it live only (editorlive.js): the picks are also the lists' selection. picks is replaced on every change.
+    // The Live Editor only (editorlive.js): the picks are also the lists' selection. picks is replaced on every change.
     if (ui.onPicks && picks !== toldPicks) ui.onPicks((toldPicks = picks));
     boxes?.paint(find, countsOf());
     status();
@@ -257,7 +257,7 @@ export function gridBody(ctx, first) {
     }
     say(empty.title, t.title);
     say(empty.msg, t.msg);
-    // In the editor's Test it live (ui.back) the editor is already open, so the note has no link.
+    // In the Live Editor (ui.back) the editor is already open, so the note has no link.
     empty.edit.hidden = !t.edit || !!ui.back;
     empty.node.hidden = false;
   }
@@ -767,7 +767,7 @@ export function gridBody(ctx, first) {
       act.startsWith('range:') ||
       ['press', 'line', 'jump', 'step', 'undo', 'unstage'].includes(act) ||
       FIND_KEYS.has(act);
-    // In the editor's Test it live the editor keeps its keys; the grid's moves work only with focus in the grid.
+    // In the Live Editor the editor keeps its keys; the grid's moves work only with focus in the grid.
     if (moves && ctx.embedded && !ui.grid.contains(document.activeElement)) return;
     // Also stops a focused crosspoint button's own click on Space, which would press it a second time.
     e.preventDefault();
