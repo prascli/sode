@@ -91,6 +91,7 @@ export function gridBody(ctx, first) {
   let out = []; // staged routes left out (gridpanelrights.js), as of the last render
   let g = null;
   let picks = createPicks();
+  let toldPicks = null;
   let at = null; // the crosspoint under the cursor, whose press the preview shows
   let cur = CORNER;
   // After a pointer move a scroll moves the cursor to what is under the pointer; after a key it does not.
@@ -226,6 +227,8 @@ export function gridBody(ctx, first) {
     }
     paintEmpty();
     clearer?.paint(pickNote({ srcs: picks.srcs.length, dsts: picks.dsts.length, staged: n }), !!clearAction(clearCtx()));
+    // Test it live only (editorlive.js): the picks are also the lists' selection. picks is replaced on every change.
+    if (ui.onPicks && picks !== toldPicks) ui.onPicks((toldPicks = picks));
     boxes?.paint(find, countsOf());
     status();
   };
