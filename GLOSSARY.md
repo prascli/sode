@@ -26,7 +26,7 @@ _Avoid_: label, refresh (for the re-read)
 The name a person gives a router in Sode, such as "Studio Ultrix". It is the router's own name, not the name of one of its sources or destinations.
 
 **Router prefix**:
-The one letter, A to Z, that names a router when typing or reading a source or destination, as in B.69 for router B's number 69. Each router on a server has its own. Sode hides it while there is only one router.
+The one letter, A to Z, that names a router when you type or read a source or destination. B.69 is number 69 on router B. Each router on a server has its own. Sode hides it while there is only one router.
 
 **Router UID**:
 The hidden identity Sode gives a router when it is added. It never changes, never shows in the UI, and is what stored items and export files use to say which router they mean.
@@ -221,7 +221,13 @@ An import that empties each ticked category and then imports it. Only an Adminis
 _Avoid_: reset import, merge import
 
 **Broken**:
-Describes a preset, filter set or panel that refers to something that is not there. Examples are a user, a preset, artwork or a router name. Sode shows the word Broken beside it.
+Describes a preset, filter set or panel that refers to something that is not there. Examples are a user, a preset, artwork, or a source, destination, level or router that is gone from the router. A router name change alone never makes an item Broken. Sode shows the word Broken beside it.
+
+**Name moved**:
+Describes a preset, filter set or panel whose stored source or destination name now sits at a different number on the router. The item still fires on its stored number. Sode shows the words Name moved beside it.
+
+**Swap**:
+To replace one source or one destination with another in every preset, filter set and panel that uses it, in one Settings save. Swap source and Swap destination are the two actions. The name keeps it apart from Replace import.
 
 **Share**:
 To let other users open or use a panel. It is about access and never makes a copy.
@@ -235,6 +241,12 @@ The list of copies that other users sent to a user and that the user has not acc
 **Item link**:
 A link to one preset or one panel on this install, also shown as a QR code. It works only on the install that made it.
 _Avoid_: share link
+
+**Review**:
+The step that Save in Settings opens before anything is written. It shows each change with its old and new value, the Interruptions, and which changes will stay unsaved and why. Write "the review".
+
+**Step in** / **Step out**:
+Step in is a user typing their name and PIN in a browser where another person works. They then act as themself in that one tab for a short time. Step out returns the tab to the person it belongs to. A step-in also ends by itself after 5 minutes with no activity, at any Lock, or when the page closes.
 
 **Interruptions**:
 The live panels, streams, sessions and browsers that a Settings save ends or narrows. The review lists them before Save, and the record of the save keeps them, since they do not come back. The exception is a Public panel page, which comes back by itself when its panel is Public again.
