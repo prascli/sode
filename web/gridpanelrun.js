@@ -77,6 +77,8 @@ export function gridBody(ctx, first) {
   // The last tally and protected replies, and names reply, as text. A 304 replays the same text, so a poll that
   // changed nothing does no work and the tick paints only the status line.
   let dataSig = '';
+  // The reply objects behind dataSig. withEtag gives the same objects on a 304, so the poll skips the stringify.
+  let dataOf = null;
   let namesSig = '';
   let dirty = true;
   // Picks and other sources use full (gridAxes). The grid shows axes: full less what a Filter hides.
@@ -768,6 +770,8 @@ export function gridBody(ctx, first) {
   return {
     render: tick,
     data({ tally: t, prot, nm }) {
+      if (!nm && dataOf?.[0] === t && dataOf[1] === prot) return;
+      dataOf = [t, prot];
       const sig = JSON.stringify([t, prot]);
       const nmSig = nm ? JSON.stringify(nm) : namesSig;
       if (sig === dataSig && nmSig === namesSig) return;
@@ -794,6 +798,7 @@ export function gridBody(ctx, first) {
       drawn = null;
       // env reads the panel's Rights, so the next poll makes it again.
       dataSig = '';
+      dataOf = null;
       syncBox();
       rebuild();
       render();
@@ -805,6 +810,7 @@ export function gridBody(ctx, first) {
       if (JSON.stringify(r ?? null) === JSON.stringify(panel.rights ?? null)) return;
       panel = { ...panel, rights: r };
       dataSig = '';
+      dataOf = null;
       syncBox();
       rebuild();
       render();

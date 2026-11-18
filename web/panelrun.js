@@ -124,8 +124,9 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     });
   let keyed = key && keyFetch(key, keyIsPublic);
   const call = given || (key ? (path, init = {}) => keyed(path, init) : (path, init = {}) => sessionFetch(path, tag(init)));
-  // Only the reads that carry an ETag are kept and sent with If-None-Match; a 304 gives the same body again.
-  const callJSON = jsonCall(withEtag(call));
+  // Only the reads that carry an ETag are kept and sent with If-None-Match; a 304 gives the same body again. The
+  // tally and protected replies are only read, so a 304 gives the same object too.
+  const callJSON = jsonCall(withEtag(call, (p) => p === 'api/v1/tally' || p === 'api/v1/protected'));
 
   if (!key && !embedded) {
     ui.signin.addEventListener('click', signInAgain);
