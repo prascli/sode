@@ -29,7 +29,7 @@ func TestChromeEditorFixedDests(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 
 	ana := userKey(t, a, "Ana")
 	id := makePanel(t, a, ana, fmt.Sprintf(`{"name":"Wall","rows":2,"cols":4,"cells":[
@@ -130,7 +130,7 @@ func TestChromeEditorFixedDests(t *testing.T) {
 	}
 
 	b.eval(`document.getElementById('ed-live').click()`)
-	b.waitFor("Test it live draws the panel without Destination cells", `!!document.querySelector('#ed-live-view .sode-panel__cell--source') && !document.querySelector('#ed-live-view .sode-panel__cell--destination')`)
+	b.waitFor("The Live Editor draws the panel without Destination cells", `!!document.querySelector('#ed-live-view .sode-panel__cell--source') && !document.querySelector('#ed-live-view .sode-panel__cell--destination')`)
 	b.eval(`document.getElementById('ed-live').click()`)
 
 	b.open(srv.URL + "/panels/" + id)
@@ -143,6 +143,8 @@ func TestChromeEditorFixedDests(t *testing.T) {
 	}
 	b.waitFor("the panel is drawn", `!!document.querySelector('.sode-panel__cell--source')`)
 	take := `document.querySelector('.sode-panel__take')`
+	// A press before the first poll answers is dropped; the router's name comes with that poll.
+	b.waitFor("the first poll answered", `document.querySelector('.sode-panel__cell--source .sode-panel__text')?.textContent === 'Zoom 1'`)
 
 	b.eval(`document.querySelector('.sode-panel__cell--source').click()`)
 	b.waitFor("Take armed for the Source", `!`+take+`.disabled`)
@@ -172,7 +174,7 @@ func TestChromeEditorFixedDestsSaysWhatIsDropped(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 
 	ana := userKey(t, a, "Ana")
 	id := makePanel(t, a, ana, fmt.Sprintf(`{"name":"Wall","rows":2,"cols":3,"cells":[

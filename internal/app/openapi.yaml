@@ -16,7 +16,7 @@ info:
     (from /names) to show the number a person sees; with an offset of 1, send `src: 0` for the
     source a person calls 1. Levels are UI levels from 1, never offset, the same numbers the
     rights lists use. A source of -1 means nothing is routed. If a route omits `levels` or sends `[]`, Sode uses
-    the server's Default levels setting, which no endpoint reports, so always send `levels`.
+    the server's Default levels setting. `GET /tally` reports it as `defaultLevels`, but send `levels` anyway.
 
     `X-Sode-Via`. Any request can carry `X-Sode-Via`, free text (32 printable characters at most).
     Sode records it beside the key name in the Communication Log, marked unverified. The key name is
@@ -35,6 +35,10 @@ info:
     is 401 `key_expired`. Both are final: stop using the key. They do not count as bad keys,
     so a forgotten page that still sends one does not make its address wait. CORS is off: Sode sends no
     cross-origin headers.
+
+    Conditional reads. `GET /names`, `/tally`, `/protected` and `/panels/{id}` send an `ETag`, a hash of
+    the body that caller gets. Send it back as `If-None-Match` and an unchanged answer is 304 with no
+    body. A change of the caller's Rights or of a Default artwork changes the body, so it changes the tag.
 
     Writes. A take request is its own Confirm: nothing asks a person, so guard the button on
     your side. The request is synchronous. It returns when the router has answered or timed out
@@ -104,9 +108,13 @@ paths:
       tags: [reads]
       summary: Source and destination names
       description: Scope `names`.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Names as the router last reported them
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
@@ -122,6 +130,7 @@ paths:
                 sources: [{ n: 0, name: CAM 1 }, { n: 1, name: CAM 2 }]
                 destinations: [{ n: 0, name: MON A }]
                 namesAt: "2026-11-08T09:30:00Z"
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -132,27 +141,38 @@ paths:
       tags: [reads]
       summary: What each destination is routed from, per level
       description: Scope `tally`.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Levels and routes
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
                 type: object
-                required: [levels, routes]
+                required: [levels, levelNumbering, defaultLevels, routes]
                 properties:
                   levels:
                     type: array
                     items:
                       type: object
-                      required: [level, label]
+                      required: [level, label, swatch]
                       properties:
                         level: { type: integer, description: "UI level, from 1" }
                         label: { type: string, description: How a person writes the level }
+                        swatch: { type: string, description: "Name of the theme color: `video` or `01` to `16`" }
+                        color: { type: string, description: "A #rrggbb color. When present it replaces the swatch" }
+                  levelNumbering: { type: string, enum: ["1", "0", "va"], description: "Level numbering: `1` is 1 to 17, `0` is 0 to 16, `va` is V, then 1 to 16" }
+                  defaultLevels: { type: string, description: "The Default levels setting, typed in the Level numbering" }
                   routes: { type: array, items: { $ref: "#/components/schemas/Route" } }
               example:
-                levels: [{ level: 1, label: "1" }]
+                levels: [{ level: 1, label: "1", swatch: video, color: "#7ae85a" }]
+                levelNumbering: "1"
+                defaultLevels: "1-17"
                 routes: [{ dst: 0, level: 1, src: 3 }]
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -163,9 +183,13 @@ paths:
       tags: [reads]
       summary: Protected destinations
       description: Scope `protected`. A take to one is refused before anything is sent.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Protected destination and level pairs
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema:
@@ -173,6 +197,7 @@ paths:
                 required: [protected]
                 properties:
                   protected: { type: array, items: { $ref: "#/components/schemas/ProtectedRow" } }
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -964,12 +989,16 @@ paths:
         `/panels/{id}/setup`, `/panels/{id}/public` and `/panels/{id}/instances/keyless`. Every
         other route accepts only the id. A panel the caller is not allowed to use is 404
         `not_found`, as if it did not exist. An unknown short name answers the same way.
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: The panel
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Panel" }
+        "304": { $ref: "#/components/responses/NotModified" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/Error" }
@@ -1072,7 +1101,9 @@ paths:
         So a Push cannot make a session panel act as an API client or widen a client. Sode copies
         artwork that the target lacks. It keeps a checkpoint of each target first. The caller must
         be able to change the source and every target (the owner, or a Trusted user for anybody's).
-        If Sode refuses any target, it changes none. Open panels update like a saved edit.
+        If Sode refuses any target, it changes none. A Grid panel's `sources` and `destinations` (lists,
+        `hide` and `items`) go with the layout. A target of the other panel type is 409 `conflict`.
+        Open panels update like a saved edit.
       requestBody:
         required: true
         content:
@@ -1267,6 +1298,7 @@ paths:
         checkpoint of each first, with the same rules as pushing a panel. The caller must be able
         to change every panel pushed to. `targets` narrows it to some of the set's panels. A panel
         that no longer exists is skipped and listed in `skipped`. The body can be empty.
+        A panel whose type differs from its entry is 409 `conflict`, and no panel changes.
       requestBody:
         required: false
         content:
@@ -2040,7 +2072,7 @@ paths:
         Example frames:
 
             {"t":"hello","data":{"v":1,"topics":["tally"],"numberOffset":1}}
-            {"t":"snapshot","topic":"tally","data":{"levels":[{"level":1,"label":"1"}],"routes":[{"dst":0,"level":1,"src":3}]}}
+            {"t":"snapshot","topic":"tally","data":{"levels":[{"level":1,"label":"1","swatch":"video","color":"#7ae85a"}],"levelNumbering":"1","defaultLevels":"1-17","routes":[{"dst":0,"level":1,"src":3}]}}
             {"t":"tally","topic":"tally","data":{"routes":[{"dst":0,"level":1,"src":1}]}}
 
         Visibility. Under hidden rights nothing about an out-of-rights source or destination
@@ -2075,6 +2107,12 @@ components:
       scheme: bearer
       description: An API key, shown one time when it is made.
   parameters:
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: { type: string }
+      description: An `ETag` from an earlier read of this path. An unchanged answer is 304 with no body.
     Before:
       name: before
       in: query
@@ -2097,7 +2135,15 @@ components:
       required: false
       schema: { type: string, minLength: 1, maxLength: 128 }
       description: A repeat with the same key and request returns the first answer, see Idempotency above
+  headers:
+    ETag:
+      schema: { type: string }
+      description: A hash of the body. Send it back as `If-None-Match`.
   responses:
+    NotModified:
+      description: The body has not changed since the `ETag` the request sent. No body.
+      headers:
+        ETag: { $ref: "#/components/headers/ETag" }
     TakeResult:
       description: The take ran. Each route has its own result.
       headers:
@@ -2253,6 +2299,42 @@ components:
             without repeats of what it shows. For `pageName`, that is `number` and `name` (absent
             means `name`). For `info`, it is `panel`, `number`, `page` and `instance` (absent means
             all but `number`). Anything else is 400 `bad_request`.
+    GridEdge:
+      type: object
+      description: |
+        A Grid panel's sources or destinations. Left out, it is `"all"`. Sent on a Buttons panel, it is 400 `bad_request`.
+      required: [members]
+      properties:
+        members:
+          description: |
+            `all`: every item the router reports, in router order, less `hide`, following the router as it changes.
+            A list: these router numbers in this order, without repeats. A pin or artwork in `items` never changes `all` into a list.
+          oneOf:
+            - { type: string, enum: [all] }
+            - type: array
+              uniqueItems: true
+              items: { type: integer, minimum: 0, maximum: 65535 }
+        hide:
+          type: array
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 65535 }
+          description: Router numbers that an `all` edge leaves out. With a list, it is 400 `bad_request`.
+        items:
+          type: object
+          propertyNames: { pattern: "^(0|[1-9][0-9]*)$" }
+          additionalProperties: { $ref: "#/components/schemas/GridItem" }
+          description: |
+            Settings for each item, keyed by router number. An entry for an item that is not shown stays.
+            Any number of items can be pinned.
+    GridItem:
+      type: object
+      properties:
+        pinned: { type: boolean, description: "The item shows first, at the edge of the grid, before the items that are not pinned" }
+        art: { type: string, description: "Artwork in the form of a cell's `art`" }
+        artB: { type: string, description: "Icon B in the form of a cell's `artB`: a number 0 to 16 or a letter A to Z" }
+        hideText:
+          type: boolean
+          description: As a cell's `hideText`. True hides the name under the artwork, false shows it against a Default artwork that hides it, and absent follows the default.
     PanelIn:
       type: object
       description: |
@@ -2272,18 +2354,28 @@ components:
             `GET /panels/<slug>`. Unique across panels (409 `conflict`), never `editor` or shaped
             like an id. Leaving it out of a save clears it. A change or a clear stops every link
             that used the old one; links by id keep working. A copy starts without one.
+        type:
+          type: string
+          enum: [buttons, grid]
+          default: buttons
+          description: |
+            Fixed when the panel is made (ADR 0011). A Buttons panel has Pages of cells; a Grid panel has
+            `sources` and `destinations`. A read always has it. A save with a different type is 409
+            `conflict`, and a save with no type keeps the stored one.
+        sources: { $ref: "#/components/schemas/GridEdge" }
+        destinations: { $ref: "#/components/schemas/GridEdge" }
         acts: { type: string, enum: [session, api, both, public], default: session }
         share: { $ref: "#/components/schemas/PanelShare" }
-        rows: { type: integer, minimum: 1, maximum: 24, default: 4 }
-        cols: { type: integer, minimum: 1, maximum: 24, default: 8 }
+        rows: { type: integer, minimum: 0, maximum: 24, default: 4, description: "1 to 24 on a Buttons panel; a Grid panel reads 0 and ignores it" }
+        cols: { type: integer, minimum: 0, maximum: 24, default: 8, description: "1 to 24 on a Buttons panel; a Grid panel reads 0 and ignores it" }
         pages:
           type: array
-          minItems: 1
           maxItems: 16
           items: { $ref: "#/components/schemas/PanelPage" }
           description: |
             The Pages in order; the number of a Page is its place. Cells that no longer fit `rows`
             by `cols` are dropped from every Page on a save. Left out, the panel has one empty Page.
+            A Buttons panel has at least one. A Grid panel reads `[]`, and a non-empty list is 400 `bad_request`.
         cells:
           type: array
           writeOnly: true
@@ -2294,7 +2386,7 @@ components:
         settings:
           type: object
           additionalProperties: true
-          description: Free-form settings for the panel page and editor. Sode checks only `fixedDests` and `askInstanceName`.
+          description: Free-form settings for the panel page and editor. Sode checks only `fixedDests`, `askInstanceName` and `mode` (`take`, `takeOnly` or `instant`).
           properties:
             askInstanceName:
               type: boolean
@@ -2417,6 +2509,14 @@ components:
               description: |
                 Output only, on `GET /panels/{id}`. The Default artwork of the items the panel's cells show,
                 as the caller can see it. Never stored in a cell; an open page compares it as it does `rev`.
+            confirm:
+              type: object
+              description: |
+                Output only, on `GET /panels/{id}`. The server's take confirm settings, for a panel page
+                whose socket hello is late or never comes. `lockoutMs` is the time before the confirm key works; `enter` lets Enter confirm.
+              properties:
+                lockoutMs: { type: integer }
+                enter: { type: boolean }
             canEdit: { type: boolean, description: False when the caller is allowed only to use the panel }
             hasKey: { type: boolean, description: "For an editor of an API panel: the client holds a key now. A pending setup link is not a key. The secret itself is never returned." }
             clientNetworks:

@@ -33,7 +33,7 @@ export function askName(panel, clashed, suggest, go, kind = 'assign') {
   err.hidden = true;
   const cancel = el('button', 'pb-btn pb-btn--outline', 'Cancel');
   cancel.type = 'button';
-  const ok = el('button', 'pb-btn pb-btn--ok', icon(renaming ? 'pencil' : 'send'), renaming ? ' Rename' : ' Assign');
+  const ok = el('button', 'pb-btn pb-btn--ok', icon(renaming ? 'text-cursor-input' : 'send'), renaming ? ' Rename' : ' Assign');
   ok.type = 'button';
   ok.id = 'assign-name-go';
 

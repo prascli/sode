@@ -82,6 +82,10 @@ func (a *App) pushFail(w http.ResponseWriter, err error) {
 		apiFail(w, http.StatusNotFound, "not_found", err.Error())
 		return
 	}
+	if errors.Is(err, errLayoutType) {
+		apiFail(w, http.StatusConflict, "conflict", err.Error())
+		return
+	}
 	if errors.Is(err, errBadLayout) {
 		apiFail(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
@@ -112,6 +116,13 @@ func (a *App) apiPanelPush(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	targets, ok := a.editable(w, cl, in.Targets)
 	if !ok {
 		return
+	}
+	// ADR 0011: a layout of the other type would replace the target's cells or lists with nothing.
+	for _, t := range targets {
+		if t.Type != src.Type {
+			apiFail(w, http.StatusConflict, "conflict", "panel "+t.ID+" is of the other type, and a Push needs a panel of the same type")
+			return
+		}
 	}
 	why := "Push from " + src.ID + " " + src.Name
 	var done []pushedOne
@@ -408,6 +419,14 @@ func (a *App) apiSetPush(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	}
 	if _, ok := a.editable(w, cl, ids); !ok {
 		return
+	}
+	// Check every entry first, so a refused one leaves all panels as they were.
+	for _, e := range live {
+		// A panel deleted since the check above is applyLayout's to refuse, as not found.
+		if cur, ok := a.panels.get(e.Panel); ok && layoutType(e.Type) != layoutType(cur.Type) {
+			a.pushFail(w, errLayoutType)
+			return
+		}
 	}
 	why := "Checkpoint set " + set.ID + " " + set.Name
 	done := []pushedOne{}

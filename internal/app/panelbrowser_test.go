@@ -19,9 +19,10 @@ import (
 )
 
 // startSim builds cmd/swp08sim and runs it on a free port, returning its address. Never a
-// live Ultrix: the only router a browser check is allowed to reach is this one.
-func startSim(t *testing.T) string {
-	addr, _ := startSimStoppable(t)
+// live Ultrix: the only router a browser check is allowed to reach is this one. env adds SIM_* settings
+// ("SIM_SOURCES=2500"; docs/reference.md lists them).
+func startSim(t *testing.T, env ...string) string {
+	addr, _ := startSimStoppable(t, env...)
 	return addr
 }
 
@@ -51,7 +52,7 @@ func simBinary(t *testing.T) string {
 }
 
 // startSimStoppable also returns a func that kills the simulator mid-test.
-func startSimStoppable(t *testing.T) (string, func()) {
+func startSimStoppable(t *testing.T, env ...string) (string, func()) {
 	t.Helper()
 	browserTest(t)
 	if _, err := exec.LookPath("go"); err != nil {
@@ -61,7 +62,7 @@ func startSimStoppable(t *testing.T) (string, func()) {
 	// The port is free when picked, but another agent's simulator can get it before ours binds.
 	// So ready means our own "swp08sim on" line, and an early exit retries on a new port.
 	for try := 0; try < 3; try++ {
-		if addr, stop, ok := runSim(t, bin); ok {
+		if addr, stop, ok := runSim(t, bin, env); ok {
 			return addr, stop
 		}
 	}
@@ -69,7 +70,7 @@ func startSimStoppable(t *testing.T) (string, func()) {
 	return "", nil
 }
 
-func runSim(t *testing.T, bin string) (addr string, stop func(), ok bool) {
+func runSim(t *testing.T, bin string, env []string) (addr string, stop func(), ok bool) {
 	t.Helper()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -79,7 +80,7 @@ func runSim(t *testing.T, bin string) (addr string, stop func(), ok bool) {
 	l.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, bin)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("SIM_PORT=%d", port))
+	cmd.Env = append(append(os.Environ(), env...), fmt.Sprintf("SIM_PORT=%d", port))
 	logs, err := cmd.StderrPipe()
 	if err != nil {
 		cancel()

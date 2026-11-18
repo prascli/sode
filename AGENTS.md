@@ -9,11 +9,11 @@ Sode: keyboard-first web patching for one SW-P-08 router (Ross Ultrix). Settings
 ```
 go test -short ./...   (fast group, about 25s: run before every commit)
 go test ./internal/app -run TestName -v   (while editing)
-go test ./internal/app -run '^TestChrome<Area>' -v   (before committing a change under web/ or to panels)
+go test ./internal/app -run '^TestChromeName$' -v   (only the browser checks you added or changed; CI runs the rest)
 go test ./...   (everything, several minutes: only when touching the browser harness, swp08sim or timing code; use run_in_background)
 ```
 
-Pass -timeout (10m for the full run) so a hang fails early. Rerun a failing browser check alone before you call it a regression.
+Develop fast: do not run area-wide or full browser suites locally, push and let CI run them (owner's rule). Pass -timeout (10m for the full run) so a hang fails early. Rerun a failing browser check alone before you call it a regression.
 
 ```
 go vet ./...
@@ -36,7 +36,8 @@ Without SODE_CONFIG, config comes from SODE_* env and is not persisted. The web 
 - SW-P-08 over TCP to one router, single matrix, always extended commands (16-bit src/dst). Protected destinations are refused before sending. Auto-reconnect and keepalive. Names come from the router, re-polled (default 60s).
 - Levels: wire = level + offset. Internally levels are UI 1..N everywhere. levelNumbering (1, 0, va) only changes display (Level.Label) and typing (parseLevels in levelview.js). levelTypedBase is dropped but kept so old files load. No free-text level names (user asked for removal).
 - Config lives in /data/config.yaml, edited in Settings. SODE_* env only seeds the file on first start. Save stays open; leaving with unsaved server settings warns once, a second try discards.
-- Frontend: vanilla ES modules, no build. Follow patchbay rules exactly (https://github.com/sethdotfm/patchbay llms.txt): pb- classes only, tokens only, no Bootstrap utilities, status always with text. Vendored in web/vendor/patchbay (VERSION file, v2.2.1); copy missing icons from upstream, never fake them. UI scales with html font-size 125% (phone 100%), never zoom. Sizes in rem; numbers use --pb-font-num, --pb-font-mono is for code/hex; no per-theme CSS. Tooltips are data-pb-tip (+ pb-tip--end); green buttons pb-btn--ok; icon-only ghost buttons need pb-btn--icon; layout.js sets data-pb-layout="phone".
+- Frontend: vanilla ES modules, no build. Follow patchbay rules exactly (https://github.com/sethdotfm/patchbay llms.txt): pb- classes only, tokens only, no Bootstrap utilities, status always with text. Vendored in web/vendor/patchbay (VERSION file, v2.2.1); copy missing icons from upstream, never fake them. UI scales with html font-size 125% (phone 100%; the Grid panel page and its Live Editor 112.5%), never zoom. Sizes in rem; numbers use --pb-font-num, --pb-font-mono is for code/hex; no per-theme CSS. Tooltips are data-pb-tip (+ pb-tip--end); green buttons pb-btn--ok; icon-only ghost buttons need pb-btn--icon; layout.js sets data-pb-layout="phone".
+- Big scroll bars: where a user must scroll, give a big scroll bar that always shows, drawn by web/bigscroll.js. Users work with trackpads, touch screens, trackballs or a pointer with no wheel, often under pressure. Native bars are not enough, since Firefox cannot size them and macOS hides them. Big is the default size; use little only for small secondary lists (a match list in a small box, the filter sets row). Add a new scroller to `SCROLLERS` (docs/agents/web-layout.md). The phone layout keeps native bars.
 - Comments: context only (why, invariants, quirks, keep-in-step links); never restate the code, no issue numbers (git history has them).
 - Panel pages (`/panels`, `/panels/editor`, `/panels/<id>`) show status as an icon with optional text, an exception to patchbay's "status always with text" (docs/panels-design.md). Nothing else in Sode gets it. They share the `panel` page lock (`locks.panel`) and sit at different URL depths, so their HTML uses `<base href="../">`.
 - Users never ride the hello (it reaches locked pages): hello() blanks cfg.users. Names come in lockState.names (only after the connection has access, S.userNames), PIN lengths in lockState.lens, the Users editor asks usersList. Keep new user fields out of anything sent before the PIN is entered.
@@ -64,8 +65,8 @@ Without SODE_CONFIG, config comes from SODE_* env and is not persisted. The web 
 - docs/agents/browser-checks.md: Browser checks (headless Chrome against swp08sim, `go test ./internal/app -run TestChrome`). Read before adding or changing one.
 - docs/agents/presets.md: Presets. Read before touching presets, pinning and pin order, the editor and popup, preset keys.
 - docs/agents/salvos.md: Native fire mode (#154). Read before touching fireMode native, the router's own salvos and the simulator's native-mode options.
-- docs/agents/panels.md: Panels storage, keys, the browser session key, seams, Push and live update, monitoring and gotchas. Read before touching panel files, panel API clients and keys, `web/sessionkey.js`, Push or the panel pages' tests.
-- docs/panels-design.md: Sode Panels (4x8 grid pages on `/panels`, driven over `/api/v1`). Read before touching panels, the panel editor, panel storage or panel sign-in. Prototypes live only on branch `prototype/panels`, never main; panels-design.md names each one's server and port. ADR 0006 covers panel API clients.
+- docs/agents/panels.md: Panels storage, keys, the browser session key, seams, Push and live update, monitoring and gotchas. Read before touching panel files, panel API clients and keys, `web/sessionkey.js`, Push or the panel pages' tests. Read it also for a Grid panel (`web/gridpanel*.js`, `panelgrid.go`, the editor's Sources and Destinations tabs).
+- docs/panels-design.md: Sode Panels (4x8 grid pages on `/panels`, driven over `/api/v1`). Read before touching panels (Buttons or Grid), the panel editor, panel storage or panel sign-in. Prototypes live only on branch `prototype/panels`, never main; panels-design.md names each one's server and port. ADR 0006 covers panel API clients.
 
 ## Agent skills
 

@@ -57,7 +57,7 @@ function hideButton(p, i, setHide) {
   return b;
 }
 
-// The instance's name with its rename pencil. A click turns the name into a field: Enter saves, and Escape or a move away
+// The instance's name with its Rename icon. A click turns the name into a field: Enter saves, and Escape or a move away
 // drops the edit. rename(id, device, name, pin) answers null when sent (or handed to the clash dialog), else {why, pin}.
 // pin shows the Advanced Settings PIN field, as the Assign to modal does.
 function nameSlot(p, i, rename) {
@@ -65,7 +65,7 @@ function nameSlot(p, i, rename) {
   const state = rename ? renameState(i) : '';
   const show = () => {
     if (!state) return slot.replaceChildren(el('strong', '', i.device));
-    const b = el('button', 'pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm', icon('pencil'));
+    const b = el('button', 'pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm', icon('text-cursor-input'));
     b.type = 'button';
     b.dataset.renameInstance = i.device;
     b.disabled = state === 'offline';

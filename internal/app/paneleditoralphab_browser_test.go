@@ -25,7 +25,7 @@ func editorTabPrep(t *testing.T, body string, prep func(b *tab, a *App, key, id 
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 	ana := userKey(t, a, "Ana")
 	id := makePanel(t, a, ana, body)
 	if prep != nil {

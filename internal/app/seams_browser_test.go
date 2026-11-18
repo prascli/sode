@@ -98,6 +98,8 @@ func TestChromeSeamKeylessAssignRunsFixedDestsThenKeyEnds(t *testing.T) {
 	}
 
 	b.waitFor("no Destination cell is drawn", `!document.querySelector('.sode-panel__cell--destination')`)
+	// A press before the first poll answers is dropped; the router's name comes with that poll.
+	b.waitFor("the first poll answered", `document.querySelector('.sode-panel__cell--source .sode-panel__text')?.textContent === 'Zoom 1'`)
 	b.eval(`document.querySelector('.sode-panel__cell--source').click()`)
 	b.waitFor("Take armed", `!document.querySelector('.sode-panel__take').disabled`)
 	b.eval(`document.querySelector('.sode-panel__take').click()`)

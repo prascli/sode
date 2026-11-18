@@ -3,77 +3,12 @@
 import { byText } from './lockrules.js';
 import { el, S, needsLink, srcItem, dstItem, tallyText, dstLabel, chevron, icon } from './core.js';
 import { mac, listStep, addClick, pickOrAdd } from './keys.js';
-import { levelBar, levelText, parseLevels, levelInput, defaultLevelsHint, relabelLevels, pickButtons, allLevels } from './levelview.js';
+import { levelBar, levelText } from './levelview.js';
 import { srcRow, srcEnd } from './routes.js';
 import { fmtClock } from './device.js';
 import { windowAround, growEdge } from './listwindow.js';
 import { beforeGroups, failureGroups, stackBefore } from './history.js';
 import { restorePlan, planEmpty } from './plans.js';
-
-// ---- level box: typed levels plus a picker of toggles and All/None
-
-// hold: the event whose default is stopped so the picker and All do not get focus. It is
-// 'mousedown' on desktop and 'pointerdown' on a phone, to keep the keyboard up.
-export function levelBox(input, picker, allBtn, { hold = 'mousedown', placeholder = defaultLevelsHint, onChange = () => {} } = {}) {
-  let none = false; // none: picker cleared to no levels (a blank box would mean default)
-  const levels = () => parseLevels(input.value, none);
-
-  function render() {
-    if (!S.cfg) return;
-    const list = levels();
-    const on = new Set(list || []);
-    input.classList.toggle('pb-input--invalid', !list);
-    input.placeholder = none ? 'none' : placeholder();
-    for (const b of picker.children) b.setAttribute('aria-pressed', String(on.has(+b.dataset.ui)));
-    const full = on.size === S.levels.length;
-    allBtn.replaceChildren(el('span', null, 'Select'), el('span', null, full ? 'None' : 'All'));
-    const def = parseLevels('') || [];
-    const isDefault = !none && !!list && list.length === def.length && list.every((u, i) => u === def[i]);
-    input.closest('.sode__keyed')?.classList.toggle('sode__keyed--default', isDefault);
-  }
-
-  function set(list) {
-    none = list.length === 0;
-    input.value = levelInput(list);
-    render();
-    onChange();
-  }
-
-  function toggle(ui) {
-    const on = new Set(levels() || []);
-    if (on.has(ui)) on.delete(ui);
-    else on.add(ui);
-    set([...on].sort((x, y) => x - y));
-  }
-
-  input.addEventListener('input', () => {
-    none = false;
-    render();
-    onChange();
-  });
-  for (const n of [picker, allBtn]) n.addEventListener(hold, (e) => e.preventDefault());
-  allBtn.addEventListener('click', () => set((levels() || []).length === S.levels.length ? [] : allLevels()));
-
-  return {
-    levels,
-    set,
-    render,
-    empty: () => !input.value && !none,
-    clear() {
-      input.value = '';
-      none = false;
-      render();
-    },
-    reset() {
-      input.value = relabelLevels(input.value);
-      picker.replaceChildren(...pickButtons(toggle));
-      const odd = S.levels.length % 2;
-      picker.classList.toggle('sode__levels--odd', !!odd);
-      picker.style.setProperty('--sode-bar-cols', Math.floor(S.levels.length / 2) + odd);
-      render();
-    },
-  };
-}
 
 // ---- combobox: a list of matches under a text box
 

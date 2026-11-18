@@ -1,8 +1,9 @@
-// Shared state, the socket, and helpers for both layouts. Imports only tooltip.js and sprite.js: an import
-// cycle must not occur.
+// Shared state, the socket, and helpers for both layouts. Imports only tooltip.js, sprite.js and fuzzy.js: an
+// import cycle must not occur.
 
 import './tooltip.js';
 import { iconHref, adoptIcons } from './sprite.js';
+import { fuzzyScore } from './fuzzy.js';
 
 export const $ = (id) => document.getElementById(id);
 
@@ -64,8 +65,14 @@ export function keepSearch(read) {
 }
 
 const listeners = {};
+// Returns a function that removes fn, for a module that can stop (a panel run).
 export const on = (ev, fn) => {
   (listeners[ev] ||= []).push(fn);
+  return () => {
+    const l = listeners[ev];
+    const i = l.indexOf(fn);
+    if (i >= 0) l.splice(i, 1);
+  };
 };
 // Runs before earlier listeners: for a module that must refresh its memo before views read it.
 export const onFirst = (ev, fn) => {
@@ -204,10 +211,12 @@ function handle(m) {
       break;
     case 'tally':
       applyTally(m.u);
+      emit('tallyRows', m.u);
       emit('tally');
       break;
     case 'protect':
       applyProtect(m.u);
+      emit('protectedRows');
       emit('tally');
       break;
     case 'configResult':
@@ -398,36 +407,14 @@ export function protectedOn(dst, levels) {
   const hit = t ? levels.filter((u) => t.has(u)) : [];
   return { levels: hit, devices: [...new Set(hit.map((u) => t.get(u)))].sort((a, b) => a - b) };
 }
-// ---- fuzzy finder
-
-function score(it, q) {
-  if (it.num === q) return 1000;
-  if (/^\d+$/.test(q) && it.num.startsWith(q)) return 800 - it.num.length;
-  if (it.lname === q) return 900;
-  if (it.lname.startsWith(q)) return 700 - it.lname.length;
-  const idx = it.lname.indexOf(q);
-  if (idx >= 0) return 600 - idx;
-  // Subsequence over "num name", rewarding runs and word starts.
-  const t = it.num + ' ' + it.lname;
-  const qq = q.replace(/\s+/g, '');
-  let qi = 0,
-    pts = 0,
-    prev = -2;
-  for (let i = 0; i < t.length && qi < qq.length; i++) {
-    if (t[i] !== qq[qi]) continue;
-    pts += (i === prev + 1 ? 3 : 1) + (i === 0 || t[i - 1] === ' ' ? 2 : 0);
-    prev = i;
-    qi++;
-  }
-  return qi < qq.length ? -1 : 100 + pts - t.length / 100;
-}
+// ---- fuzzy finder (scoring in fuzzy.js)
 
 export function search(list, q, n = 8) {
   q = q.trim().toLowerCase();
   if (!q) return [];
   const out = [];
   for (const it of list) {
-    const s = score(it, q);
+    const s = fuzzyScore(it, q);
     if (s >= 0) out.push([s, it]);
   }
   out.sort((a, b) => b[0] - a[0] || a[1].n - b[1].n);

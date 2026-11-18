@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/sethdotfm/sode/internal/config"
@@ -16,8 +17,16 @@ type routeChange struct {
 	Dst, Level, Src int
 }
 
+// A hello carries one per destination and level (12750 on a 2500 by 750 router), so no reflection.
 func (c routeChange) MarshalJSON() ([]byte, error) {
-	return json.Marshal([3]int{c.Dst, c.Level, c.Src})
+	b := make([]byte, 0, 20)
+	b = append(b, '[')
+	b = strconv.AppendInt(b, int64(c.Dst), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(c.Level), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(c.Src), 10)
+	return append(b, ']'), nil
 }
 
 func (c *routeChange) UnmarshalJSON(b []byte) error {
@@ -40,8 +49,8 @@ type helloMsg struct {
 	Srcs          [][2]any            `json:"srcs"`
 	Dsts          [][2]any            `json:"dsts"`
 	At            time.Time           `json:"at"`
-	Tally         []routeChange       `json:"tally"`
-	Protect       []routeChange       `json:"protect"`
+	Tally         json.RawMessage     `json:"tally"`   // routeTriples
+	Protect       json.RawMessage     `json:"protect"` // routeTriples
 	Status        statusMsg           `json:"status"`
 	Recent        []Entry             `json:"recent"`
 	More          bool                `json:"more"`

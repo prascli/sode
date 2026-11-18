@@ -20,7 +20,8 @@ import {
   toggle,
   keepSearch,
 } from './core.js';
-import { defaultLevelsWord, levelBar, allLevels, levelText } from './levelview.js';
+import { defaultLevelsWord, levelBar, allLevels, levelText, levelSource } from './levelview.js';
+import { levelBox } from './levelbox.js';
 import { fedBy, currentlyNodes } from './routes.js';
 import { flipped, fmtTime } from './device.js';
 import { entryNote, historyPager, statusNode, groupTitle, groupLevels, stackBefore } from './history.js';
@@ -45,20 +46,7 @@ import { emptyNote } from './searchbox.js';
 import { presetHost } from './presets.js';
 import { rowActions, disclosureAria, followersHead, lastFill } from './historyrows.js';
 import { picking, isPicked, pickBox, bindPick, boxPicking, addPatch, pickBar } from './historypick.js';
-import {
-  byLabel,
-  levelBox,
-  combobox,
-  disclosure,
-  undoButton,
-  againButton,
-  arrivals,
-  feeding,
-  lockout,
-  stackSteps,
-  clickToToggle,
-  pullToLoad,
-} from './widgets.js';
+import { byLabel, combobox, disclosure, undoButton, againButton, arrivals, feeding, lockout, stackSteps, clickToToggle, pullToLoad } from './widgets.js';
 
 const STEPS = ['src', 'dst', 'lvl'];
 const PROMPT = { src: 'Source', dst: 'Destination', lvl: 'Levels' };
@@ -88,7 +76,7 @@ const matches = combobox(() => inputs[M.step], $('m-matches'), {
   hiCls: 'sode-m__match--hi',
   reverse: true,
 });
-const lvl = levelBox(inputs.lvl, $('m-picks'), $('m-all'), {
+const lvl = levelBox(inputs.lvl, $('m-picks'), $('m-all'), levelSource, {
   hold: 'pointerdown',
   onChange: () => renderThread(),
 });
@@ -822,13 +810,17 @@ on('hello', () => {
   setStep(M.step, false);
   renderHistory();
 });
+// The thread and History are hidden on the other layouts, and a tally or History message on a busy router
+// rebuilt them on every take. onLayout draws them when the phone layout comes back.
+const phone = () => layout() === 'phone';
 on('names', () => {
   matches.refresh();
-  renderThread();
+  if (phone()) renderThread();
 });
-on('tally', renderThread);
+on('tally', () => phone() && renderThread());
 on('conn', renderConn);
 on('history', () => {
+  if (!phone()) return;
   renderHistory();
   renderLast();
 });
@@ -848,6 +840,7 @@ onLayout((l) => {
   else {
     renderThread();
     renderHistory();
+    renderLast();
   }
 });
 

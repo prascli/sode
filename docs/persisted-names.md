@@ -79,6 +79,11 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
 
 - Directory `panels/` beside the config: `<id>.yaml` per panel (id `p-` and 8 hex digits) and `<id>.art/<art id>` for artwork (`a-` and 8 hex digits). A file with a name and id that differ is skipped.
 - Panel fields (YAML and JSON): `id`, `name`, `owner`, `acts`, `client`, `share`, `rows`, `cols`, `pages`, `settings` and `art`. `acts` is `session`, `api`, `both` or `public`. `share` has `mode` (`me`, `named` or `everyone`) and `users`. `canEdit` is output only. Fields not listed are kept as they are.
+- Grid panels (ADR 0011): the panel fields `type` (`buttons` or `grid`, omitted or empty reads as `buttons`), `sources` and `destinations`. A Grid panel has no `rows`, `cols`, `cells` or `pages`. Each of `sources` and `destinations` is an edge:
+  - `members`: the string `all`, or a list of router numbers in order.
+  - `hide`: router numbers left out of an `all` edge. It is refused on a list.
+  - `items`: a map from a plain decimal router number to `pinned` (any number for an edge), `art`, `artB` and `hideText`, written as on a cell.
+  Checkpoint and Push layouts carry the same three fields. A layout of the other type is refused.
 - Pages (ADR 0007): `pages` is a list of 1 to 16 Pages in order. Each Page has these fields:
   - `id`: 1 to 16 letters, digits, dashes and underscores. Sode makes 8 hex digits, and a Page sent without one gets one.
   - `name`: at most 40 characters, omitted when empty.
@@ -98,7 +103,9 @@ These carry no word from an `_Avoid_` line, so nothing is owed.
   - `caption`, `levels` (UI levels).
 
   Panel `settings` read so far:
-  - `mode` (`take` or `instant`), `multi`, `levels`, `guard` (`hold` or `double`) and `resultText`.
+  - `mode` (`take`, `instant` or `takeOnly`), `multi`, `levels`, `guard` (`hold` or `double`) and `resultText`.
+  - `takeOnly` is Take mode with no confirm box, on a Grid panel. A Buttons panel reads it as `take`.
+  - The server refuses a save with any other `mode` (400). A missing or empty `mode` reads as `take`. A file on disk loads as written.
   - `wrapPages`: wrap between Pages, stored only as `false`.
   - `askInstanceName`: Ask for an instance name, a boolean. A file without it reads as on, and the API sends it as `true`. So the editor stores it as chosen, `true` included.
   - `fixedDests` (Fixed destination): a list of router destination numbers in the order chosen. They are whole numbers from 0 to 65535, unique, at most 16. It is removed when empty, never stored as `[]`. A file without it loads unchanged. Push leaves each target's own list, and a template carries it only with `dests`.

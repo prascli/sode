@@ -30,7 +30,7 @@ func TestChromeShareModalPeople(t *testing.T) {
 	go func() { a.Run(ctx); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	srv := httptest.NewServer(a.Handler(web.FS))
-	t.Cleanup(srv.Close)
+	t.Cleanup(func() { srv.CloseClientConnections(); srv.Close() })
 
 	ana, bo := userKey(t, a, "Ana"), userKey(t, a, "Bo")
 	id := makePanel(t, a, ana, `{"name":"Shared wall"}`)

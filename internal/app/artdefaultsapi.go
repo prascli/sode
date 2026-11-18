@@ -72,7 +72,15 @@ func (a *App) panelArtDefaults(cl *apiCtx, p Panel) []ArtDefault {
 			shown[d.key()] = true
 		}
 	}
-	return a.artDefaultsFor(cl, func(d ArtDefault) bool { return shown[d.key()] })
+	// An "all" edge follows the router, so it shows every default of its kind except the hidden ones.
+	edges := map[string]*GridEdge{artKindSource: p.Sources, artKindDst: p.Destinations}
+	return a.artDefaultsFor(cl, func(d ArtDefault) bool {
+		if shown[d.key()] {
+			return true
+		}
+		e := edges[d.Kind]
+		return e != nil && d.N != nil && e.shows(*d.N)
+	})
 }
 
 // cellItem is the item a stored cell shows, as a default key. Numbers come as float64 from JSON

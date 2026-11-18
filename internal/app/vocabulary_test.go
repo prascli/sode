@@ -74,6 +74,7 @@ var retiredWords = []retiredWord{
 	// Only the panel sense: "lock the screen", "screen readers" and "home screen" stay.
 	{Terms: []string{"screen"}, Re: wordRe(`(?i)(?:this|that|one|each|every|per|no|watched|named|lost an?) screens?|screens?(?:'s)? (?:names?|offline|drops|signs? out|signed out|has opened|of (?:one|a|the) panel)|panels? (?:and|or) screens?`)},
 	{Terms: []string{"anonymous panel"}, Re: wordRe(`(?i)anonymous panels?`)},
+	{Terms: []string{"Test it live"}, Re: wordRe(`(?i)test it live`)},
 	{Terms: []string{"open panel"}, Why: "an open panel page is any panel page that is open, so a scan cannot tell it from a Public panel; a reviewer judges it by hand"},
 }
 

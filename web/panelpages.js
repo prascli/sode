@@ -49,3 +49,19 @@ export function fitPages(pages, rows, cols) {
 // folded in). Every other Page is fitted to rows by cols, with ids, names and enabled kept. A Page with no id gets one
 // from the server.
 export const storedPages = (pages, cells, rows, cols) => pages.map((p, i) => ({ ...p, cells: i === 0 ? cells : fitCells(p.cells, rows, cols) }));
+
+// The Page list after a save answers. sent is the list as the save sent it, now the list as it is, stored the
+// server's answer, in sent's order. A Page that has not changed since the send takes the stored copy. A Page edited,
+// added, moved or renamed during the save stays as it is, so the dirty check counts it. The unsaved Page 1 ('') takes
+// its new id. ids maps each sent id to its stored id.
+export function pagesAfterSave(sent, now, stored) {
+  if (stored.length !== sent.length) return { pages: stored, ids: {} };
+  const ids = Object.fromEntries(sent.map((p, i) => [p.id, stored[i].id]));
+  const at = new Map(sent.map((p, i) => [p.id, i]));
+  const pages = now.map((p) => {
+    const i = at.get(p.id);
+    if (i !== undefined && JSON.stringify(sent[i]) === JSON.stringify(p)) return stored[i];
+    return p.id in ids ? { ...p, id: ids[p.id] } : p;
+  });
+  return { pages, ids };
+}

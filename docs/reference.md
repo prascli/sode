@@ -4,7 +4,9 @@ Details that the README leaves out. The README has the quickstart.
 
 ## Deployment
 
-The page is themed with [patchbay](https://github.com/sethdotfm/patchbay), which is vendored and embedded, so the page fetches nothing from outside.
+The page is themed with [patchbay](https://github.com/sethdotfm/patchbay). The patchbay files and the IBM Plex fonts (`web/vendor/fonts`, SIL Open Font License) are vendored and embedded. So the page fetches nothing from outside and draws with no internet connection.
+
+Each web file has an `ETag` and `Cache-Control: no-cache`. A browser keeps its copy and asks again on each load: an unchanged file costs one `304`, and a new build shows at once. Text files (HTML, JS, CSS, SVG) go gzip-compressed to a browser that accepts gzip. Sode compresses each file once, at its first request.
 
 ### Behind a proxy
 
@@ -170,7 +172,7 @@ Settings > **Export & import** writes any mix of settings, filter sets and prese
 
 The Icon library is the `icons/` directory and its index, `icons.yaml`, both beside `config.yaml` (in `/data` in the image). Neither the server configuration backup nor any export carries it. To back it up or move it to another install, copy `icons.yaml` and the `icons/` directory together with `config.yaml`, then start Sode. A cell names an icon by its id (`lib:<id>`), and Push, Copy and Templates keep that reference, since they stay on one install. A cell whose icon is not in the library draws no Icon A.
 
-To add many icons in one step, put SVG and PNG files in `icons/drop-in/`. Sode makes that directory on start. It reads the files at start and when a Trusted user presses **Rescan** in the Uploaded section of Choose icon. The API's `POST /icon-library/rescan` does the same, and also accepts the Advanced Settings PIN.
+To add many icons in one step, put SVG and PNG files in `icons/drop-in/`. Sode makes that directory on start. It reads the files at start and when a Trusted user presses **Rescan** in the Icon library dialog (Choose icon, Uploaded icons, **Icon library**). The API's `POST /icon-library/rescan` does the same, and also accepts the Advanced Settings PIN.
 
 Sode checks each file as it checks an upload. It must be PNG or SVG, at most 2 MB, and a PNG at most 1024 by 1024 pixels. The whole library has a limit of 64 MB. The file name without its extension becomes the icon name, cut to 40 characters. A name that another icon has becomes "Name 2". Sode removes each file it adds from `icons/drop-in/`. A file it skips stays there. Sode reports it, with the reason, in the Rescan's status line and in an `iconRescan` row of the Communication Log. Sode never reads through a link: a linked file is skipped, and a `drop-in` that is itself a link is not read. Hidden files such as `.DS_Store` are ignored.
 
@@ -212,7 +214,7 @@ Crosspoints use extended commands: 0x82 connect, 0x84 connected and 0x95/0x97 ta
 
 ## Simulator
 
-The simulator (`go run ./cmd/swp08sim`, on :8910) reads `SIM_*` variables to fake misbehaving routers: `SIM_IGNORE_DSTS`, `SIM_SILENT_DSTS`, `SIM_SLOW_DSTS`, `SIM_FOLLOWS`, `SIM_PANEL_SECONDS` and `SIM_PANEL_SILENT`. `SIM_NO_SALVO=1` fakes a router that lacks the group send commands. `SIM_SALVO_ANNOUNCE=1` announces a group Go's routes with Connected, as the Ultrix sometimes does. See `cmd/swp08sim`.
+The simulator (`go run ./cmd/swp08sim`, on :8910) has 200 sources, 120 destinations and 17 levels. `SIM_SOURCES`, `SIM_DESTS` and `SIM_LEVELS` change these sizes, for example `SIM_SOURCES=2500 SIM_DESTS=750` for a large router. It also reads `SIM_*` variables to fake misbehaving routers: `SIM_IGNORE_DSTS`, `SIM_SILENT_DSTS`, `SIM_SLOW_DSTS`, `SIM_FOLLOWS`, `SIM_PANEL_SECONDS` and `SIM_PANEL_SILENT`. `SIM_NO_SALVO=1` fakes a router that lacks the group send commands. `SIM_SALVO_ANNOUNCE=1` announces a group Go's routes with Connected, as the Ultrix sometimes does. See `cmd/swp08sim`.
 
 ## Releases and image tags
 

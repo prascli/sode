@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
 	"sort"
 	"time"
@@ -54,11 +55,47 @@ func (a *App) namesSnapshot(v apiView) apiNames {
 	}
 }
 
-func (a *App) apiNames(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+// namesBody is the names read as every caller that is not hidden sees it, built once per change,
+// as tallyBody is. A panel page asks every 30 s; on a 2500 by 750 router a build is about 455 KB
+// of garbage. Guarded by App.mu.
+type namesBody struct {
+	rs   *routerState // a router change replaces it
+	rt   *runtime     // numberOffset
+	gen  int
+	body []byte
+	tag  string
+}
+
+func (a *App) apiNames(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
+	v := cl.view()
+	if v.Hidden() {
+		a.mu.Lock()
+		res := a.namesSnapshot(v)
+		a.mu.Unlock()
+		apiJSONTagged(w, r, res)
+		return
+	}
 	a.mu.Lock()
-	res := a.namesSnapshot(cl.view())
+	key := namesBody{rs: a.router, rt: a.r(), gen: a.router.namesGen}
+	if c := a.namesCache; c.rs == key.rs && c.rt == key.rt && c.gen == key.gen && c.body != nil {
+		a.mu.Unlock()
+		apiWriteTagged(w, r, c.body, c.tag)
+		return
+	}
+	res := a.namesSnapshot(v)
 	a.mu.Unlock()
-	apiJSON(w, res)
+	body, err := json.Marshal(res)
+	if err != nil {
+		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+		return
+	}
+	key.body, key.tag = body, etagOf(body)
+	a.mu.Lock()
+	if a.router == key.rs && a.r() == key.rt && a.router.namesGen == key.gen {
+		a.namesCache = key
+	}
+	a.mu.Unlock()
+	apiWriteTagged(w, r, key.body, key.tag)
 }
 
 type apiRouteRow struct {
@@ -94,27 +131,69 @@ func routeRows(m map[int]map[int]int, v apiView) []apiRouteRow {
 }
 
 type apiLevel struct {
-	Level int    `json:"level"`
-	Label string `json:"label"`
+	Level  int    `json:"level"`
+	Label  string `json:"label"`
+	Swatch string `json:"swatch"`
+	Color  string `json:"color,omitempty"` // wins over Swatch
 }
 
 // tallySnapshot is the levels and routes as v shows them. Caller holds mu.
 func (a *App) tallySnapshot(v apiView) map[string]any {
 	levels := []apiLevel{}
 	for _, l := range a.r().levels {
-		levels = append(levels, apiLevel{l.UI, l.Label})
+		levels = append(levels, apiLevel{l.UI, l.Label, l.Swatch, l.Color})
 	}
-	return map[string]any{"levels": levels, "routes": routeRows(a.router.tally, v)}
+	cfg := a.r().cfg
+	return map[string]any{
+		"levels": levels, "levelNumbering": cfg.LevelNumbering, "defaultLevels": cfg.DefaultLevels,
+		"routes": routeRows(a.router.tally, v),
+	}
 }
 
-func (a *App) apiTally(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+// tallyBody is the tally as every caller that is not hidden sees it, built once per change. Each
+// panel page polls it every 2 s, and on a 2500 by 750 router a build is about 400 KB of JSON.
+// Guarded by App.mu.
+type tallyBody struct {
+	rs   *routerState // a router change replaces it
+	rt   *runtime     // levels and level numbering
+	gen  int
+	body []byte
+	tag  string
+}
+
+func (a *App) apiTally(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
+	v := cl.view()
+	if v.Hidden() {
+		a.mu.Lock()
+		res := a.tallySnapshot(v)
+		a.mu.Unlock()
+		apiJSONTagged(w, r, res)
+		return
+	}
 	a.mu.Lock()
-	res := a.tallySnapshot(cl.view())
+	key := tallyBody{rs: a.router, rt: a.r(), gen: a.router.tallyGen}
+	if c := a.tallyCache; c.rs == key.rs && c.rt == key.rt && c.gen == key.gen && c.body != nil {
+		a.mu.Unlock()
+		apiWriteTagged(w, r, c.body, c.tag)
+		return
+	}
+	res := a.tallySnapshot(v)
 	a.mu.Unlock()
-	apiJSON(w, res)
+	body, err := json.Marshal(res)
+	if err != nil {
+		apiFail(w, http.StatusInternalServerError, "internal", "the answer could not be built")
+		return
+	}
+	key.body, key.tag = body, etagOf(body)
+	a.mu.Lock()
+	if a.router == key.rs && a.r() == key.rt && a.router.tallyGen == key.gen {
+		a.tallyCache = key
+	}
+	a.mu.Unlock()
+	apiWriteTagged(w, r, key.body, key.tag)
 }
 
-func (a *App) apiProtected(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
+func (a *App) apiProtected(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	a.mu.Lock()
 	v := cl.view()
 	rows := []apiProtectedRow{}
@@ -133,7 +212,7 @@ func (a *App) apiProtected(w http.ResponseWriter, _ *http.Request, cl *apiCtx) {
 		}
 		return rows[i].Level < rows[j].Level
 	})
-	apiJSON(w, map[string]any{"protected": rows})
+	apiJSONTagged(w, r, map[string]any{"protected": rows})
 }
 
 // linkStatus is the Router link as any caller with the status scope sees it. The router
