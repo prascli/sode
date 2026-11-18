@@ -214,8 +214,7 @@ func (b *tab) event(method string, params json.RawMessage) {
 		}
 		msg = "console.error: " + strings.Join(parts, " ")
 	case "Log.entryAdded":
-		// The pages link Google Fonts, which a CI box without internet cannot load.
-		if p.Entry.Level != "error" || strings.Contains(p.Entry.URL, "fonts.g") {
+		if p.Entry.Level != "error" {
 			return
 		}
 		msg = "log: " + p.Entry.Text + " " + p.Entry.URL

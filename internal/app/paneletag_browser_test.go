@@ -13,12 +13,14 @@ import (
 	"github.com/sethdotfm/sode/web"
 )
 
-// notModified counts 304 answers by request path.
+// notModified counts 304 answers by request path, and every tally read in reads.
 type notModified struct {
 	next              http.Handler
 	tally, protected  atomic.Int32
 	names, panelReads atomic.Int32
+	reads             atomic.Int32
 	panelPath         string
+	noSocket          atomic.Bool // hold /ws unanswered, so a panel page polls as with its socket down
 }
 
 type statusWriter struct {
@@ -32,6 +34,14 @@ func (s *statusWriter) WriteHeader(c int) { s.code = c; s.ResponseWriter.WriteHe
 func (s *statusWriter) Unwrap() http.ResponseWriter { return s.ResponseWriter }
 
 func (n *notModified) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// A refused handshake is a console error, which fails the check; one that never answers is not.
+	if r.URL.Path == "/ws" && n.noSocket.Load() {
+		<-r.Context().Done()
+		return
+	}
+	if r.URL.Path == "/api/v1/tally" {
+		n.reads.Add(1)
+	}
 	sw := &statusWriter{ResponseWriter: w, code: 200}
 	n.next.ServeHTTP(sw, r)
 	if sw.code != http.StatusNotModified {
@@ -49,9 +59,15 @@ func (n *notModified) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// A panel page that has had 304 answers still shows a route another caller changed, and still applies a saved edit.
+// keepSockets lets a test close the page's WebSockets.
+const keepSockets = `{ const W = window.WebSocket; window.sodeSockets = [];
+  window.WebSocket = class extends W { constructor(...a) { super(...a); window.sodeSockets.push(this); } }; }`
+
+// A panel page with its socket down polls. After 304 answers it still shows a route another caller changed, and still
+// applies a saved edit.
 func TestChromePanelStillUpdatesAfter304(t *testing.T) {
 	b := startBrowser(t)
+	b.call("Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": keepSockets})
 	sim := startSim(t)
 	a := simApp(t, sim)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -87,6 +103,8 @@ func TestChromePanelStillUpdatesAfter304(t *testing.T) {
 	b.eval(`document.querySelector('.sode-lock__key[data-key="enter"]').click()`)
 	dst := `document.querySelector('.sode-panel__cell--destination')`
 	b.waitFor("current source under the destination", dst+`?.querySelector('small')?.textContent === 'CG1 Fill'`)
+	count.noSocket.Store(true)
+	b.eval(`window.sodeSockets.forEach((w) => w.close())`)
 
 	// Polls every 2 s and the update check every 5 s: wait until both have had a 304.
 	for deadline := time.Now().Add(20 * time.Second); count.tally.Load() < 2 || count.protected.Load() < 2 || count.panelReads.Load() < 1; time.Sleep(100 * time.Millisecond) {
