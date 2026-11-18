@@ -33,7 +33,8 @@ export function lineGestures(g, on) {
   const begin = (kind, a, x, y) => {
     active = { kind, x, y };
     on.start(a);
-    raf = requestAnimationFrame(edge);
+    // on.start cancels while a take is in flight or the page is offline.
+    if (active) raf = requestAnimationFrame(edge);
   };
   // The name of a bar at a client point, clamped to the bar's ends, so the drag can leave the bar.
   const barName = (kind, x, y) => {
@@ -63,6 +64,7 @@ export function lineGestures(g, on) {
     edgeT = 0;
   };
   const moveTo = (x, y) => {
+    if (!active) return;
     active.x = x;
     active.y = y;
     on.move(units(x, y));
@@ -264,7 +266,6 @@ export function lineGestures(g, on) {
   return {
     // Esc in the run.
     cancel,
-    drawing: () => !!active,
     stop() {
       stop();
       for (const [t, k, f, o] of listen) t.removeEventListener(k, f, o);

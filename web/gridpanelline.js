@@ -104,7 +104,8 @@ export function lineShown(p, a, b, axes) {
 export function lineStage(st, pairs, env, levels) {
   if (!pairs.length) return { st, send: null, confirm: false, skipped: [], over: false };
   const { pairs: kept, err } = stageable(pairs, env);
-  const skipped = pairs.filter((x) => !kept.includes(x));
+  const keep = new Set(kept);
+  const skipped = pairs.filter((x) => !keep.has(x));
   if (err) return { st: { ...st, error: err }, send: null, confirm: false, skipped, over: false };
   let base = st;
   if (kept.length === 1) {

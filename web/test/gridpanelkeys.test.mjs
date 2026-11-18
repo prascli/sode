@@ -6,6 +6,12 @@ import { gridKeyAction, findBoxAction } from '../gridpanelkeys.js';
 const key = (k, over = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...over });
 const ctx = (over = {}) => ({ staged: 1, picks: 0, inControl: false, ...over });
 
+test('Esc in the Levels box only leaves it; picks and staged routes stay', () => {
+  assert.equal(gridKeyAction(key('Escape'), ctx({ inControl: true, inField: true, picks: 2 })), 'leave');
+  assert.equal(gridKeyAction(key('Escape'), ctx({ inControl: true, inField: true, line: true })), 'leave');
+  assert.equal(gridKeyAction(key('Escape'), ctx({ picks: 2 })), 'unpick');
+});
+
 test('Enter with routes staged opens the confirm', () => {
   assert.equal(gridKeyAction(key('Enter'), ctx()), 'confirm');
 });

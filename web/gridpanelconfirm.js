@@ -110,6 +110,7 @@ export function gridConfirm({ tally, settings, onTake, onClose }) {
     summary: (plan) => gridSummary(plan, tally()),
     // As on the main page (desktop.js): Enter also confirms when the setting says so.
     enter: () => !!cfg()?.confirmEnter,
+    refocus: true,
     prompt: (key) => ['Press ', key, cfg()?.confirmEnter ? ' or Enter' : '', ' to confirm, or escape to cancel.'],
     onTake: (plan) => onTake(plan),
     onClose: (plan) => onClose(plan),
