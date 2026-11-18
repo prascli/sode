@@ -108,6 +108,9 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	time.Sleep(600 * time.Millisecond)
 	b.call("Input.dispatchTouchEvent", map[string]any{"type": "touchMove", "touchPoints": []map[string]any{{"x": lx, "y": 5}}})
 	scrollTop := `document.querySelector('.sode-gridpanel__scroll').scrollTop`
+	// Timed from the first frame that scrolls, so a late start on a loaded runner does not read as no scroll.
+	start := b.eval(scrollTop).(float64)
+	b.waitFor("the edge scroll starts", fmt.Sprintf(`%s < %v`, scrollTop, start))
 	from, at := b.eval(scrollTop).(float64), time.Now()
 	time.Sleep(time.Second)
 	moved, took := from-b.eval(scrollTop).(float64), time.Since(at).Seconds()
@@ -177,8 +180,8 @@ func TestChromeGridPanelPhone(t *testing.T) {
 	b.eval(`document.querySelector('.sode-gridpanel__scroll').scrollTo(0, 0), true`)
 	b.waitFor("destination 5 drawn", dst(5)+` !== null && !`+dst(5)+`.hidden`)
 	b.eval(`new Promise((r) => setTimeout(() => requestAnimationFrame(() => r(true)), 300))`)
+	// No pause between the taps: CDP round trips on a loaded runner already use some of the 350 ms window.
 	tap(b, dst(5))
-	time.Sleep(80 * time.Millisecond)
 	tap(b, dst(5))
 	gridCursorOn(b, "a double-tap on a name jumps", 5, 5)
 	if b.eval(cursorShown) == true {

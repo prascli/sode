@@ -37,14 +37,10 @@ const REPEAT_MS = 60;
 const bars = new WeakMap(); // scroller -> its handle
 const owners = new WeakMap(); // bar or corner -> its scroller
 
-// Draws a bar for scroller on axis 'x', 'y' or 'xy' (both, with a corner square where they meet).
-// size 'little' draws a thinner bar for small, secondary lists; the page's bar is always big. The
-// page's own scroller (document.scrollingElement) gets a fixed bar at the window's edge. watch is an
-// element whose size changes with the content. It replaces the subtree MutationObserver, for a scroller
-// whose nodes change at each scroll (the Grid). Returns { update, now, stop, bar, room }, or null
-// for a scroller out of the page. room() is the px that the shown bars take inside the scroller's
-// client box, { right, bottom }. Once drawn, nothing is added or removed while the scroller scrolls: only
-// the thumb's transform changes (the Grid needs this).
+// 'xy' adds a corner square where the bars meet; the page's bar is always big and fixed at the window's edge. watch
+// replaces the subtree MutationObserver for a scroller whose nodes change at each scroll (the Grid). Null for a
+// scroller out of the page. room() is the px the bars take inside the client box. A scroll changes only the thumb's
+// transform (the Grid needs this).
 export function bigScroll(scroller, axis = 'y', size = 'big', { watch } = {}) {
   const had = bars.get(scroller);
   if (had) return had;

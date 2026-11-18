@@ -65,7 +65,6 @@ export function gridPosition(g, frame, isPhone) {
   place();
 
   return {
-    place,
     stop() {
       off();
       for (const b of Object.values(bars)) b.track.remove();

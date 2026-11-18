@@ -84,10 +84,12 @@ func TestChromeMainChips(t *testing.T) {
 	b.eval(`(() => { const t = document.getElementById('lvl'); t.focus(); t.value = '1'; t.dispatchEvent(new Event('input', {bubbles: true})); t.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', bubbles: true, cancelable: true})); return true; })()`)
 	b.waitFor("confirm unlocks again", `!document.getElementById('confirm').hidden && !document.getElementById('confirm-ok').disabled`)
 	b.eval(`document.getElementById('confirm-ok').click(); true`)
-	b.waitFor("History has the folder", `!!document.querySelector('#history button.sode__end--dst.sode__end--pick strong, #history .sode__hist-route button.sode__end--dst')`)
+	// The folder's own chip, not any earlier row: History redraws once per frame, so it can come a frame late.
+	folderChip := `[...document.querySelectorAll('#history .sode__hist-route button.sode__end--dst')].find((n) => /destinations/.test(n.textContent))`
+	b.waitFor("History has the folder", `!!`+folderChip)
 	b.eval(`document.querySelectorAll('#dst-chips .pb-chip__remove').forEach((x) => x.click()); true`)
 	b.waitFor("chips empty", chips+` === ''`)
-	b.eval(`[...document.querySelectorAll('#history .sode__hist-route button.sode__end--dst')].find((n) => /destinations/.test(n.textContent)).click(); true`)
+	b.eval(folderChip + `.click(); true`)
 	b.waitFor("the folder chip adds all three", chips+`.includes('DSM1') && `+chips+`.includes('DSM2') && `+chips+`.includes('DSM3')`)
 
 	b.check()

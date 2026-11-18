@@ -125,8 +125,8 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
   let keyed = key && keyFetch(key, keyIsPublic);
   const call = given || (key ? (path, init = {}) => keyed(path, init) : (path, init = {}) => sessionFetch(path, tag(init)));
   // Only the reads that carry an ETag are kept and sent with If-None-Match; a 304 gives the same body again. The
-  // tally and protected replies are only read, so a 304 gives the same object too.
-  const callJSON = jsonCall(withEtag(call, (p) => p === 'api/v1/tally' || p === 'api/v1/protected'));
+  // tally, protected and names replies are only read, so a 304 gives the same object too.
+  const callJSON = jsonCall(withEtag(call, (p) => p === 'api/v1/tally' || p === 'api/v1/protected' || p === 'api/v1/names'));
 
   if (!key && !embedded) {
     ui.signin.addEventListener('click', signInAgain);
@@ -254,9 +254,16 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
 
   let namesAt = 0;
   let polling = false;
+  // A take's answer asks for a poll; one already in flight can carry the tally from before the take.
+  let again = false;
   async function poll() {
-    if (polling || ended) return;
+    if (ended) return;
+    if (polling) {
+      again = true;
+      return;
+    }
     polling = true;
+    again = false;
     try {
       const wantNames = Date.now() - namesAt > NAMES_MS;
       // A key without the presets scope gets 403: its Preset cells then show as unavailable.
@@ -301,6 +308,7 @@ async function start(seg, { ui = pageUi(), call: given, embedded = !!given, page
     }
     polling = false;
     body.render();
+    if (again) poll();
   }
 
   let keep = null;

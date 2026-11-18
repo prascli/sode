@@ -1,5 +1,6 @@
 // The Grid panel body of a panel run (panelrun.js). It reads and sends only through ctx, the run's /api/v1 adapter.
-// So another adapter can drive the same view. ctx is { ui, embedded, call, callJSON, post, poll, ready, instance, keyed, touched }.
+// So another adapter can drive the same view. ctx is panelrun.js's: { ui, art, embedded, page, id, call, callJSON, post,
+// poll, ready, instance, keyed, touched }.
 // The rules are pure modules (gridpanel*.js); this file joins them to the DOM.
 import { envFrom, namesFrom } from './panelrules.js';
 import { arrange } from './gridpanelarrange.js';
@@ -20,7 +21,7 @@ import {
 } from './gridpanelstage.js';
 import { createPicks, pickName, pickCount, dropPicks, diagonal, extendPick, dragPick, enterGrid } from './gridpanelpick.js';
 import { stageLevels, offeredLevels, boxFill, pieOn } from './gridpanellevels.js';
-import { otherSources, otherText, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
+import { otherSources, otherText, stageable, skippedText, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from './gridpanelrights.js';
 import { gridKeyAction, findBoxAction, clearAction } from './gridpanelkeys.js';
 import { sourceJump, holderJump, jumpText } from './gridpaneljump.js';
 import { stageUndo, leaveUndo, afterUndo, undoText } from './gridpanelundo.js';
@@ -193,7 +194,8 @@ export function gridBody(ctx, first) {
   const lineDry = () => {
     const pairs = isLine(line.a, line.b) ? linePairs(picks, line.a, line.b, axes, full) : [];
     const r = lineStage(st, pairs, env, pressLevels());
-    return { pairs, kept: pairs.filter((x) => !r.skipped.includes(x)), r };
+    const skip = new Set(r.skipped);
+    return { pairs, kept: pairs.filter((x) => !skip.has(x)), r };
   };
 
   // Numbered targets only while names are picked; a press with none is the crosspoint itself. A phone has no hover,
@@ -432,8 +434,16 @@ export function gridBody(ctx, first) {
   const boxNode = ui.levels;
   let boxKey = '';
   let filledKey = null;
+  // The numbering the box text was typed in, so a change of Level numbering relabels it (levelbox.js reset).
+  let typedIn = null;
   const boxSource = () =>
-    tally && { levels: tally.levels, offered: offeredLevels(tally, panel.rights), numbering: tally.levelNumbering, defaultLevels: tally.defaultLevels || '' };
+    tally && {
+      levels: tally.levels,
+      offered: offeredLevels(tally, panel.rights),
+      numbering: tally.levelNumbering,
+      defaultLevels: tally.defaultLevels || '',
+      prev: typedIn,
+    };
   const lvl = boxNode
     ? levelBox(document.getElementById('panel-lvl'), document.getElementById('panel-lvl-pick'), document.getElementById('panel-lvl-all'), boxSource, {
         hold: 'pointerdown',
@@ -450,6 +460,7 @@ export function gridBody(ctx, first) {
     if (key !== boxKey) {
       boxKey = key;
       lvl.reset();
+      typedIn = { mode: tally.levelNumbering, max: tally.levels.length };
     }
     const fk = JSON.stringify(panel.settings?.levels ?? null);
     if (fk === filledKey) return;
@@ -502,15 +513,25 @@ export function gridBody(ctx, first) {
     if (e?.altKey) return unstageAt(xp);
     ctx.touched();
     st = keepLive(leaveUndo(st), world());
-    const { pairs, err } = stageable(diagonalAt(xp), env);
+    const all = diagonalAt(xp);
+    const { pairs, err } = stageable(all, env);
     if (err) {
       st = { ...st, error: err };
       return render();
     }
     const r = stageRoutes(st, pairs, pressLevels());
     st = r.st;
-    if (r.send) send({ routes: r.send });
-    else render();
+    const keep = new Set(pairs);
+    const skipped = all.filter((x) => !keep.has(x));
+    afterStage(r, st.error ? '' : skippedText(skipped, names));
+  }
+
+  // After a press or a line. skip names the protected rows it left out. An Instant send writes its own banner when
+  // it answers, so skip goes with the send.
+  function afterStage(r, skip) {
+    if (r.send) return send({ routes: r.send, left: skip });
+    if (skip) note = noteOf(skip);
+    render();
     if (r.confirm) openConfirm();
   }
 
@@ -575,12 +596,7 @@ export function gridBody(ctx, first) {
     line = null;
     if (!pairs.length) return render();
     st = r.st;
-    if (r.skipped.length && !st.error) {
-      note = noteOf(`Skipped ${plural(r.skipped.length, 'protected destination')}`);
-    }
-    if (r.send) send({ routes: r.send });
-    else render();
-    if (r.confirm) openConfirm();
+    afterStage(r, st.error ? '' : skippedText(r.skipped, names));
   }
 
   const centre = (c) => ({ x: c.j + 0.5, y: c.i + 0.5 });
@@ -731,7 +747,17 @@ export function gridBody(ctx, first) {
       return findBox(box, boxAct);
     }
     const finding = stepBox(find) !== null;
-    const act = gridKeyAction(e, { staged: st.staged.length, picks: pickCount(picks), inControl: inControl(ui.grid), bar: barOf(cur), finding, line: !!line });
+    // Only the Levels box: other fields (the instance name, the editor's) keep their own Esc.
+    const inField = !!document.activeElement && document.activeElement.id === 'panel-lvl';
+    const act = gridKeyAction(e, {
+      staged: st.staged.length,
+      picks: pickCount(picks),
+      inControl: inControl(ui.grid),
+      inField,
+      bar: barOf(cur),
+      finding,
+      line: !!line,
+    });
     // A phone has no key list.
     if (!act || (act === 'keys' && (!keyList || phone()))) return;
     const moves =
@@ -761,6 +787,9 @@ export function gridBody(ctx, first) {
         line = { a: centre(cur), b: centre(cur), keys: true };
         render();
       }
+    } else if (act === 'leave') {
+      document.activeElement.blur();
+      g?.scroll.focus({ preventScroll: true });
     } else if (act === 'unline' || act === 'unpick' || act === 'drop') clearStep(act);
     else if (act === 'unstage') {
       const xp = pointOf(cur, axes);
@@ -791,7 +820,8 @@ export function gridBody(ctx, first) {
       if (!nm && dataOf?.[0] === t && dataOf[1] === prot) return;
       dataOf = [t, prot];
       const sig = JSON.stringify([t, prot]);
-      const nmSig = nm ? JSON.stringify(nm) : namesSig;
+      // A 304 on names gives the same object (etagfetch.js), so the 90 KB stringify runs only on a change.
+      const nmSig = nm && nm !== namesReply ? JSON.stringify(nm) : namesSig;
       if (sig === dataSig && nmSig === namesSig) return;
       dirty = true;
       dataSig = sig;

@@ -107,9 +107,9 @@ const makeXp = () => {
   xp.tabIndex = -1;
   return xp;
 };
-const makeName = (cls, role) => () => {
+// No header role: the grid is not an ARIA grid, so a columnheader or rowheader here has no valid parent.
+const makeName = (cls) => () => {
   const n = el('div', `pb-xpt ${cls}`);
-  n.setAttribute('role', role);
   n.append(document.createTextNode(''));
   return n;
 };
@@ -135,14 +135,14 @@ const makeArt = () => {
   return row;
 };
 const makeSrc = () => {
-  const n = makeName('pb-xpt--source sode-gridpanel__src', 'columnheader')();
+  const n = makeName('pb-xpt--source sode-gridpanel__src')();
   n.append(makeArt());
   return n;
 };
 // After the name's Text: the protected mark (the lock never stands alone) and the staged word. Then the current
 // sources the grid does not show, then the artwork. Made once, so a paint changes only Text data and hidden.
 const makeDst = () => {
-  const n = makeName('pb-xpt--dest sode-gridpanel__dst', 'rowheader')();
+  const n = makeName('pb-xpt--dest sode-gridpanel__dst')();
   const prot = el('small', 'sode-gridpanel__prot', icon('lock'), document.createTextNode(''));
   const held = el('small', 'sode-gridpanel__held', document.createTextNode(''));
   const other = el('small', 'sode-gridpanel__other', document.createTextNode(''));

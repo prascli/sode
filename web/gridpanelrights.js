@@ -22,6 +22,15 @@ export function stageable(pairs, env) {
   return { pairs: kept, err: pairs.length && !kept.length ? pressRefusal(pairs[0], env) : null };
 }
 
+// The banner words for the protected rows a press or a line skipped: up to three names, then "+N". '' when none.
+export function skippedText(pairs, names) {
+  const dsts = [...new Set(pairs.map((x) => x.dst))];
+  if (!dsts.length) return '';
+  const shown = dsts.slice(0, 3).map((d) => names.destination(d));
+  const more = dsts.length > 3 ? ` +${dsts.length - 3}` : '';
+  return `Skipped ${dsts.length === 1 ? 'a protected destination' : 'protected destinations'}: ${shown.join(', ')}${more}`;
+}
+
 export const refusalText = (err, names) => (err?.code === 'protected' ? `${names.destination(err.dst)} is protected` : '');
 
 // Why a staged entry { dst, level, src } no longer applies, or ''. world is { env, rights, names (GET /names) }.

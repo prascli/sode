@@ -146,10 +146,16 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	if _, ok := items["3"]; ok {
 		t.Errorf("source 3 has artwork: %v", items["3"])
 	}
-	// One panel check every 5 s: past it, the saved copy must not show as a change from somewhere else.
+	// One panel check every 5 s: past it, the saved copy must not show as a change from somewhere else. A banner
+	// goes by itself when its countdown ends, so an observer records one that showed at any time in the wait.
+	b.eval(`(() => {
+		const u = document.querySelector('#ed-live-view .sode-panel__update');
+		window.bannerShown = !u.hidden;
+		new MutationObserver(() => { if (!u.hidden) window.bannerShown = true; }).observe(u, { attributes: true });
+		return true;
+	})()`)
 	time.Sleep(6 * time.Second)
-	// Asked at once, not waited for: a banner would go by itself when its countdown ends.
-	if ok, _ := b.eval(`document.querySelector('#ed-live-view .sode-panel__update').hidden && firstSrc() === '3' && firstDst() === '4'`).(bool); !ok {
+	if ok, _ := b.eval(`!window.bannerShown && firstSrc() === '3' && firstDst() === '4'`).(bool); !ok {
 		t.Errorf("after the save, the live test shows an update banner or lost the edits")
 	}
 

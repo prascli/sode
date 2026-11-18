@@ -63,7 +63,7 @@ ADR 0011 and the Grid panels section of docs/panels-design.md say what a Grid pa
 
 ### Server
 
-- `panelgrid.go` holds `GridEdge{Members, Hide, Items}`, `GridItem{Pinned, Art, ArtB}` and `GridMembers` (`"all"` or a list of integers, in JSON and YAML). A decoded list is never nil, so `!All && List == nil` means `members` was missing, which is 400. An empty list `[]` round-trips.
+- `panelgrid.go` holds `GridEdge{Members, Hide, Items}`, `GridItem{Pinned, Art, ArtB, HideText}` and `GridMembers` (`"all"` or a list of integers, in JSON and YAML). A decoded list is never nil, so `!All && List == nil` means `members` was missing, which is 400. An empty list `[]` round-trips.
 - `checkGridEdge`: `hide` only with `all`, numbers from 0 to `dstNumberMax`, no repeats in members or `hide`, any number pinned. Item keys are plain decimal ("007" is refused). Items for non-members stay, and no Rights filter runs on save.
 - `Panel.Type`, `Sources` and `Destinations` are in `panelKnown`. `normalize` returns early for a Grid panel (`Pages` is `[]`). `validatePanel` calls `checkGrid` and skips `checkPages`. A Grid panel has no `rows` or `cols`, so openapi allows 0.
 - `apiPanelUpdate`: an empty body type keeps the stored one, and a different one is 409 `conflict`. The legacy `cells` to Page 1 branch runs for a Buttons panel only, since a Grid panel has no Page to take it.

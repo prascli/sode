@@ -190,15 +190,21 @@ test('rapid changes to one destination stack, from any instance', async () => {
   setFilter(FILTER_DEFAULT);
 
   // The gap is a This browser pref. The takes are 20 s apart, so 10 s and Off stack nothing.
-  setPref('stackGap', '10');
-  assert.equal(stackGapMs(), 10000);
-  assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
-  setPref('stackGap', '300');
-  assert.equal(show(hist), '20<20,19,18,17,16 21 15 f14,13 12 11 10');
-  setPref('stackGap', '0');
-  assert.equal(stackGapMs(), 0);
-  assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
-  setPref('stackGap', '');
+  try {
+    setPref('stackGap', '10');
+    assert.equal(stackGapMs(), 10000);
+    assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
+    setPref('stackGap', '300');
+    assert.equal(show(hist), '20<20,19,18,17,16 21 15 f14,13 12 11 10');
+    // A take exactly the gap after the one before still stacks.
+    setPref('stackGap', '10');
+    assert.equal(show([e({ id: 31, src: 2, time: T(10), prev: on(1) }), e({ id: 30, src: 1, time: T(0), prev: on(2) })]), '31<31,30');
+    setPref('stackGap', '0');
+    assert.equal(stackGapMs(), 0);
+    assert.equal(show(hist), '20 19 18 17 16 21 15 f14,13 12 11 10');
+  } finally {
+    setPref('stackGap', '');
+  }
 });
 
 test('filter sets', async () => {
@@ -412,6 +418,25 @@ test('follows whose take is hidden, and trimming after a search', async () => {
   setSearch({ src: '', dst: '' });
   assert.equal(S.hist.length, 203);
   assert.equal(S.histMore, true);
+});
+
+test('live takes trim History back to the newest while nothing reads far back', async () => {
+  const { S, liveEntry, historyPager } = await import('./all.mjs');
+  const ent = (id) => ({ id, levels: [1], prev: [], ok: true, src: 0, dst: 0, time: new Date(0).toISOString() });
+  S.hist = Array.from({ length: 1000 }, (_, i) => ent(1000 - i));
+  S.histMore = false;
+  const pg = historyPager(10, () => false);
+  liveEntry({ e: ent(1001) });
+  assert.equal(S.hist.length, 200);
+  assert.equal(S.hist[0].id, 1001);
+  assert.equal(S.histMore, true);
+  // A pager shown past the kept entries holds them all.
+  S.hist = Array.from({ length: 1000 }, (_, i) => ent(1001 - i));
+  pg.shown = 300;
+  liveEntry({ e: ent(1002) });
+  assert.equal(S.hist.length, 1001);
+  pg.shown = 10;
+  S.hist = [];
 });
 
 test('history pages', async () => {

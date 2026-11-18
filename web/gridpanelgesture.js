@@ -3,8 +3,8 @@
 // bar picks the names it passes. g is the drawn grid (gridpanelview.js). on: { start(a), move(b), end(b), cancel(),
 // name(kind, n, how), span(kind, from, to, add), spanEnd() }. Points are in crosspoint units. kind is 'srcs' or
 // 'dsts' and how is 'long' or 'double'. add is true with Cmd or Ctrl held.
-// touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
-// timer. A plain touch drag stays a native scroll.
+// touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls
+// preventDefault only after the long-press timer. A plain touch drag stays a native scroll.
 import { isLine } from './gridpanelline.js';
 
 const LONG_MS = 450;
@@ -33,7 +33,8 @@ export function lineGestures(g, on) {
   const begin = (kind, a, x, y) => {
     active = { kind, x, y };
     on.start(a);
-    raf = requestAnimationFrame(edge);
+    // on.start cancels while a take is in flight or the page is offline.
+    if (active) raf = requestAnimationFrame(edge);
   };
   // The name of a bar at a client point, clamped to the bar's ends, so the drag can leave the bar.
   const barName = (kind, x, y) => {
@@ -63,6 +64,7 @@ export function lineGestures(g, on) {
     edgeT = 0;
   };
   const moveTo = (x, y) => {
+    if (!active) return;
     active.x = x;
     active.y = y;
     on.move(units(x, y));
@@ -264,7 +266,6 @@ export function lineGestures(g, on) {
   return {
     // Esc in the run.
     cancel,
-    drawing: () => !!active,
     stop() {
       stop();
       for (const [t, k, f, o] of listen) t.removeEventListener(k, f, o);

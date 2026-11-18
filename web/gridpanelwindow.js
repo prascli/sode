@@ -82,7 +82,7 @@ export function wheelAcross(e, bar) {
 }
 
 // A band is an edge's pinned band: { pins, slots, at }. It shows slots items, from pin at. An edge with more pins than
-// slots scrolls its band on its own (owner, 2026-11-17), and the rest of the grid scrolls as before. The window maths
+// slots scrolls its band on its own, and the rest of the grid scrolls as before. The window maths
 // above works in slots: the band's slots, then the items past the pins. A band with pins === slots maps item to slot
 // one to one. -1 (the name bar) is the same in both.
 export const itemOf = (v, b) => (v < b.slots ? (v < 0 ? v : v + b.at) : v - b.slots + b.pins);

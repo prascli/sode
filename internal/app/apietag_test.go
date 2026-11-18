@@ -35,6 +35,39 @@ func etagApp(t *testing.T) *App {
 
 const etagPanel = `{"name":"Wall","share":{"mode":"everyone"},"cells":[{"kind":"source","n":1}]}`
 
+// If-None-Match takes a list, a weak tag and *. A tag is over the caller's own body. So under narrower Rights, a
+// tag made under wider Rights gets the whole body, not 304.
+func TestETagListWeakStarAndOtherRights(t *testing.T) {
+	a := etagApp(t)
+	ana := userKey(t, a, "Ana")
+	path := "/api/v1/panels/" + makePanel(t, a, ana, etagPanel)
+	_, tag := ifNone(a, path, ana, "")
+	for _, hdr := range []string{"W/" + tag, `"other", ` + tag, "*"} {
+		if code, _ := ifNone(a, path, ana, hdr); code != 304 {
+			t.Errorf("If-None-Match %s: %d, want 304", hdr, code)
+		}
+	}
+	if code, _ := ifNone(a, path, ana, `"other"`); code != 200 {
+		t.Errorf("another tag: %d, want 200", code)
+	}
+	bot := botKey(t, a)
+	for _, p := range []string{"/api/v1/tally", "/api/v1/names"} {
+		_, wide := ifNone(a, p, bot, "")
+		cfg := a.r().cfg
+		cfg.APIClients[0].Rights = config.Rights{Visibility: config.VisHidden, Dsts: &[]int{1}, Sources: &[]int{1}}
+		if err := a.ApplyConfig(cfg); err != nil {
+			t.Fatal(err)
+		}
+		if code, narrow := ifNone(a, p, bot, wide); code != 200 || narrow == wide {
+			t.Errorf("%s under narrower Rights with the wide tag: %d, ETag %q", p, code, narrow)
+		}
+		cfg.APIClients[0].Rights = config.Rights{}
+		if err := a.ApplyConfig(cfg); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestPanelReadsAnswer304WhenNothingChanged(t *testing.T) {
 	a := etagApp(t)
 	id := makePanel(t, a, userKey(t, a, "Ana"), etagPanel)
@@ -125,6 +158,57 @@ func TestPanelReadCarriesTheConfirmSettings(t *testing.T) {
 
 // The tally body is built once per change for every caller that is not hidden. A route, a level setting and a
 // router change each move the tag, and a hidden caller still gets its own filtered body.
+// The names read is built once per change for callers that are not hidden, so each input must move the tag.
+func TestNamesETagMovesWithNamesOffsetAndRouter(t *testing.T) {
+	a := etagApp(t)
+	bot := botKey(t, a)
+	const path = "/api/v1/names"
+	_, tag := ifNone(a, path, bot, "")
+	if code, again := ifNone(a, path, bot, tag); code != 304 || again != tag {
+		t.Fatalf("unchanged: %d, ETag %q was %q", code, again, tag)
+	}
+
+	a.mu.Lock()
+	a.applyNames(&swp08.NameBlock{Dest: true, First: 4, Names: []string{"MON NEW"}})
+	a.mu.Unlock()
+	code, named := ifNone(a, path, bot, tag)
+	if code != 200 || named == tag {
+		t.Fatalf("after a name: %d, ETag %q was %q", code, named, tag)
+	}
+	if !strings.Contains(apiDo(a, "GET", path, bot, nil).Body.String(), `{"n":4,"name":"MON NEW"}`) {
+		t.Fatal("the new name is not in the body")
+	}
+
+	cfg := a.r().cfg
+	cfg.NumberOffset = 1 - cfg.NumberOffset
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	code, offset := ifNone(a, path, bot, named)
+	if code != 200 || offset == named {
+		t.Fatalf("after a number offset: %d, ETag %q was %q", code, offset, named)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{Visibility: config.VisHidden, Dsts: &[]int{1}}
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if body := apiDo(a, "GET", path, bot, nil).Body.String(); strings.Contains(body, "MON NEW") {
+		t.Fatalf("a hidden caller got a destination outside its Rights: %s", body)
+	}
+
+	cfg = a.r().cfg
+	cfg.APIClients[0].Rights = config.Rights{}
+	cfg.Router = "192.0.2.1:8910"
+	if err := a.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if code, moved := ifNone(a, path, bot, offset); code != 200 || moved == offset {
+		t.Fatalf("after a router change: %d, ETag %q was %q", code, moved, offset)
+	}
+}
+
 func TestTallyETagMovesWithRouteLevelsAndRouter(t *testing.T) {
 	a := etagApp(t)
 	bot := botKey(t, a)

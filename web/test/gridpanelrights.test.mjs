@@ -1,10 +1,18 @@
 // Rights, protection and other sources on a Grid panel (gridpanelrights.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { otherSources, otherText, pressRefusal, stageable, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from '../gridpanelrights.js';
+import { otherSources, otherText, pressRefusal, stageable, skippedText, refusalText, leftOut, keepLive, leftOutText, leftOutLine } from '../gridpanelrights.js';
 import { createStage, pressCrosspoint, routesOf } from '../gridpanelstage.js';
 import { envFrom, namesFrom } from '../panelrules.js';
 import { namesReply, tallyReply } from './gridpanelfixture.mjs';
+
+test('the skipped note names the protected rows, three at most', () => {
+  const names = { destination: (d) => `D${d}` };
+  assert.equal(skippedText([], names), '');
+  assert.equal(skippedText([{ src: 0, dst: 1 }], names), 'Skipped a protected destination: D1');
+  const many = [1, 2, 3, 4, 5].map((dst) => ({ src: 0, dst }));
+  assert.equal(skippedText(many, names), 'Skipped protected destinations: D1, D2, D3 +2');
+});
 
 const envOf = (routes, prot = []) => envFrom(tallyReply({ routes }), { protected: prot.map(([dst, level]) => ({ dst, level })) });
 

@@ -219,7 +219,7 @@ One square of a Grid panel, where one source and one destination meet. It shows 
 A source or destination that a Grid panel keeps at the edge of the grid while the rest scrolls. Pins are part of the panel, set in the editor.
 
 **Source bar** / **Destination bar**:
-The edges of a Grid panel that show the names. The Source bar is across the top and the Destination bar is down the side. The corner where they meet holds the filters.
+The edges of a Grid panel that show the names. The Source bar is across the top and the Destination bar is down the side. Each bar's search box is in the band over the grid, and the corner where the bars meet shows what is pinned on both.
 
 **Picked**:
 Describes a source or destination that a person chose on a Grid panel's Source bar or Destination bar. Picking stages nothing. It tells the next crosspoint press which routes to stage.
@@ -229,6 +229,21 @@ The routes that a Grid panel stages when a person presses a crosspoint while nam
 
 **Drawn line**:
 A straight line that a person drags across a Grid panel's crosspoints to stage routes, one for each destination row that it crosses.
+
+**Levels box**:
+The Level box (see Patch boxes) as a Grid panel shows it, in the band over the grid. A crosspoint press stages its routes on the levels in it.
+
+**Find** / **Filter** (Grid panel):
+The two modes of a Grid panel's search boxes. Find marks the names that match and moves to them; Filter shows only the names that match. A switch beside the boxes changes the mode. Not the same as a History Filter.
+
+**Currently**:
+The source that a destination has now, as the take confirm and the Current Source cell show it.
+
+**Follow the router**:
+An editor setting for each edge of a Grid panel. While it is on, the edge holds every source or destination the router reports, in router order. The editor then changes only its pins and artwork. Turning it off makes the edge a list.
+
+**Test it live**:
+The editor's button that runs the saved panel in the editor, as its page does. Takes made there change the router. Unsaved edits are saved first.
 
 **Public panel**:
 A panel that anyone with its URL can use, with no sign-in, PIN or key in the link. It acts as its own API client, with that client's Rights, which a Trusted user sets within their own. History names the client.
@@ -302,7 +317,7 @@ A cell that combines the panel's name, its Page's number, its Page's name and th
 Describes a Take cell after a Source and a Destination are selected. It lights or blinks until a person presses it, and pressing it is the Confirm.
 
 **Take mode** / **Instant mode**:
-The panel setting that decides when a panel's plan is confirmed. In Take mode the armed Take cell must be pressed. In Instant mode pressing the Source is the Confirm. A panel can add a hold or a double press to guard the confirm. On a Grid panel, Take mode opens the take confirm box, unless the panel is set to Stage + Take.
+The panel setting that decides when a panel's plan is confirmed. In Take mode the armed Take cell must be pressed. In Instant mode pressing the Source is the Confirm. A panel can add a hold or a double press to guard the confirm. A Grid panel names its modes Instant, Stage + Take and Stage + Take + Confirm. Stage + Take + Confirm is Take mode with the take confirm box; Stage + Take sends on Take with no box. In Instant mode a press of one route sends at once, and a press of more than one route opens the take confirm box.
 
 **Clear** (cell kind):
 Cancels the plan the panel has pending. It never changes the router.

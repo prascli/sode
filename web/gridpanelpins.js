@@ -1,4 +1,4 @@
-// The little scroll bars of the pinned bands that hold fewer pins than their edge has (owner, 2026-11-17). Each bar
+// The little scroll bars of the pinned bands that hold fewer pins than their edge has. Each bar
 // drives a scroller of its own beside the grid's, one pin per item size. Its offset in pins, with the part of a pin, is
 // the band's start, which the view draws (gridpanelview.js). The grid's scroller does not move, so a band scroll leaves
 // the rest where it is.

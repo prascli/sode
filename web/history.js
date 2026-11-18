@@ -29,6 +29,11 @@ export const searchRespectsFilters = () => pref('searchFilters') === 'on';
 // After a search is cleared, drop all but the newest entries again (whole groups). A page still
 // on its way is for before the trim, so takePage ignores it.
 const KEEP_AFTER_SEARCH = 200;
+// Live takes add entries with no end. Past this many, and while no search or pager reads past KEEP_AFTER_SEARCH,
+// History drops back to the newest, as after a search.
+const HIST_CAP = 1000;
+const pagers = new Set();
+const trimDue = () => S.hist.length > HIST_CAP && !searchActive() && [...pagers].every((p) => p.shown <= KEEP_AFTER_SEARCH);
 function trimHist() {
   let n = KEEP_AFTER_SEARCH;
   if (S.hist.length <= n) return;
@@ -291,6 +296,7 @@ export function historyPager(step, visible = () => true) {
   on('search', () => {
     pg.auto = 0;
   });
+  pagers.add(pg);
   return pg;
 }
 export function attachFollows(e) {
@@ -369,11 +375,14 @@ export function entryNote(e) {
   return parts.length ? el('span', 'sode__hist-note', ` (${parts.join('; ')})`) : null;
 }
 
-onMsg('recent', (m) => {
+// One `recent` message: a live entry, or an update to a loaded one.
+export function liveEntry(m) {
   const how = putEntry(m.e, S, m.update);
   if (how === 'new') S.newId = m.e.id; // views animate a new one in, one time, not a correction
+  if (how === 'new' && trimDue()) trimHist();
   if (how !== 'skipped') emit('history');
-});
+}
+onMsg('recent', liveEntry);
 onMsg('historyCleared', () => {
   S.hist = [];
   S.histMore = false;

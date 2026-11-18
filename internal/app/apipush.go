@@ -422,7 +422,8 @@ func (a *App) apiSetPush(w http.ResponseWriter, r *http.Request, cl *apiCtx) {
 	}
 	// Check every entry first, so a refused one leaves all panels as they were.
 	for _, e := range live {
-		if cur, _ := a.panels.get(e.Panel); layoutType(e.Type) != layoutType(cur.Type) {
+		// A panel deleted since the check above is applyLayout's to refuse, as not found.
+		if cur, ok := a.panels.get(e.Panel); ok && layoutType(e.Type) != layoutType(cur.Type) {
 			a.pushFail(w, errLayoutType)
 			return
 		}
