@@ -215,7 +215,10 @@ Describes a preset, filter set or panel that refers to something that is not the
 To let other users open or use a panel. It is about access and never makes a copy.
 
 **Send a copy**:
-To give a copy of a preset, filter set or panel to another user, who accepts or declines it.
+To give a copy of a preset, filter set or panel to another user, who accepts or declines it in their Inbox.
+
+**Inbox**:
+The list of copies that other users sent to a user and that the user has not accepted or declined. One send is one card, however many items it holds.
 
 **Item link**:
 A link to one preset or one panel on this install, also shown as a QR code. It works only on the install that made it.
