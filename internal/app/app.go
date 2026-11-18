@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/netip"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -134,6 +135,8 @@ type App struct {
 	apiS apiState // REST throttles (apiauth.go)
 
 	streams map[*apiStream]struct{} // attached API streams (apistream.go), guarded by mu
+
+	tallyCache tallyBody // apireads.go, guarded by mu
 }
 
 // routerState is replaced as a whole on a router change. Guarded by App.mu.
@@ -143,6 +146,7 @@ type routerState struct {
 	tally    map[int]map[int]int // dst → UI level → src (-1 = nothing routed)
 	protect  map[int]map[int]int
 	seenAt   map[[2]int]time.Time // dst, UI level → when the router last reported its route
+	tallyGen int                  // bumped on every tally change; keys App.tallyCache
 	pend     []routeChange
 	pendProt []routeChange
 
@@ -434,6 +438,7 @@ func (a *App) applyTally(r *runtime, xp swp08.Crosspoint) {
 	}
 	if old, known := t[l.UI]; !known || old != xp.Src {
 		t[l.UI] = xp.Src
+		a.router.tallyGen++
 		a.router.pend = append(a.router.pend, routeChange{xp.Dst, l.UI, xp.Src})
 		// A changed route not announced shows up in a dump or interrogate: noted too,
 		// unless ours.
@@ -599,14 +604,26 @@ func sorted(m map[int]string) [][2]any {
 	return out
 }
 
-func routeChanges(m map[int]map[int]int) []routeChange {
-	out := []routeChange{}
+// routeTriples is m as [[dst, level, value], ...]. A hello on a 2500 by 750 router holds 12750
+// of them. One marshal call for each cost more than the rest of the hello.
+func routeTriples(m map[int]map[int]int) json.RawMessage {
+	b := make([]byte, 0, 2+16*len(m))
+	b = append(b, '[')
 	for d, t := range m {
 		for l, v := range t {
-			out = append(out, routeChange{d, l, v})
+			if len(b) > 1 {
+				b = append(b, ',')
+			}
+			b = append(b, '[')
+			b = strconv.AppendInt(b, int64(d), 10)
+			b = append(b, ',')
+			b = strconv.AppendInt(b, int64(l), 10)
+			b = append(b, ',')
+			b = strconv.AppendInt(b, int64(v), 10)
+			b = append(b, ']')
 		}
 	}
-	return out
+	return append(b, ']')
 }
 
 type helloPage struct {
@@ -632,7 +649,7 @@ func (a *App) hello(p helloPage) []byte {
 	cfg.Users = nil
 	m := helloMsg{
 		T: "hello", Srcs: n.Srcs, Dsts: n.Dsts, At: n.At,
-		Tally: routeChanges(a.router.tally), Protect: routeChanges(a.router.protect),
+		Tally: routeTriples(a.router.tally), Protect: routeTriples(a.router.protect),
 		Status: a.status, Recent: p.recent, More: p.more,
 		Levels: r.levels, LevelDefaults: config.DefaultLevelColors, Cfg: cfg,
 		PinSet: r.cfg.SettingsPin != "", ConfigPath: a.cfgPath, Version: BuildLabel(),
