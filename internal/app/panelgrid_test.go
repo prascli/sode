@@ -83,6 +83,50 @@ rev: 3
 	}
 }
 
+// settings.mode is free-form to the server (the page reads it, gridpanelstage.js createStage). Each of its three
+// values, and a Grid file saved before takeOnly with mode take, must come back as stored after a restart.
+func TestGridPanelTakeModesSurviveARestart(t *testing.T) {
+	a := panelsApp(t)
+	ana := userKey(t, a, "Ana")
+	ids := map[string]string{}
+	for _, mode := range []string{"instant", "take", "takeOnly"} {
+		id := makeGridPanel(t, a, ana, "G "+mode)
+		if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G `+mode+`","settings":{"mode":"`+mode+`"}}`); rec.Code != 200 {
+			t.Fatalf("PUT mode %s: %d %s", mode, rec.Code, rec.Body.String())
+		}
+		ids[mode] = id
+	}
+	old := makeGridPanel(t, a, ana, "Old grid")
+	file := "id: " + old + `
+name: Old grid
+owner: Ana
+acts: session
+share:
+  mode: me
+type: grid
+sources:
+  members: all
+destinations:
+  members: [3, 1]
+settings:
+  mode: take
+rev: 2
+`
+	if err := os.WriteFile(fixPanelFile(a, old), []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ids["take (old file)"] = old
+	b := fixRestart(t, a, func(*config.Config) {})
+	for mode, id := range ids {
+		p := readPanel(t, b, ana, id)
+		s, _ := p["settings"].(map[string]any)
+		want := strings.TrimSuffix(mode, " (old file)")
+		if p["type"] != "grid" || s["mode"] != want {
+			t.Errorf("%s: type %v, settings %v", mode, p["type"], p["settings"])
+		}
+	}
+}
+
 func TestGridPanelReadSentBackIsAccepted(t *testing.T) {
 	a := panelsApp(t)
 	ana := userKey(t, a, "Ana")
@@ -108,6 +152,7 @@ func TestGridPanelRefusesCellsAndPages(t *testing.T) {
 		}
 	}
 	id := makeGridPanel(t, a, ana, "G")
+	before := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil).Body.String()
 	for _, body := range []string{
 		`{"name":"G","type":"grid","cells":[{"r":1,"c":1,"kind":"take"}]}`,
 		`{"name":"G","cells":[{"r":1,"c":1,"kind":"take"}]}`,
@@ -116,6 +161,9 @@ func TestGridPanelRefusesCellsAndPages(t *testing.T) {
 		if rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, body); rec.Code != 400 {
 			t.Errorf("PUT %s: %d %s", body, rec.Code, rec.Body.String())
 		}
+	}
+	if after := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil).Body.String(); after != before {
+		t.Errorf("a refused PUT changed the panel:\n%s\nwas\n%s", after, before)
 	}
 }
 

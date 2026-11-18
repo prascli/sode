@@ -35,6 +35,39 @@ func etagApp(t *testing.T) *App {
 
 const etagPanel = `{"name":"Wall","share":{"mode":"everyone"},"cells":[{"kind":"source","n":1}]}`
 
+// If-None-Match takes a list, a weak tag and *. A tag is over the caller's own body. So under narrower Rights, a
+// tag made under wider Rights gets the whole body, not 304.
+func TestETagListWeakStarAndOtherRights(t *testing.T) {
+	a := etagApp(t)
+	ana := userKey(t, a, "Ana")
+	path := "/api/v1/panels/" + makePanel(t, a, ana, etagPanel)
+	_, tag := ifNone(a, path, ana, "")
+	for _, hdr := range []string{"W/" + tag, `"other", ` + tag, "*"} {
+		if code, _ := ifNone(a, path, ana, hdr); code != 304 {
+			t.Errorf("If-None-Match %s: %d, want 304", hdr, code)
+		}
+	}
+	if code, _ := ifNone(a, path, ana, `"other"`); code != 200 {
+		t.Errorf("another tag: %d, want 200", code)
+	}
+	bot := botKey(t, a)
+	for _, p := range []string{"/api/v1/tally", "/api/v1/names"} {
+		_, wide := ifNone(a, p, bot, "")
+		cfg := a.r().cfg
+		cfg.APIClients[0].Rights = config.Rights{Visibility: config.VisHidden, Dsts: &[]int{1}, Sources: &[]int{1}}
+		if err := a.ApplyConfig(cfg); err != nil {
+			t.Fatal(err)
+		}
+		if code, narrow := ifNone(a, p, bot, wide); code != 200 || narrow == wide {
+			t.Errorf("%s under narrower Rights with the wide tag: %d, ETag %q", p, code, narrow)
+		}
+		cfg.APIClients[0].Rights = config.Rights{}
+		if err := a.ApplyConfig(cfg); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestPanelReadsAnswer304WhenNothingChanged(t *testing.T) {
 	a := etagApp(t)
 	id := makePanel(t, a, userKey(t, a, "Ana"), etagPanel)

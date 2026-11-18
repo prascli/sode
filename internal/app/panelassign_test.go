@@ -61,6 +61,27 @@ func instanceKey(t *testing.T, a *App, panel, key, name string) string {
 	return apiBody(t, rec)["key"].(string)
 }
 
+// A panel's own key does not read a panel that is not shared with everyone, even one of its owner's. It does not read
+// the people list for the Share picker.
+func TestPanelKeyReadsNoPrivatePanel(t *testing.T) {
+	a := panelsApp(t)
+	cy := userKey(t, a, "Cy")
+	own := makePanel(t, a, cy, `{"name":"Studio A","acts":"api"}`)
+	other := makePanel(t, a, cy, `{"name":"Studio B"}`)
+	key := instanceKey(t, a, own, cy, "Lobby")
+	if rec := apiDo(a, "GET", "/api/v1/panels/"+own, key, nil); rec.Code != 200 {
+		t.Fatalf("its own panel: %d %s", rec.Code, rec.Body.String())
+	}
+	for _, path := range []string{"/api/v1/panels/" + other, "/api/v1/panels/people"} {
+		if rec := apiDo(a, "GET", path, key, nil); rec.Code == 200 {
+			t.Errorf("%s with a panel key: 200 %s", path, rec.Body.String())
+		}
+	}
+	if body := apiDo(a, "GET", "/api/v1/panels", key, nil).Body.String(); strings.Contains(body, other) {
+		t.Errorf("the panel list for a panel key names the other panel: %s", body)
+	}
+}
+
 func assignBody(from, instance, pin string) string {
 	return fmt.Sprintf(`{"from":%q,"instance":%q,"pin":%q}`, from, instance, pin)
 }

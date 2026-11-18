@@ -55,6 +55,7 @@ func TestGridPanelRefusesBadEdges(t *testing.T) {
 	a := panelsApp(t)
 	ana := userKey(t, a, "Ana")
 	id := makeGridPanel(t, a, ana, "G")
+	before := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil).Body.String()
 	for _, edge := range []string{
 		`{"members":[1,2,1]}`,
 		`{"members":"all","hide":[3,3]}`,
@@ -68,12 +69,17 @@ func TestGridPanelRefusesBadEdges(t *testing.T) {
 		`{"members":"all","hide":[70000]}`,
 		`{"members":null}`,
 	} {
-		rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","sources":`+edge+`}`)
-		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "bad_request") {
-			t.Errorf("%s: %d %s", edge, rec.Code, rec.Body.String())
+		for _, side := range []string{"sources", "destinations"} {
+			rec := apiSend(a, "PUT", "/api/v1/panels/"+id, ana, `{"name":"G","`+side+`":`+edge+`}`)
+			if rec.Code != 400 || !strings.Contains(rec.Body.String(), "bad_request") {
+				t.Errorf("%s %s: %d %s", side, edge, rec.Code, rec.Body.String())
+			}
 		}
 	}
-	// An edge pins as many items as it likes (owner, 2026-11-17), members or not.
+	if after := apiDo(a, "GET", "/api/v1/panels/"+id, ana, nil).Body.String(); after != before {
+		t.Errorf("a refused PUT changed the panel:\n%s\nwas\n%s", after, before)
+	}
+	// An edge pins as many items as it likes, members or not.
 	pins := make([]string, 50)
 	for i := range pins {
 		pins[i] = fmt.Sprintf(`"%d":{"pinned":true}`, i+1)

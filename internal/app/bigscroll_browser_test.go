@@ -49,11 +49,7 @@ func TestChromeBigScroll(t *testing.T) {
 	}
 
 	mouse := func(kind string, x, y float64) {
-		p := map[string]any{"type": kind, "x": x, "y": y, "button": "left", "buttons": 1, "clickCount": 1}
-		if kind == "mouseMoved" && y < 0 {
-			p["buttons"] = 0
-		}
-		b.call("Input.dispatchMouseEvent", p)
+		b.call("Input.dispatchMouseEvent", map[string]any{"type": kind, "x": x, "y": y, "button": "left", "buttons": 1, "clickCount": 1})
 	}
 	at := func(expr string) (float64, float64) {
 		v := b.eval(`(() => { const r = ` + expr + `.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()`).([]any)
@@ -102,10 +98,11 @@ func TestChromeBigScroll(t *testing.T) {
 	mouse("mouseReleased", x, y+100)
 	b.waitFor("the drag scrolls the page", `scrollY > 100`)
 
-	// Every page that runs bigScrollAll draws its page bar: /log and the panel editor too.
+	// Every page that runs bigScrollAll draws its page bar: /log and the panel editor too. It shows exactly when the
+	// page is taller than the window, so a page that fits cannot pass with the bar broken.
 	for _, path := range []string{"/log", "/panels/editor"} {
 		b.open(srv.URL + path)
-		b.waitFor(path+" draws its page bar", `(() => { const p = document.querySelector('.sode-bigscroll--page'); return !!p && (document.scrollingElement.scrollHeight <= innerHeight || !p.hidden); })()`)
+		b.waitFor(path+" draws its page bar", `(() => { const p = document.querySelector('.sode-bigscroll--page'); return !!p && (document.scrollingElement.scrollHeight > innerHeight) === !p.hidden; })()`)
 	}
 	b.check()
 }
