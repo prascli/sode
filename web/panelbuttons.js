@@ -59,7 +59,7 @@ export function buttonsBody(ctx, first) {
   let panel = first;
   let holdTimer = 0;
   let stopped = false;
-  // The Test it live run is no instance, so it neither reads nor writes the browser's saved Page.
+  // The Live Editor's run is no instance, so it neither reads nor writes the browser's saved Page.
   let st = showPage(stateOf(panel), landingPage(pagesOf(panel), embedded ? ctx.page : savedPage(id)));
   let cells = cellsOf(panel, st.page);
   const notePage = () => {

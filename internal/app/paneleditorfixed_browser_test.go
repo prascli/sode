@@ -130,7 +130,7 @@ func TestChromeEditorFixedDests(t *testing.T) {
 	}
 
 	b.eval(`document.getElementById('ed-live').click()`)
-	b.waitFor("Test it live draws the panel without Destination cells", `!!document.querySelector('#ed-live-view .sode-panel__cell--source') && !document.querySelector('#ed-live-view .sode-panel__cell--destination')`)
+	b.waitFor("The Live Editor draws the panel without Destination cells", `!!document.querySelector('#ed-live-view .sode-panel__cell--source') && !document.querySelector('#ed-live-view .sode-panel__cell--destination')`)
 	b.eval(`document.getElementById('ed-live').click()`)
 
 	b.open(srv.URL + "/panels/" + id)

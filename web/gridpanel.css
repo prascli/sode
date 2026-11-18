@@ -1134,7 +1134,7 @@ html:has(.sode-gridpanel) {
 :root:not([data-layout="phone"]) .sode-gridpanel__deck .sode-panels__spacer {
   display: none;
 }
-/* The header row: the header and the status block, with a line under it. In Test it live the slot between them sets
+/* The header row: the header and the status block, with a line under it. In the Live Editor the slot between them sets
    its height, so a message that shows or goes moves nothing. */
 :root:not([data-layout="phone"]) .sode-gridpanel__headrow {
   align-items: center;

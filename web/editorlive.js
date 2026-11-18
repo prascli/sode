@@ -1,9 +1,10 @@
-// The editor's Test it live: the saved panel runs in place of the grid and sidebar (panelrun.js, embedded), over
+// The Live Editor: the saved panel runs in place of the grid and sidebar (panelrun.js, embedded), over
 // the editor's own session. It is not an instance of the panel, so it sends no keepalive.
 // A Grid panel gets a bar over it that marks it as a preview. Its drawer holds the editor's own Sources and
 // Destinations lists (editorgridlist.js), moved in for the run and back after it. A list's Artwork button shows the
 // Cell tab's artwork over it (editorliveart.js). Their edits show at once. Names picked on the grid are that list's
-// selection, and its selection bar moves into the bar while the drawer is closed.
+// selection. Its selection bar moves into the bar while the drawer is closed, but the bar keeps it hidden for now
+// (docs/agents/panels.md).
 import { el, icon } from './core.js';
 import { sessionFetch } from './sessionkey.js';
 import { runPanel } from './panelrun.js';
@@ -12,7 +13,7 @@ import { makeTabs } from './tabs.js';
 import { btn } from './formbits.js';
 import { createLiveArt } from './editorliveart.js';
 
-// host holds the live panel, body is the editor it replaces, button is the toolbar's Test it live. ed is
+// host holds the live panel, body is the editor it replaces, button is the toolbar's Live Editor button. ed is
 // { save, dirty, readOnly, edges, lists, cellTab, edgeLists }. edges() is { sources, destinations, rev } as the editor
 // has them. lists() gives the two list columns, cellTab() the sidebar's Cell tab and edgeLists() the lists' own apis.
 export function createLive(host, body, button, ed) {
@@ -74,15 +75,18 @@ function gridParts(ed) {
   open.append(openIcon, el('span', null, 'Edit lists'));
   open.setAttribute('aria-controls', 'ed-live-drawer');
   open.hidden = ro;
-  const what = el('span', 'sode-live__what', 'A take here changes the router. List changes show at once.');
-  // The selection bar of the list whose names are picked on the grid.
+  // The selection bar of the list whose names are picked on the grid. Hidden on the owner's request; the drawer keeps
+  // its own copy of the actions.
   const picked = el('div', 'sode-live__picked');
   picked.id = 'ed-live-picked';
+  picked.hidden = true;
+  const title = el('h2', 'sode-live__title', 'Panel Live Editor');
+  title.id = 'ed-live-title';
   const bar = el(
     'div',
     'pb-banner pb-banner--info sode-live__bar',
+    title,
     el('span', 'pb-badge pb-badge--info', 'Preview'),
-    what,
     picked,
     el('span', 'sode-panels__spacer'),
     state,
@@ -91,7 +95,7 @@ function gridParts(ed) {
   );
   bar.id = 'ed-live-bar';
   bar.setAttribute('role', 'toolbar');
-  bar.setAttribute('aria-label', 'Test it live');
+  bar.setAttribute('aria-labelledby', title.id);
 
   const close = btn('pb-btn--ghost pb-btn--icon pb-btn--sm', '', () => {
     setOpen(false);
@@ -177,7 +181,6 @@ function gridParts(ed) {
       actsHome.set(show, show.parentNode);
       picked.append(show);
     }
-    what.hidden = !!show;
   }
   setOpen(false);
 

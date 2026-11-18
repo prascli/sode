@@ -425,13 +425,13 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
       set(itemsHideText(edge(), ns, on, (n) => !!defaultFor({ kind: what, n }, ed.defaults())));
     },
     clearPicks: () => many().size && setSel(NONE()),
-    // Test it live's grid picks (editorlive.js): the same selection as a click here. Rows not in the list are left out.
+    // The Live Editor's grid picks (editorlive.js): the same selection as a click here. Rows not in the list are left out.
     select(ns) {
       const keep = ns.filter((n) => at.has(n));
       setSel({ selected: new Set(keep), anchor: keep.at(-1) ?? null });
       if (keep.length) reveal(keep.at(-1));
     },
-    // The selection bar. Test it live shows it over the grid while names are picked there.
+    // The selection bar. The Live Editor can show it over the grid while names are picked there.
     acts,
   };
   return api;

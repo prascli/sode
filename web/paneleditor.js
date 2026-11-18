@@ -50,7 +50,7 @@ import { writeClip, createPasteReader } from './editorclip.js';
 import { emptyUndo, record, undo, redo, sameCells, pageSnap, samePages, restorePages, rekeySaved } from './gridundo.js';
 import { edgeChoices, edgeNote } from './gridedge.js';
 import { askPasteEdge } from './editorpasteedge.js';
-import { pagesOf, pageView, fitPages } from './panelpages.js';
+import { pagesAfterSave, pagesOf, pageView, fitPages } from './panelpages.js';
 import { addPage, movePage, renamePage, enablePage, deletePage, copyPage, openClick } from './editorpagerules.js';
 import { createPageBar } from './editorpagebar.js';
 import { createPageView } from './editorpageview.js';
@@ -89,6 +89,8 @@ export async function runEditor() {
   let trusted = false; // only a Trusted user can make a client, so a new panel starts as Both for them and Session for the rest.
   on('access', (a) => (trusted = !!a.trusted && !!a.user));
   let edits = {}; // the sidebar's unsaved panel fields: {settings, acts, clientRights}, each after its first edit.
+  // The save's state for the toolbar: busy while a save runs, failed holds why the last save failed until one works.
+  const saveState = { busy: false, failed: '' };
   const paintWatchers = []; // (grid, selection box) after every repaint, for things that sit over the squares
   const readOnly = () => !!loaded && !loaded.canEdit;
   const fields = () => ({
@@ -475,10 +477,15 @@ export async function runEditor() {
     menu.show(menuAway ? null : box, menuItems());
     for (const fn of paintWatchers) fn(g, box);
     nameBox.disabled = ro;
-    $('ed-save').disabled = ro || !dirty();
+    const saveBtn = $('ed-save');
+    const failed = !ro && !!saveState.failed;
+    saveBtn.disabled = ro || saveState.busy || (!dirty() && !failed);
+    saveBtn.textContent = failed ? 'Retry save' : 'Save';
+    saveBtn.classList.toggle('pb-btn--ok', !failed);
+    saveBtn.classList.toggle('pb-btn--danger', failed);
     $('ed-banner').hidden = !ro;
     // Not say(): the slot keeps its size whatever it holds, so the toolbar never re-wraps (panels.css).
-    $('ed-state').textContent = ro ? '' : dirty() ? 'Unsaved changes' : loaded ? 'Saved' : '';
+    $('ed-state').textContent = ro ? '' : saveState.busy ? 'Saving' : failed ? 'Not saved' : dirty() ? 'Unsaved changes' : loaded ? 'Saved' : '';
     const link = $('ed-open');
     link.hidden = !loaded;
     if (loaded) link.href = `panels/${loaded.id}`;
@@ -615,7 +622,7 @@ export async function runEditor() {
     if (!readOnly() && dirty()) e.preventDefault();
   });
 
-  // One save at a time. A second Save, Ctrl+S or Test it live during a save gets the same answer. So a new panel is
+  // One save at a time. A second Save, Ctrl+S or Live Editor press during a save gets the same answer. So a new panel is
   // never made twice.
   let saving = null;
   function save() {
@@ -625,45 +632,59 @@ export async function runEditor() {
     return saving;
   }
 
+  // A PUT that got no answer or a server error tries once more by itself. A PUT sends the whole panel, so a second
+  // one is safe. A POST does not try again: a lost answer can hide a panel that it made.
+  const RETRY_MS = 1000;
   async function saveNow() {
-    $('ed-save').disabled = true;
-    say('ed-status', 'Saving.');
+    saveState.busy = true;
+    refresh();
     const sentEdits = edits;
     const sentName = nameBox.value;
-    const body = JSON.stringify(saveBody(loaded || newPanel(), sentName, firstGrid(), edits, livePages()));
-    const at = { focus: fi(), open: open.map((id) => pages.findIndex((p) => p.id === id)), ids: pages.map((p) => p.id) };
+    const sentPages = livePages();
+    const body = JSON.stringify(saveBody(loaded || newPanel(), sentName, firstGrid(), edits, sentPages));
+    const send = () =>
+      edCall('The panel was not saved', 'Sode did not answer, so the panel was not saved.')(loaded ? `api/v1/panels/${loaded.id}` : 'api/v1/panels', {
+        method: loaded ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
     let stored;
     try {
-      stored = await edCall('The panel was not saved', 'Sode did not answer, so the panel was not saved.')(
-        loaded ? `api/v1/panels/${loaded.id}` : 'api/v1/panels',
-        {
-          method: loaded ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-        },
-      );
+      stored = await send().catch(async (e) => {
+        if (!loaded || (e.status !== 0 && !(e.status >= 500))) throw e;
+        await new Promise((ok) => setTimeout(ok, RETRY_MS));
+        return send();
+      });
     } catch (e) {
-      say('ed-status', e.message);
+      saveState.busy = false;
+      saveState.failed = e.message;
+      say('ed-status', `${e.message} Your changes are still here. Press Retry save.`);
       refresh();
       return e.message;
     }
     const made = !loaded;
     loaded = stored;
-    // The first save gives an unsaved Page 1 its id; the place in the list is what stays.
-    pages = pagesOf(stored);
-    focus = pages[at.focus]?.id ?? pages[0].id;
+    // Pages edited during the save stay as they are now; the rest take the stored copy. The first save gives an
+    // unsaved Page 1 its id.
+    const after = pagesAfterSave(sentPages, livePages(), pagesOf(stored));
+    pages = after.pages;
+    const rekey = (id) => after.ids[id] ?? id;
+    focus = rekey(focus);
+    if (!pages.some((p) => p.id === focus)) focus = pages[0].id;
     steps = rekeySaved(
       steps,
-      at.ids,
-      pages.map((p) => p.id),
+      sentPages.map((p) => p.id),
+      sentPages.map((p) => rekey(p.id)),
     );
-    open = at.open.map((i) => pages[i]?.id).filter((id) => id !== undefined);
+    open = open.map(rekey).filter((id) => pages.some((p) => p.id === id));
     if (!open.includes(focus)) open = [focus];
     // A field changed while the save was in flight is a newer edit: it stays, and the editor says Unsaved changes.
     edits = Object.fromEntries(Object.entries(edits).filter(([k, v]) => v !== sentEdits[k]));
     if (made) history.replaceState(null, '', `panels/editor?panel=${loaded.id}`);
     if (nameBox.value === sentName) nameBox.value = loaded.name;
-    say('ed-status', 'Saved.');
+    if (saveState.failed) say('ed-status', '');
+    saveState.busy = false;
+    saveState.failed = '';
     await loadList().catch(() => {});
     refresh();
     fieldsChanged();
@@ -804,7 +825,7 @@ export async function runEditor() {
     // Find's fill order, which Wrap follows.
     useFillOrder: (fn) => (fillOrder = fn),
     fillOrder: () => fillOrder(),
-    // The sidebar's Cell tab, which Test it live shows in its drawer; openArt is true when the drawer showed it.
+    // The sidebar's Cell tab, which the Live Editor shows in its drawer; openArt is true when the drawer showed it.
     useCellTab: (t) => (cellTab = t),
     useEdgeLists: (l) => (edgeLists = l),
     openArt: () => live.openArt(),
