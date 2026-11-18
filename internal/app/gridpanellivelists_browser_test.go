@@ -48,7 +48,7 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	})()`)
 	b.waitFor("Edit lists opens the drawer with the editor's own Sources list, and each part of it has height", `(() => {
 		const d = document.getElementById('ed-live-drawer');
-		return d.classList.contains('pb-drawer--open') && !d.inert && d.contains(document.getElementById('ed-sources-col'))
+		return d.classList.contains('pb-drawer--open') && !d.inert && document.getElementById('ed-live-lists').getAttribute('aria-pressed') === 'true' && d.contains(document.getElementById('ed-sources-col'))
 			&& document.getElementById('ed-sources-list').clientHeight > 0 && document.querySelector('#ed-sources-col .sode-rlist').clientHeight > 0
 			&& !!document.getElementById('ed-sources-list').offsetParent && !document.getElementById('ed-destinations-list').offsetParent;
 	})()`)
@@ -154,7 +154,7 @@ func TestChromeGridPanelLiveLists(t *testing.T) {
 	}
 
 	b.eval(`key(document.getElementById('ed-live-close'), 'Escape'); true`)
-	b.waitFor("Esc in the drawer, out of a list, closes it", `!document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open') && document.activeElement === document.getElementById('ed-live-lists')`)
+	b.waitFor("Esc in the drawer, out of a list, closes it", `!document.getElementById('ed-live-drawer').classList.contains('pb-drawer--open') && document.getElementById('ed-live-lists').getAttribute('aria-pressed') === 'false' && document.activeElement === document.getElementById('ed-live-lists')`)
 	b.waitFor("closed, the grid has its width back and draws crosspoints to its right edge", `(() => {
 		const sc = document.querySelector('#ed-live-view .sode-gridpanel__scroll'), r = sc.getBoundingClientRect();
 		const hit = document.elementsFromPoint(r.right - 40, r.top + r.height * 0.6);

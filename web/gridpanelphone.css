@@ -199,8 +199,7 @@
 :root[data-layout="phone"] .sode-gridpanel__range--dst {
   grid-row: 4;
 }
-/* Find or Filter (gridpanelfindbox.js): on the phone, two named choices and what each does, over the two boxes, in
-   place of the switch. */
+/* Find or Filter (gridpanelfindbox.js): on the phone, two named choices over the two boxes, in place of the switch. */
 .sode-gridpanel__find-choice {
   display: none;
 }
@@ -218,9 +217,4 @@
 }
 :root[data-layout="phone"] .sode-gridpanel__find-choice > .pb-btn-group {
   flex: none;
-}
-:root[data-layout="phone"] .sode-gridpanel__find-says {
-  color: var(--pb-text-muted);
-  font-size: var(--pb-text-xs);
-  line-height: 1.3;
 }

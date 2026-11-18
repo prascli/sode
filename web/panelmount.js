@@ -31,10 +31,10 @@ export function pageUi() {
 // Fills host with a live panel. onBack is the way out to editing. A Grid panel runs as on its own page. So it also
 // gets panel.html's instance name, Levels box and take confirm. They are made
 // again for each run, since keyconfirm.js adds listeners it never removes.
-// edit is a Grid panel's { bar, aside } (editorlive.js). Back to editing goes in the bar over the panel. aside sits in
-// the panel's box and keeps its own keys.
+// edit is a Grid panel's { bar, open, aside, onPicks } (editorlive.js). Back to editing goes in the bar, left of open.
+// aside sits in the panel's box and keeps its own keys. The run gives onPicks each new set of picks.
 export function liveUi(host, onBack, edit = null) {
-  const back = el('button', 'pb-btn pb-btn--outline pb-btn--sm', 'Back to editing');
+  const back = el('button', `pb-btn pb-btn--outline ${edit ? 'pb-btn--lg' : 'pb-btn--sm'}`, 'Back to editing');
   back.id = 'ed-live-back';
   back.type = 'button';
   back.addEventListener('click', onBack);
@@ -42,7 +42,7 @@ export function liveUi(host, onBack, edit = null) {
   const name = el('span');
   name.hidden = true;
   const head = el('div', 'sode-panels__head', title, name, el('span', 'sode-panels__spacer'));
-  if (edit) edit.bar.append(back);
+  if (edit) edit.open.before(back);
   else head.append(back);
   const note = el('p', 'sode__hint');
   const status = el('p', 'sode-panel__status');
@@ -91,6 +91,7 @@ export function liveUi(host, onBack, edit = null) {
     back,
     levels,
     aside: edit?.aside,
+    onPicks: edit?.onPicks,
   };
 }
 
