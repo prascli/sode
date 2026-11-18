@@ -474,7 +474,14 @@ on('pick', () => {
   if (!boxPicking()) for (const k of ['src', 'dst']) boxes[k].cb.close();
 });
 on('conn', renderConn);
-on('history', renderHistory);
+// A burst of takes sends one recent each, and a redraw rebuilds every row: one redraw per frame is enough.
+let histFrame = 0;
+on('history', () => {
+  histFrame ||= requestAnimationFrame(() => {
+    histFrame = 0;
+    renderHistory();
+  });
+});
 on('result', (r) => $('result').replaceChildren(resultNode(r)));
 
 presetHost({
