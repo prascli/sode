@@ -19,8 +19,17 @@ One of the parallel signal types (such as video or audio) that a source can be c
 _Avoid_: wire level, layer
 
 **Router name**:
-The name the router gives a source or destination. Sode cannot change it, and re-reads names from the router on a timer. Keep it apart from a user's name, a preset's name and a filter set's name.
+The name the router gives a source or destination. Sode cannot change it, and re-reads names from the router on a timer. Keep it apart from a user's name, a preset's name, a filter set's name and the router title.
 _Avoid_: label, refresh (for the re-read)
+
+**Router title**:
+The name a person gives a router in Sode, such as "Studio Ultrix". It is the router's own name, not the name of one of its sources or destinations.
+
+**Router prefix**:
+The one letter, A to Z, that names a router when you type or read a source or destination. B.69 is number 69 on router B. Each router on a server has its own. Sode hides it while there is only one router.
+
+**Router UID**:
+The hidden identity Sode gives a router when it is added. It never changes, never shows in the UI, and is what stored items and export files use to say which router they mean.
 
 **Route**:
 One source connected to one destination on a set of levels. A take sends one or more routes.
@@ -46,7 +55,7 @@ What Sode intends to send but has not yet sent. A plan becomes a take when a per
 _Avoid_: pending take
 
 **Preset**:
-A saved plan that can be fired in one confirm, pinned and shared. It is Sode's own feature.
+A saved plan that can be fired in one confirm and pinned. It is Sode's own feature.
 _Avoid_: salvo
 
 **Salvo**:
@@ -177,7 +186,7 @@ A user who signs in by picking their name. Such a user is never Administrator an
 _Avoid_: PIN-less user
 
 **Critical action**:
-An advanced setting change that cannot be undone or that changes who can do what. Examples are a change to the router connection or to a role, and a destructive import. Each one asks a signed-in Administrator for their PIN again.
+An advanced setting change that cannot be undone or that changes who can do what. Examples are a change to the router connection or to a role, and a Replace import. Each one asks a signed-in Administrator for their PIN again.
 
 **PIN recheck**:
 An Administrator typing their own PIN again before a critical action. It holds for one minute on that connection.
@@ -186,7 +195,7 @@ An Administrator typing their own PIN again before a critical action. It holds f
 A qualified user's name and PIN, typed in someone else's browser. It lets one browser do one action that needs a higher role than its own sign-in has. The browser then goes back to its own sign-in. History names both people.
 
 **Request approval**:
-Sending an Approval request to the browsers of signed-in Administrators, who approve or deny it there.
+Sending an Approval request to the browsers of signed-in users whose Role and Rights let them approve the action. One of them approves or denies it there.
 
 **Guest role**:
 The role a Guest acts with in a browser: Standard or Trusted, never Administrator. An API call with no key never gets it.
@@ -200,6 +209,48 @@ The three Access presets, from loosest to strictest. Under Open access a Guest i
 
 **Public panels allowed**:
 The install-wide switch that lets panel owners make a panel Public. On by default.
+
+**PIN needed**:
+A user that an import made from a file with no PIN hashes. The user keeps their Role but must set a new PIN at the next sign-in. Until then the user acts as a User without a PIN, so an Administrator in this state cannot act as one.
+
+**Add import**:
+An import that adds and updates the ticked items and deletes nothing. For each item that clashes with one already here, a person picks Use new, Use current, Skip or Rename.
+
+**Replace import**:
+An import that empties each ticked category and then imports it. Only an Administrator can do it, and it is a Critical action.
+_Avoid_: reset import, merge import
+
+**Broken**:
+Describes a preset, filter set or panel that refers to something that is not there. Examples are a user, a preset, artwork, or a source, destination, level or router that is gone from the router. A router name change alone never makes an item Broken. Sode shows the word Broken beside it.
+
+**Name moved**:
+Describes a preset, filter set or panel whose stored source or destination name now sits at a different number on the router. The item still fires on its stored number. Sode shows the words Name moved beside it.
+
+**Swap**:
+To replace one source or one destination with another in every preset, filter set and panel that uses it, in one Settings save. Swap source and Swap destination are the two actions. The name keeps it apart from Replace import.
+
+**Share**:
+To let other users open or use a panel. It is about access and never makes a copy.
+
+**Send a copy**:
+To give a copy of a preset, filter set or panel to another user, who accepts or declines it in their Inbox.
+
+**Inbox**:
+The list of copies that other users sent to a user and that the user has not accepted or declined. One send is one card, however many items it holds.
+
+**Item link**:
+A link to one preset or one panel on this install, also shown as a QR code. It works only on the install that made it.
+_Avoid_: share link
+
+**Review**:
+The step that Save in Settings opens before anything is written. It shows each change with its old and new value, the Interruptions, and which changes will stay unsaved and why. Write "the review".
+
+**Step in** / **Step out**:
+Step in is a user typing their name and PIN in a browser where another person works. They then act as themself in that one tab for a short time. Step out returns the tab to the person it belongs to. A step-in also ends by itself after 5 minutes with no activity, at any Lock, or when the page closes.
+
+**Interruptions**:
+The live panels, streams, sessions and browsers that a Settings save ends or narrows. The review lists them before Save, and the record of the save keeps them, since they do not come back. The exception is a Public panel page, which comes back by itself when its panel is Public again.
+_Avoid_: What this stops
 
 ### Panels
 
@@ -375,6 +426,18 @@ The state where keys act on History entries instead of the patch boxes. Esc from
 
 **Compact view**:
 The desktop main page with History hidden and the title, patch boxes and a smaller Presets row centred in the window. The Settings and Sode Panels buttons, the Lock bar and the Server and Router status fade out until pointed at or focused. The status shows again whenever either link is not up. Alt+Shift+C turns it on or off for This browser; it can also be set for Me or Everyone. History shows again while a preset adds entries from it. The phone layout ignores it.
+
+**Topic**:
+A top-level group of Settings sections, with a heading band on the page and a branch in the sidebar tree. With v2, Settings has five topics: Preferences, Look and feel, Routers, Access and Server.
+
+**Preferences**:
+The Settings topic for a person's own choices, saved to This browser or Me. It holds This browser and My user. Every role sees it.
+
+**Look and feel**:
+The Settings topic for how Sode looks and acts on every browser: Everyone's defaults, Branding, History, Level colors and Confirm and results.
+
+**Routers** / **Access** / **Server**:
+The other three Settings topics. Routers holds the Routers list and one block of sections for each router. Access holds the locks, users, API and panel sign-in. Server holds the proxy, Export & Import and the setup wizard.
 
 **Server link**:
 The connection between a browser and the Sode server.
