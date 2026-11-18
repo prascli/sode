@@ -12,8 +12,8 @@ import { dropTo, canMove } from './orderedlistrules.js';
 // starts and ends.
 // Buttons carry data-act (the caller's act, or up, down, delete) and data-i, so a caller can put focus back after a repaint.
 const DRAG_AT = 12; // px from the chip's top left corner to the pointer
-// Marks a drag as a row of this page's. A windowed list can drop the row a drag started from, and then neither its
-// dragend nor a drop outside the rows reaches us; a later drag without the mark (a file) must not move a row.
+// Marks a drag as a row of this page's. A windowed list can drop the row that a drag started from. Then its dragend
+// does not come, and nor does a drop outside the rows. A later drag without the mark (a file) must not move a row.
 const ROW_TYPE = 'application/x-sode-row';
 
 export function createOrderedList(opts) {

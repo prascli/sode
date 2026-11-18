@@ -61,7 +61,7 @@ export function createEdgeList(ed, { key, rights, what, side, onPick, onArt }) {
   list.id = `ed-${key}-list`;
   list.tabIndex = 0;
   list.setAttribute('aria-label', `${Whats} on the panel, ${side}`);
-  // A grid, not a listbox: each row holds buttons, which an option may not. Rows carry aria-selected, and the
+  // A grid, not a listbox: each row holds buttons, and an option cannot. Rows carry aria-selected, and the
   // keyboard cursor is the active descendant, as editorrouterlist.js does for its listbox.
   list.setAttribute('role', 'grid');
   list.setAttribute('aria-multiselectable', 'true');

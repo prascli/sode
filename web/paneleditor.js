@@ -615,8 +615,8 @@ export async function runEditor() {
     if (!readOnly() && dirty()) e.preventDefault();
   });
 
-  // One save at a time: a second Save, Ctrl+S or Test it live while one is in flight gets the same answer, so a new
-  // panel is never made twice.
+  // One save at a time. A second Save, Ctrl+S or Test it live during a save gets the same answer. So a new panel is
+  // never made twice.
   let saving = null;
   function save() {
     saving ??= saveNow().finally(() => {
