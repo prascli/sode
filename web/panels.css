@@ -1838,7 +1838,8 @@ body {
   padding-inline-start: var(--pb-space-3);
 }
 /* A count has one tile per character. The Destination bar reads from the bottom up, as the Grid page's Sources label does.
-   The text scales with the square (cqi of the picture over its columns, GRID_SQUARES + 1), so every size looks alike. */
+   The text scales with the square (cqi of the picture over its columns, GRID_SQUARES + 1). A list picture's text never
+   goes below the Small one's, so the Large picture's smaller squares still read; a character may then pass its square. */
 .sode-ov__thumb--grid {
   container-type: inline-size;
   --sode-ov-cols: 9;
@@ -1858,7 +1859,10 @@ body {
   font-style: normal;
   justify-content: center;
   line-height: 1;
-  overflow: hidden;
+  overflow: visible;
+}
+.sode-ov__thumb--sm.sode-ov__thumb--grid .sode-ov__tile {
+  font-size: max(calc(60cqi / var(--sode-ov-cols)), 0.55rem);
 }
 .sode-ov__thumb--grid .sode-ov__tile--destination {
   rotate: -90deg;
