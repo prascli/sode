@@ -1,7 +1,7 @@
 // Staging on a Grid panel. Pure: no DOM, no clock, no network. Every function returns a new state.
 // A staged entry is { dst, level, src }. Staging is keyed by destination and level, so a breakaway goes in one take
 // (video from one source, audio from another). A route (GLOSSARY.md) is one destination and one source with its levels.
-// Instant mode holds nothing staged: a press sends its one route at once.
+// Instant mode holds nothing staged: a press, a Diagonal or a Drawn line sends at once, with no confirm.
 
 // The server takes 200 routes in one take; the Grid stops well under it.
 export const STAGE_MAX = 128;
@@ -36,9 +36,9 @@ const fail = (st, code, message = '') => ({ ...st, error: { code, message } });
 export const pressCrosspoint = (st, xp, levels) => stageRoutes(st, [xp], levels);
 
 // One press: pairs is [{ src, dst }], a single crosspoint or a Diagonal (gridpanelpick.js), no destination twice.
-// Returns { st, send, confirm }. confirm asks for the take confirm at once: a press of more than one route confirms
-// even in Instant mode. In Take mode, a press that adds nothing to the stage is the second press. Examples are the same
-// crosspoint, Diagonal or line again, on the same or fewer levels. It keeps the stage and asks for the take confirm.
+// Returns { st, send, confirm }. confirm asks for the take confirm at once. In Take mode, a press that adds nothing to
+// the stage is the second press. Examples are the same crosspoint, Diagonal or line again, on the same or fewer levels.
+// It keeps the stage and asks for the take confirm. Instant mode sends every press at once, however many routes.
 export function stageRoutes(st, pairs, levels) {
   const none = { send: null, confirm: false };
   if (!levels.length) return { st: fail(st, 'no-levels'), ...none };
@@ -50,7 +50,6 @@ export function stageRoutes(st, pairs, levels) {
   const next = { ...st, staged, error: null };
   if (stagedCount(next) > STAGE_MAX) return { st: { ...st, error: { code: 'cap', add: pairs.length, have: stagedCount({ staged: base }) } }, ...none };
   if (st.mode === 'take') return { st: next, ...none };
-  if (pairs.length > 1) return { st: next, send: null, confirm: true };
   return { st: { ...st, staged: [], error: null }, send: routesOf(next), confirm: false };
 }
 
@@ -64,7 +63,7 @@ export function unstageRoute(st, { src, dst }) {
   return staged.length === st.staged.length ? st : { ...st, staged, error: null };
 }
 
-// What the take confirm sends, or null when nothing is staged. In Instant mode only a press waiting on its confirm is.
+// What the take confirm sends, or null when nothing is staged. In Instant mode only an Undo waiting on its confirm is.
 export const confirmRoutes = (st) => (st.staged.length ? routesOf(st) : null);
 
 // The confirm closed without a take. Instant mode holds nothing staged.

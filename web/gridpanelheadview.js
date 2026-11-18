@@ -8,6 +8,7 @@ import { connBox, paintConn } from './connview.js';
 import { layout, onLayout } from './layout.js';
 import { setResult, resultNode, dismissResult } from './banner.js';
 import { actionsFor, editHref } from './panelsrules.js';
+import { bannerStep } from './gridpanelhead.js';
 
 // core.js's on() has no unsubscribe, so one subscription at import paints every head a run has made.
 const conns = new Set();
@@ -31,9 +32,9 @@ const rule = (cls) => {
 // the page's Copy (gridpanelrun.js).
 export function gridHead(ui, count, { onCopy } = {}) {
   const page = !ui.back;
-  // The panel page puts a rule between the panel's name and the instance name.
+  // The panel page puts a rule after the instance name, before the buttons.
   const nameRule = page ? rule('sode-gridpanel__namerule') : null;
-  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ...[ui.title, nameRule, ui.name].filter(Boolean)), count);
+  const id = el('div', 'sode-gridpanel__id', el('div', 'sode-gridpanel__name', ...[ui.title, ui.name, nameRule].filter(Boolean)), count);
   ui.head.prepend(id);
   const conn = connBox();
   conns.add(conn);
@@ -76,12 +77,19 @@ export function gridHead(ui, count, { onCopy } = {}) {
   // The panel page's message box, in the gap before Clear and Take. Its size is the gap's (gridpanel.css), so what it
   // shows never moves the grid. A result (res) shows over the "This panel was changed" banner.
   const res = page ? el('div', 'sode-gridpanel__res') : null;
-  const msg = page ? el('div', 'sode-gridpanel__msg', res) : null;
+  // The count of messages that a higher one held back (bannerStep), in the box's corner.
+  const held = page ? el('span', 'pb-badge sode-gridpanel__held') : null;
+  if (held) held.hidden = true;
+  // One live region that only gets each message's words, so a screen reader reads a result once and never the buttons.
+  const said = page ? el('div', 'pb-sr-only sode-gridpanel__said') : null;
+  said?.setAttribute('role', 'status');
+  const msg = page ? el('div', 'sode-gridpanel__msg', res, held, said) : null;
   const top = el('div', 'sode-gridpanel__headrow');
   ui.head.before(deck);
-  top.append(...[ui.head, slot, conn.root].filter(Boolean));
+  // On the panel page a rule follows the Lock chip's "Signed in as" (gridpanel.css shows it only beside the chip).
+  top.append(...[page ? rule('sode-gridpanel__whorule') : null, ui.head, slot, conn.root].filter(Boolean));
   deck.append(top, ...(box ? [box] : []), rule('sode-gridpanel__rule sode-gridpanel__rule--1'), finds, rule('sode-gridpanel__rule sode-gridpanel__rule--2'));
-  if (msg) deck.append(msg);
+  if (msg) deck.append(rule('sode-gridpanel__rule sode-gridpanel__rule--3'), msg);
   // The phone's band (gridpanel.css): More and the levels in words open the rest of the deck under it.
   const more = el('button', 'pb-btn pb-btn--ghost pb-btn--icon sode-gridpanel__more', icon('menu', false));
   more.type = 'button';
@@ -123,16 +131,26 @@ export function gridHead(ui, count, { onCopy } = {}) {
   // With the buttons out of the header, kiosk mode alone hides them (panelfull.js).
   if (page) ui.toolsShown = (kiosk) => !kiosk && (tools.parentNode !== ui.head || !ui.head.hidden);
 
-  // The banner in msg: the main page's result banner and its timed dismiss (banner.js). A new key is a new message.
-  // held marks a message from the run's state, which goes when the state clears. The others follow the main page's
-  // rules: an ok one goes on its timer, an error by its X.
+  // The banner in msg: the main page's result banner and its timed dismiss (banner.js). bannerStep (gridpanelhead.js)
+  // decides what shows. held marks a message from the run's state, which goes when the state clears. The others
+  // follow the main page's rules: an ok one goes on its timer, an error by its X.
   let shown = null;
+  let r = null;
   let updating = false;
-  const drop = () => {
-    if (shown) dismissResult(shown.r);
-    shown = null;
+  const back = new Set();
+  const paintBack = () => {
+    held.hidden = !back.size;
+    if (back.size) held.textContent = `${back.size} ${back.size === 1 ? 'message' : 'messages'} not shown`;
   };
-  const say = ({ text, kind, key, held }) => {
+  const drop = () => {
+    if (r) dismissResult(r);
+    r = null;
+    shown = null;
+    back.clear();
+    if (held) paintBack();
+  };
+  // behind is the key of a message that the state's message (held) keeps from showing.
+  const say = ({ text, kind, key, held: isHeld, behind }) => {
     if (!msg || layout() === 'phone') {
       drop();
       return false;
@@ -141,15 +159,27 @@ export function gridHead(ui, count, { onCopy } = {}) {
     const up = !ui.update.hidden;
     if (up && !updating) drop();
     updating = up;
-    if (!text) {
-      if (shown?.held) drop();
-      return true;
+    // dismissResult emits nothing, so a closed or timed out result shows here as S.result moved on.
+    if (shown && !shown.gone && S.result !== r) {
+      shown = { ...shown, gone: true };
+      r = null;
+      back.clear();
     }
-    if (shown?.key === key) return true;
-    drop();
-    setResult({ kind, title: text, text: '' });
-    shown = { key, held, r: S.result };
-    res.replaceChildren(resultNode(S.result));
+    if (behind !== undefined && shown && !shown.gone) back.add(behind);
+    const step = bannerStep(shown, { text, kind, key, held: isHeld });
+    if (step.back) back.add(key);
+    if (step.changed) {
+      if (r) dismissResult(r);
+      r = null;
+      shown = step.shown;
+      if (shown) {
+        setResult({ kind: shown.kind, title: shown.title, text: shown.line });
+        r = S.result;
+        res.replaceChildren(resultNode(r));
+        said.textContent = shown.line ? `${shown.title}. ${shown.line}` : shown.title;
+      } else back.clear();
+    }
+    paintBack();
     return true;
   };
   return {
@@ -157,7 +187,7 @@ export function gridHead(ui, count, { onCopy } = {}) {
     finds,
     // The run calls this on each render and on each Levels box change.
     paintLevels,
-    // msg is { text, kind ('ok' or 'error'), key, held }. It gives false on the phone and in the Live Editor, which have
+    // msg is { text, kind ('ok' or 'error'), key, held, behind }. It gives false on the phone and in the Live Editor, which have
     // no banner here, so the run shows its status line.
     say,
     // p is the panel as read; mayOwn is true when a signed-in user runs the page, since only a user owns a panel.
