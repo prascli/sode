@@ -2,7 +2,7 @@ package app
 
 import "testing"
 
-// A saved Grid panel with no sources and no destinations, as a new one starts (E10). The page opens, says the panel
+// A saved Grid panel with no sources and no destinations, as a new one starts. The page opens, says the panel
 // shows nothing and links to the editor. The grid keys, the search keys and a press on Take do nothing and throw
 // nothing.
 func TestChromeGridPanelEmpty(t *testing.T) {

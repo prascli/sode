@@ -3,8 +3,8 @@
 // bar picks the names it passes. g is the drawn grid (gridpanelview.js). on: { start(a), move(b), end(b), cancel(),
 // name(kind, n, how), span(kind, from, to, add), spanEnd() }. Points are in crosspoint units. kind is 'srcs' or
 // 'dsts' and how is 'long' or 'double'. add is true with Cmd or Ctrl held.
-// touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls preventDefault only after the long-press
-// timer. A plain touch drag stays a native scroll.
+// touch-action cannot change after pointerdown. So touch uses Touch Events, and a non-passive touchmove calls
+// preventDefault only after the long-press timer. A plain touch drag stays a native scroll.
 import { isLine } from './gridpanelline.js';
 
 const LONG_MS = 450;

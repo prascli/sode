@@ -240,8 +240,8 @@ func TestChromeGridPanelScale(t *testing.T) {
 		t.Errorf("3 s with three staged spent %.0f ms on style recalc, want under 600", style)
 	}
 
-	// 50 pins on each edge, with no limit since 2026-11-17. The pinned bands draw only what half the room holds, and
-	// each band scrolls on its own (owner, 2026-11-17). The grid keeps its bounds.
+	// 50 pins on each edge, with no limit. The pinned bands draw only what half the room holds, and
+	// each band scrolls on its own. The grid keeps its bounds.
 	pins := func(from int) string {
 		p := make([]string, 50)
 		for i := range p {
