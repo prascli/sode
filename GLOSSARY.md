@@ -19,8 +19,17 @@ One of the parallel signal types (such as video or audio) that a source can be c
 _Avoid_: wire level, layer
 
 **Router name**:
-The name the router gives a source or destination. Sode cannot change it, and re-reads names from the router on a timer. Keep it apart from a user's name, a preset's name and a filter set's name.
+The name the router gives a source or destination. Sode cannot change it, and re-reads names from the router on a timer. Keep it apart from a user's name, a preset's name, a filter set's name and the router title.
 _Avoid_: label, refresh (for the re-read)
+
+**Router title**:
+The name a person gives a router in Sode, such as "Studio Ultrix". It is the router's own name, not the name of one of its sources or destinations.
+
+**Router prefix**:
+The one letter, A to Z, that names a router when typing or reading a source or destination, as in B.69 for router B's number 69. Each router on a server has its own. Sode hides it while there is only one router.
+
+**Router UID**:
+The hidden identity Sode gives a router when it is added. It never changes, never shows in the UI, and is what stored items and export files use to say which router they mean.
 
 **Route**:
 One source connected to one destination on a set of levels. A take sends one or more routes.
